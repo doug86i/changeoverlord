@@ -20,12 +20,32 @@ Open **http://\<server-ip\>** (port **80** by default — no port in the URL).
 - **Alternate host port** (e.g. 8080): see `compose.override.example.yml`.
 - **Offline after first pull**: images stay in Docker’s cache; no internet needed on show site.
 
+## Local development (live edits)
+
+Use the **dev** Compose override: it **bind-mounts** `docker/html/` and `docker/nginx/default.conf` into the `app` container so you can edit files on disk and **refresh the browser** — no image rebuild for HTML/CSS/JS in `docker/html/`.
+
+```bash
+make dev
+# open http://localhost/  (or http://127.0.0.1/)
+```
+
+- **Change `docker/html/`** (e.g. `index.html`) → save → reload the page; updates appear immediately.
+- **Change `Dockerfile`** → run **`make dev-watch`** in another terminal (foreground). Compose **watch** rebuilds the `app` image when the Dockerfile changes. Stop with Ctrl+C.
+- **Change `docker/nginx/default.conf`** → save, then reload nginx:  
+  `docker compose -f docker-compose.yml -f docker-compose.dev.yml exec app nginx -s reload`
+
+Stop the stack: `make dev-down`.
+
 ## Repository layout
 
 | Path | Purpose |
 |------|---------|
 | `docker-compose.yml` | Stack: Postgres, Redis, app |
+| `docker-compose.dev.yml` | Dev overrides: bind mounts + `watch` (Dockerfile rebuild) |
+| `docker/html/` | Static placeholder (mounted live in dev) |
+| `docker/nginx/default.conf` | Nginx site config (mounted live in dev) |
 | `Dockerfile` | App image (placeholder until UI/API land) |
+| `Makefile` | `make dev`, `make dev-watch`, `make dev-down` |
 | `.github/workflows/` | Build and push `app` image to **GHCR** |
 
 ## Status

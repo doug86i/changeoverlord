@@ -1,0 +1,15 @@
+# Local development: bind-mount static assets so edits are live without rebuilding.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# Optional (foreground): rebuild app image when Dockerfile changes
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml watch
+
+services:
+  app:
+    volumes:
+      - ./docker/html:/usr/share/nginx/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    develop:
+      watch:
+        - path: ./Dockerfile
+          action: rebuild
