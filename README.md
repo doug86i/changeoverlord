@@ -71,10 +71,11 @@ Stop: `make dev-down`.
 | `.env.example` | Optional `DATA_DIR`, `HOST_PORT`, `APP_IMAGE_TAG` |
 | `compose.override.example.yml` | Optional deeper overrides (prefer `.env` first) |
 | `.github/workflows/` | Build and push `app` image to **GHCR** |
+| `docs/PLAN.md` | Product vision, architecture, roadmap |
 
 ## Status
 
-**Early scaffold** — application features are tracked in project issues and the internal product plan. PRs welcome.
+**Early scaffold** — application features are tracked in project issues and **[`docs/PLAN.md`](docs/PLAN.md)** (product & engineering plan). PRs welcome.
 
 ## License
 
