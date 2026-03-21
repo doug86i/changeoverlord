@@ -11,7 +11,7 @@ import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { logDebug } from "../lib/debug";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
-import { MiniClock } from "../components/MiniClock";
+import { PatchPageSidebar } from "../components/PatchPageSidebar";
 
 const ORIGIN = "fortune-local";
 
@@ -182,8 +182,21 @@ export function PatchPage() {
       ? "status-warn"
       : "status-ok";
 
+  const showPatchSidebar = Boolean(
+    performanceId && stageDayId && day?.dayDate && day.stageId,
+  );
+
   return (
-    <div>
+    <div className={showPatchSidebar ? "patch-page-layout" : undefined}>
+      {showPatchSidebar && day && (
+        <PatchPageSidebar
+          performanceId={performanceId}
+          stageDayId={stageDayId}
+          dayDate={day.dayDate}
+          stageId={day.stageId}
+        />
+      )}
+      <div className={showPatchSidebar ? "patch-page-main" : undefined}>
       <p className="muted" style={{ marginTop: 0 }}>
         {stage && day && (
           <>
@@ -220,7 +233,6 @@ export function PatchPage() {
       >
         <h1 style={{ margin: 0 }}>Patch &amp; RF — {perf.bandName}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <MiniClock />
           <span className={`${connClass}`} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
             ● {connLabel}
           </span>
@@ -246,6 +258,7 @@ export function PatchPage() {
             showSheetTabs
           />
         </PatchWorkbookErrorBoundary>
+      </div>
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Web — Patch & RF:** A **sticky sidebar** on the patch workbook page with **server-synced local time**, **countdown** (same rules as the stage day clock: time left / until next / next act in / finished), **on stage** and **next** act for that day, **links** (files, stage clock, running order), and a **stage plot preview** when a file has purpose **`plot_pdf`** or **`plot_from_rider`** (performance files first, then stage files). Shared timing logic lives in **`stageDayClockMetrics.ts`**.
+
 - **Web — stage day:** Acts with **non-empty notes** show a **Note** badge next to the band name and a **highlighted Notes** control so it is obvious before expanding the notes field.
 
 - **Docker build:** Split **api** and **web** `npm run build` into separate Dockerfile layers so changes in one workspace reuse the other’s cached build; BuildKit cache mounts for **tsc** incremental (`api/.cache`) and **Vite** (`node_modules/.vite`). **`api/tsconfig.json`** enables incremental builds. **`make dev-app`** rebuilds only the app image. See **`docs/DEVELOPMENT.md`** → *Faster Docker rebuilds*.
