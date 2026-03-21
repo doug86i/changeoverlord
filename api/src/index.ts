@@ -4,6 +4,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { db } from "./db/client.js";
 import { buildApp } from "./app.js";
 import { createLogger, log } from "./lib/log.js";
+import { flushAllYjsDocs } from "./lib/yjs-persistence.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function runMigrations() {
@@ -22,6 +23,26 @@ async function main() {
   const app = await buildApp();
   await app.listen({ port, host });
   log.info({ port, host }, "server listening");
+
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    log.info({ signal }, "graceful shutdown started");
+    try {
+      await flushAllYjsDocs();
+    } catch (err) {
+      log.error({ err }, "error flushing Yjs docs during shutdown");
+    }
+    try {
+      await app.close();
+    } catch (err) {
+      log.error({ err }, "error closing Fastify during shutdown");
+    }
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
 main().catch((err) => {

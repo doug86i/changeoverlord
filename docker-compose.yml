@@ -51,6 +51,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    init: true
+    stop_grace_period: 15s
     healthcheck:
       test:
         [

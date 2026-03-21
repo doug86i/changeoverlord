@@ -63,7 +63,13 @@ The **FortuneSheet / Yjs** workbook uses **WebSockets** at **`/ws/v1/collab/:per
 - **Do not** send workbook updates through `/api/v1/realtime`.
 - **Do not** move schedule/performance rows into Yjs “to get realtime” — use REST + invalidation above.
 
-Persistence: **`performance_yjs_snapshots`**; stage **default template** clone on new performance — see schema and `docs/DECISIONS.md`.
+Persistence: **`performance_yjs_snapshots`** and **`patch_templates.snapshot`**; stage **default template** clone on new performance — see schema and `docs/DECISIONS.md`.
+
+**Yjs persistence details** (`api/src/lib/yjs-persistence.ts`):
+
+- **Debounce:** changes are persisted to Postgres **1 second** after the last edit (debounced). Previously 3 seconds.
+- **Graceful shutdown:** on **SIGTERM / SIGINT**, all active Yjs docs are flushed to Postgres before the process exits. Without this, edits in the debounce window are lost on container restart.
+- **OpLog compaction:** when the append-only `opLog` exceeds **200 entries**, the persist layer replays it to the current sheet state and replaces it with a single `replace luckysheetfile` op. This keeps snapshots small and page-load replay fast.
 
 ---
 
