@@ -29,6 +29,14 @@ export function usePatchWorkbookOpLogEffects(
     hydratedRef.current = false;
   }, [roomId]);
 
+  // React Strict Mode (and leaving the route) unmounts then remounts with the same roomId.
+  // hydratedRef would otherwise stay true → replay is skipped → FortuneSheet remounts empty.
+  useEffect(() => {
+    return () => {
+      hydratedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     const handler = (event: YArrayEvent<string>, transaction: Transaction) => {
       if (!hydratedRef.current) return;
