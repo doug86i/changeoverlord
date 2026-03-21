@@ -36,7 +36,8 @@ Canonical choices before implementation. Update when something changes.
 ### Visual UI
 
 - **Two first-class themes**: **light** (daylight / outdoor prep) and **dark** (venue). Shared **design tokens** (spacing, type, radius, colours) — **no** one-off screens.
-- **Default** follows **`prefers-color-scheme`**; **manual** theme toggle in Settings (persist locally). Details: **[`DESIGN.md`](DESIGN.md)**.
+- **Brand accent** from **DHSL logo** — **industrial red** for interactive / “now” emphasis; **re-sample** hex from bundled **`dhsl-logo.svg`** when added. See **[`DESIGN.md`](DESIGN.md)**.
+- **Default** follows **`prefers-color-scheme`**; **manual** theme toggle in Settings (persist locally).
 
 ### Internationalisation
 

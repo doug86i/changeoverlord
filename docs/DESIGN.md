@@ -15,6 +15,22 @@ Goals: **clean**, **modern**, and **consistent** across the app — readable in 
 
 ---
 
+## DHSL logo → UI (brand cues)
+
+The **Doug Hunt** wordmark drives palette and personality; the **app chrome** stays calm so schedules and grids stay readable.
+
+| Cue from logo | In the product |
+|---------------|----------------|
+| **Industrial red** | **Primary accent** — links, focus rings, **“now playing”** row, primary buttons. Starting token **`--color-brand`** ≈ **`#E30613`** — **re-sample** from your official **`dhsl-logo.svg`** when it lands in **`web/public/branding/`**. |
+| **Wide, geometric caps** | **Optional** wide **`letter-spacing`** on the **app title** or section headers only — **not** on body copy or spreadsheet cells. |
+| **Slight rounding** on letterforms | **Consistent border-radius** on controls and cards (e.g. **6–8px**) — crisp, not playful blobs. |
+| **Metallic / lit gradient** inside letters | **Logo-only** treatment. **No** large gradients on **running order**, **clock**, or **sheet** — those stay **flat**; a **thin** focus ring or **subtle** hover on accent controls is enough. |
+| **High contrast** | Red reads on **white** (daylight) and on **near-black** (venue) — same accent in **both** themes. |
+
+**Neutrals:** use **cool** greys for backgrounds and borders so the **red** stays the single loud colour.
+
+---
+
 ## Light and dark (two first-class themes)
 
 | Context | Theme | Why |
@@ -34,7 +50,7 @@ Define **CSS variables** (or Tailwind theme extension) once, used everywhere:
 
 - **Background / surface / elevated** — 2–3 layers (e.g. page, card, modal).
 - **Text** — primary, secondary, muted; **never** rely on grey-on-grey below **WCAG AA** contrast for body copy.
-- **Accent** — **one** primary accent (e.g. teal/blue) for links, focus, “now playing”; **one** semantic set (success / warning / danger) for schedule state.
+- **Accent** — **one** primary accent: **DHSL brand red** (see above) for links, focus, “now playing”; **one** semantic set (success / warning / danger) for schedule state — **success** may stay green; **danger** must remain distinct from **brand** red (use a different hue or iconography).
 - **Borders** — hairline separators; slightly stronger in dark mode so panels don’t blur together.
 - **Radius** — one **small** radius (inputs, chips) and one **medium** (cards, sheets) — **no** mixed radii on the same page.
 
@@ -56,7 +72,8 @@ Typography: **one sans family** (system stack or a single bundled webfont for of
 ## Branding (within the system)
 
 - **Client logo** in header: **contained** in a predictable slot; **no** stretching full-bleed behind content.
-- **DHSL footer** uses **tokens** (muted text + logo) so it stays legible on **light** and **dark**.
+- **DHSL footer** — wordmark + “Powered by…” uses **`--color-brand`** (or monochrome variant of the logo file for dark backgrounds); must pass contrast checks on **both** themes.
+- **Canonical files** — see **`web/public/branding/README.md`**.
 
 ---
 

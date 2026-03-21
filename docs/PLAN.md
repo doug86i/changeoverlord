@@ -243,7 +243,7 @@ These integrations are **additive**: the **file-based** export/import remains th
 - **Bundled assets**: ship DHSL logo(s) in the frontend bundle (e.g. `web/public/branding/dhsl-logo.svg`) — **no** reliance on live hotlinking for LAN/offline. Prefer a clean horizontal lockup from source art (avoid depending on arbitrary URLs from third-party sites).
 - **Accessibility**: footer readable on **dark** and **light** themes.
 
-**Visual design** (clean/modern, **two themes** — daylight + dark venue, shared tokens): **[`DESIGN.md`](DESIGN.md)**.
+**Visual design** (clean/modern, **two themes** — daylight + dark venue, **accent** from **DHSL** wordmark — industrial red, wide geometric caps as reference): **[`DESIGN.md`](DESIGN.md)**.
 
 ---
 
