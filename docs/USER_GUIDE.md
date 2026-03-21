@@ -82,8 +82,18 @@ Typical URL shape as you drill in: `/events/:eventId` → `/stages/:stageId` →
 Each **performance** can have a **patch / RF workbook** — a multi-sheet grid (e.g. **Input**, **RF**) that **multiple people can edit at once** in real time.
 
 - Open the workbook from the **stage day** view: each performance row has a **Patch / RF** link to `/patch/:performanceId`.
-- The app opens a **full-width** spreadsheet view (`/patch/:performanceId`).
+- The app opens the spreadsheet with a **context sidebar** on wide screens (`/patch/:performanceId`); on narrow screens the sidebar stacks **above** the grid.
 - **Collaboration** uses a live connection to the server; keep the tab open while editing.
+
+### Patch page sidebar (stay on the sheet)
+
+On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** helps you avoid jumping to other tabs:
+
+- **Local time** — server-synced wall clock.
+- **Countdown** — same idea as the **stage day clock** (time left on the current act, time until the next act, or “finished” when the day is done).
+- **On stage** and **Next** — who is playing now and who follows, for that day.
+- **Quick links** — **Files** for this performance (riders, plots), **Stage clock** (fullscreen day clock), and **Running order** for that day.
+- **Stage plot** — if a file is uploaded with purpose **plot** (see **Files** below), a **preview** appears here (performance files are preferred over stage-level files).
 
 ### Band-to-band navigation
 
@@ -91,8 +101,7 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 - **← Previous** and **Next →** to jump between acts on the same day.
 - A **dropdown** to jump to any act directly.
 - **Alt+← / Alt+→** keyboard shortcuts for quick switching.
-- A **mini clock** showing server-synced time.
-- Connection status with colour: green (live), amber (syncing), red (error).
+- On the **patch** page, **time** and **countdown** are in the **sidebar** (see above). Connection status is next to the page title: green (live), amber (syncing), red (error).
 
 ### Templates (shared library)
 
