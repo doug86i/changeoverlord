@@ -90,6 +90,41 @@ const NATIVE_JSON_SHEET_PASSTHROUGH: (keyof Sheet)[] = [
 
 export type NormalizeSheetOptions = { nativeJson?: boolean };
 
+type CalcChainEntry = { r: number; c: number; id: string; index: string };
+
+/**
+ * Build `calcChain` from existing chain or by scanning the data matrix.
+ * FortuneSheet's incremental recalc (`execFunctionGroup`) only re-evaluates
+ * formulas registered here — without entries, cell edits never trigger
+ * formula updates.
+ */
+function buildCalcChain(
+  raw: RawFortuneSheet,
+  data: CellMatrix,
+): CalcChainEntry[] {
+  const sheetId = String(raw.id ?? "");
+  const existing =
+    Array.isArray(raw.calcChain) && raw.calcChain.length
+      ? (raw.calcChain as CalcChainEntry[])
+      : [];
+
+  const seen = new Set<string>();
+  for (const e of existing) seen.add(`${e.r},${e.c}`);
+
+  const chain = [...existing];
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r];
+    if (!row) continue;
+    for (let c = 0; c < row.length; c++) {
+      const cell = row[c];
+      if (cell?.f && !seen.has(`${r},${c}`)) {
+        chain.push({ r, c, id: sheetId, index: sheetId });
+      }
+    }
+  }
+  return chain;
+}
+
 /**
  * Build a clean FortuneSheet `Sheet` from raw workbook data.
  *
@@ -162,9 +197,7 @@ export function normalizeSheetFromRaw(
     ...(typeof raw.defaultRowHeight === "number"
       ? { defaultRowHeight: raw.defaultRowHeight }
       : {}),
-    ...(Array.isArray(raw.calcChain) && raw.calcChain.length
-      ? { calcChain: raw.calcChain }
-      : {}),
+    calcChain: buildCalcChain(raw, data),
     ...(raw.hide === 1 ? { hide: 1 } : {}),
   };
 

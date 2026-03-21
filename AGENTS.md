@@ -118,7 +118,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 ## Known constraints (read before making changes)
 
 - **Yjs version pin**: `@y/protocols` must stay at `1.0.6-1` and `yjs` at `13.6.30`. The `@y/websocket-server` package wants Yjs 14 (`@y/y`), but the rest of the app uses Yjs 13. Upgrading without careful testing will break WebSocket connections. See [`docs/DECISIONS.md`](docs/DECISIONS.md) for details.
-- **FortuneSheet**: Core spreadsheet dependency. Collaboration uses its `onOp`/`applyOp` API with a Yjs `opLog` (append-only `Y.Array` of serialized ops). This means server-side state reconstruction from the opLog is not possible without reimplementing FortuneSheet's op application logic. The Yjs snapshot (stored in DB) is the source of truth for workbook state; the `.xlsx` file on disk reflects the state at upload/creation time only. **Upstream bugs** may be fixed via **`patches/`** + **`patch-package`** (see **Docker image: patches and dependencies** above); prefer **upstream PRs** when practical.
+- **FortuneSheet**: Core spreadsheet dependency. Collaboration uses its `onOp`/`applyOp` API with a Yjs `opLog` (append-only `Y.Array` of serialized ops). **Server-side decode** for export/preview clones replays the opLog in **`api/src/lib/yjs-oplog-replay.ts`** (direct JSON mutation — not Immer `applyPatches`, which must capture return values). The Yjs snapshot in **Postgres** is the source of truth for live workbook state; the **`.xlsx`** / **`.json`** on disk is the upload artifact only until replaced. **Upstream bugs** may be fixed via **`patches/`** + **`patch-package`** (see **Docker image: patches and dependencies** above); prefer **upstream PRs** when practical.
 - **In-process EventEmitter**: SSE invalidation uses an in-process bus. The app is designed for a single API instance. Adding a second replica requires Redis pub/sub or Postgres `LISTEN/NOTIFY` — see [`docs/REALTIME.md`](docs/REALTIME.md).
 - **No Redis**: Redis is not in the stack. Do not attempt to use Redis clients without first adding the service to `docker-compose.yml`.
 - **Container runs as `node` user**: The Dockerfile switches to a non-root user. Ensure file writes (uploads) go to the mounted volume at `UPLOADS_DIR`.
@@ -169,6 +169,7 @@ api/
       sheet-preview.ts    # Sheet[] → preview JSON
       yjs-persistence.ts  # Yjs doc save/load (Postgres snapshots)
       yjs-template-snapshot.ts  # encode/decode template Yjs snapshots
+      yjs-oplog-replay.ts       # replay persisted opLog → Sheet[] (export + decode fallback)
       performance-overlap.ts    # schedule validation helpers (same-day intervals)
       session-token.ts    # HMAC session cookie
   drizzle/
@@ -215,6 +216,21 @@ web/
       useLastVisited.ts    # last-visited stage-day id (localStorage key exported)
       myStageToday.ts      # resolve /stage-days/:id for “today” (My stage today nav)
 ```
+
+## Handoff — next agent (patch templates / FortuneSheet)
+
+**Last consolidated commit:** patch workbook export replay, **`calcChain`** generation, blank-template **`data`** matrices, DH v6 example + builder script, root **`build:test`** / **`docker:build:app`** scripts.
+
+1. **Verify end-to-end** (Docker must be running — `docker info`):
+   - **`make dev`** or **`npm run docker:build:app`** then **`docker compose up -d app`**.
+   - **`GET /api/v1/health`**, open **`http://localhost/`** (or **`HOST_PORT`**).
+2. **Blank template:** Create **Settings → Create blank template**, edit cells, reload editor — edits should persist (depends on **`data`** + Yjs; see **`api/src/lib/default-patch-sheets.ts`**, **`web/src/lib/patchWorkbookCollab.ts`** **`WORKBOOK_PLACEHOLDER`**).
+3. **DH starter:** Import **`examples/DH_Pick_Patch_TEMPLATE_v6.json`** via **Import workbook JSON** or **`PUT /api/v1/patch-templates/:id/sheets-import`** to refresh a library template; confirm cross-sheet formulas and **Export JSON** match live state.
+4. **Regenerate v6:** **`node scripts/build-dh-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v6.json`** — then commit if structure changes.
+5. **Open questions (if user still reports issues):** First-paint formula display vs **`calculateFormula`** (headless **`execfunction`** works); merge / **“Merge info is null”** console noise; FortuneSheet **`deleteRowCol`** adjusting formulas on other sheets (known upstream risk — prefer JSON import to reset).
+6. **Docs:** Keep **`docs/PATCH_TEMPLATE_JSON.md`** and **`docs/USER_GUIDE.md`** aligned if export/import or blank-template behaviour changes (**`docs/MAINTAINING_DOCS.md`**).
+
+---
 
 ## Cursor rules
 

@@ -8,7 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **API — patch workbooks:** **`GET …/sheets-export`** (templates and performances) now rebuilds **`Sheet[]`** by **replaying the full persisted Yjs `opLog`** through FortuneSheet’s **`opToPatch`** and **Immer `applyPatches`** (same idea as the browser **`Workbook.applyOp`**). Previously the server only read the last **`replace luckysheetfile`** batch, so **Export JSON** matched the **upload**, not edits saved in the template editor or patch page.
+- **API — patch workbooks:** **`GET …/sheets-export`** now replays the full persisted **Yjs `opLog`** as **direct JSON mutations** (set-at-path, splice for row/column ops). The previous implementation routed ops through FortuneSheet’s `opToPatch` + Immer `applyPatches`, but the return value of `applyPatches` was never captured — every edit after the initial upload was silently discarded. Exports now match the live collaborative state. **`immer`** removed from API dependencies.
+
+- **API — formula recalculation:** **`normalizeSheetFromRaw`** now **builds `calcChain`** from the data matrix when the source (Excel or JSON) omits it. FortuneSheet’s incremental recalc (`execFunctionGroup`) only re-evaluates formulas registered in `calcChain` — without entries, cell edits never trigger formula updates. The opLog replay also fills missing entries on exported sheets.
+
+- **API — patch templates:** **`POST …/patch-templates/blank`** now seeds each sheet with a dense **`data`** matrix (null cells) and an empty **`calcChain`**. Previously blank workbooks had **no** `data` array, so FortuneSheet/Yjs cell ops could not persist reliably.
+
+- **Web — patch workbook placeholder:** **`WORKBOOK_PLACEHOLDER`** includes **`data`** and **`calcChain`** so the pre-sync mount matches what FortuneSheet expects.
+
+### Added
+
+- **`examples/DH_Pick_Patch_TEMPLATE_v6.json`** — clean four-sheet DH Pick & Patch starter (rebuilt; **`changeoverlordWorkbook: 1`** envelope).
+
+- **`scripts/build-dh-template.mjs`** — regenerates v6 JSON (`node scripts/build-dh-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v6.json`).
+
+- **Root `package.json` scripts:** **`build:test`** (api then web) and **`docker:build:app`** (`docker compose build app`).
 
 - **Web — patch / template workbook:** After the initial **Yjs opLog** replay, the grid runs **`calculateFormula`** twice (covers cross-sheet dependency order). **Imported** or **synced** workbooks with cross-sheet formulas (e.g. **SatBox** labels reading **Channel List**) now show evaluated values instead of staying stale. **`onOp`** is ignored during that pass so formula value patches are **not** appended to **Yjs**.
 

@@ -18,7 +18,16 @@ import {
 
 /** Minimal valid sheet so `<Workbook>` can mount. Yjs opLog replay overwrites immediately. */
 export const WORKBOOK_PLACEHOLDER: Sheet[] = [
-  { id: "placeholder", name: "Sheet1", status: 1, row: 36, column: 18, order: 0 },
+  {
+    id: "placeholder",
+    name: "Sheet1",
+    status: 1,
+    row: 36,
+    column: 18,
+    order: 0,
+    data: Array.from({ length: 36 }, () => Array.from({ length: 18 }, () => null)),
+    calcChain: [],
+  },
 ];
 
 export type PatchWorkbookCollabMode = "performance" | "template";
