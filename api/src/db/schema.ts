@@ -100,7 +100,7 @@ export const fileAssets = pgTable("file_assets", {
   storageKey: text("storage_key").notNull().unique(),
   mimeType: text("mime_type").notNull(),
   byteSize: integer("byte_size").notNull(),
-  /** rider_pdf (any rider attachment type), plot_pdf, plot_from_rider, generic */
+  /** rider_pdf, plot_pdf (stage plot / single-page extract), generic (other) */
   purpose: text("purpose").notNull(),
   stageId: uuid("stage_id").references(() => stages.id, { onDelete: "set null" }),
   performanceId: uuid("performance_id").references(() => performances.id, {

@@ -33,6 +33,9 @@ RUN --mount=type=cache,target=/build/node_modules/.vite \
 FROM node:22-alpine AS runner
 WORKDIR /app
 
+# Poppler `pdftoppm` — server-side PDF page thumbnails (no pdf.js in the browser).
+RUN apk add --no-cache poppler-utils
+
 ENV NODE_ENV=production
 ENV PORT=80
 ENV WEB_PUBLIC_DIR=/app/public

@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
@@ -11,6 +11,7 @@ import {
   extractPdfPageToBuffer,
   getPdfPageCount,
 } from "../../lib/pdf.js";
+import { renderPdfThumbnailsJpegDataUrls } from "../../lib/pdf-thumbnails.js";
 import {
   isAllowedRiderAttachment,
   normalizeRiderMime,
@@ -26,12 +27,7 @@ import { uuidParam } from "../../schemas/api.js";
 
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 
-const purposeEnum = z.enum([
-  "rider_pdf",
-  "plot_pdf",
-  "plot_from_rider",
-  "generic",
-]);
+const purposeEnum = z.enum(["rider_pdf", "plot_pdf", "generic"]);
 
 const listQuery = z
   .object({
@@ -46,7 +42,6 @@ const uploadQuery = z
   .object({
     stageId: z.string().uuid().optional(),
     performanceId: z.string().uuid().optional(),
-    purpose: purposeEnum.default("rider_pdf"),
   })
   .refine((q) => (q.stageId ? 1 : 0) + (q.performanceId ? 1 : 0) === 1, {
     message: "Provide exactly one of stageId or performanceId",
@@ -92,10 +87,12 @@ function invalidateFileQueries(stageId: string, performanceId: string | null) {
   broadcastInvalidate(keys);
 }
 
-const PLOT_PURPOSES = ["plot_pdf", "plot_from_rider"] as const;
-
 function isPlotPurpose(purpose: string): boolean {
-  return purpose === "plot_pdf" || purpose === "plot_from_rider";
+  return purpose === "plot_pdf";
+}
+
+function isRiderPurpose(purpose: string): boolean {
+  return purpose === "rider_pdf";
 }
 
 /** At most one plot per scope (stage row or performance row). Demote others to `generic`. */
@@ -116,7 +113,30 @@ async function demoteOtherPlotsInScope(
       and(
         scope,
         ne(fileAssets.id, exceptFileId),
-        inArray(fileAssets.purpose, [...PLOT_PURPOSES]),
+        eq(fileAssets.purpose, "plot_pdf"),
+      ),
+    );
+}
+
+/** At most one rider per scope. Demote others to `generic`. */
+async function demoteOtherRidersInScope(
+  stageId: string,
+  performanceId: string | null,
+  exceptFileId: string,
+): Promise<void> {
+  const scope =
+    performanceId === null
+      ? and(eq(fileAssets.stageId, stageId), isNull(fileAssets.performanceId))
+      : and(eq(fileAssets.stageId, stageId), eq(fileAssets.performanceId, performanceId));
+
+  await db
+    .update(fileAssets)
+    .set({ purpose: "generic" })
+    .where(
+      and(
+        scope,
+        ne(fileAssets.id, exceptFileId),
+        eq(fileAssets.purpose, "rider_pdf"),
       ),
     );
 }
@@ -238,7 +258,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         storageKey,
         mimeType: storedMime,
         byteSize: buf.length,
-        purpose: q.purpose,
+        purpose: "generic",
         stageId,
         performanceId,
         parentFileId: null,
@@ -253,10 +273,6 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         parentFileId: fileAssets.parentFileId,
         createdAt: fileAssets.createdAt,
       });
-
-    if (isPlotPurpose(q.purpose)) {
-      await demoteOtherPlotsInScope(stageId, performanceId, row.id);
-    }
 
     invalidateFileQueries(stageId, performanceId);
     req.log.debug(
@@ -303,6 +319,30 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
+  app.get("/files/:id/page-previews", async (req, reply) => {
+    const { id } = uuidParam.parse(req.params);
+    const [row] = await db.select().from(fileAssets).where(eq(fileAssets.id, id));
+    if (!row) return reply.code(404).send({ error: "NotFound" });
+    if (row.mimeType !== "application/pdf") {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: "Not a PDF",
+      });
+    }
+    const abs = path.join(getUploadsDir(), row.storageKey);
+    try {
+      const { pageCount, thumbnails } = await renderPdfThumbnailsJpegDataUrls(abs);
+      return { pageCount, thumbnails };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      req.log.warn({ fileId: id, err: msg }, "page previews failed");
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: "Could not build page previews (install poppler / check PDF)",
+      });
+    }
+  });
+
   app.patch("/files/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
     const body = patchFileBody.parse(req.body);
@@ -329,6 +369,10 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     const row = updated!;
     if (row.stageId && isPlotPurpose(body.purpose)) {
       await demoteOtherPlotsInScope(row.stageId, row.performanceId, row.id);
+    }
+
+    if (row.stageId && isRiderPurpose(body.purpose)) {
+      await demoteOtherRidersInScope(row.stageId, row.performanceId, row.id);
     }
 
     if (row.stageId) {
@@ -411,7 +455,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         storageKey,
         mimeType: "application/pdf",
         byteSize: outBuf.length,
-        purpose: "plot_from_rider",
+        purpose: "plot_pdf",
         stageId: parent.stageId,
         performanceId: parent.performanceId,
         parentFileId: parent.id,

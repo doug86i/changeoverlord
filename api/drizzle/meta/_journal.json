@@ -36,6 +36,13 @@
       "when": 1742600000000,
       "tag": "0004_file_assets_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1742700000000,
+      "tag": "0005_file_purpose_drop_plot_from_rider",
+      "breakpoints": true
     }
   ]
 }
