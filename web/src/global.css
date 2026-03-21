@@ -417,6 +417,26 @@ textarea {
   border-left: 3px solid var(--color-warning);
 }
 
+.perf-note-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.45em;
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-on-brand);
+  background: var(--color-brand);
+  white-space: nowrap;
+}
+
+.icon-btn.perf-notes-btn--has:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-brand) 50%, var(--color-border));
+  color: var(--color-brand);
+  font-weight: 600;
+}
+
 /* ── Overlap warning ──────────────────────────────────────── */
 
 .perf-overlap {

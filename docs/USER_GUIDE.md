@@ -58,7 +58,7 @@ A **banner** appears at the top of the screen when the connection to the server 
 
 On the **stage day page**, each performance supports:
 - **Inline editing** — Click band name, start time, or end time to edit in place.
-- **Notes** — Expand the notes section to add/edit notes for each act.
+- **Notes** — Expand the notes section to add/edit notes for each act. When an act **has notes**, a **Note** badge appears next to the band name and the **Notes** button is highlighted so you can see it without opening the section (hover the badge for a text preview).
 - **Duplicate** — Adds a copy **after the last act** (with spacing so times do not overlap). If more than one act is listed, the **last** act must have an **end time** first. The copy uses the same duration as the original when possible.
 - **Delete** — Remove with confirmation.
 - **Duration display** — Shows calculated duration (e.g. "45 min") and changeover time between acts.

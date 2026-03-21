@@ -634,6 +634,7 @@ export function StageDayPage() {
           const changeoverMin = minutesBetween(prevEnd, p.startTime);
           const hasOverlap = overlappingIds.has(p.id);
           const isSwapSource = swapSourceId === p.id;
+          const hasNotes = Boolean(p.notes?.trim());
 
           const timeClass = isNow
             ? dur !== null && dur > 0
@@ -696,6 +697,14 @@ export function StageDayPage() {
                       />
                       {isNow && <span className="status-ok" style={{ fontSize: "0.75rem", fontWeight: 600 }}>● ON STAGE</span>}
                       {isNext && <span className="status-warn" style={{ fontSize: "0.75rem", fontWeight: 600 }}>● NEXT</span>}
+                      {hasNotes && (
+                        <span
+                          className="perf-note-badge"
+                          title={p.notes.trim().slice(0, 500)}
+                        >
+                          Note
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div
@@ -754,8 +763,8 @@ export function StageDayPage() {
                     </Link>
                     <button
                       type="button"
-                      className="icon-btn"
-                      title="Notes"
+                      className={`icon-btn${hasNotes ? " perf-notes-btn--has" : ""}`}
+                      title={hasNotes ? "Notes (this act has notes)" : "Notes"}
                       onClick={() => toggleNotes(p.id)}
                       style={{ fontSize: "0.8rem" }}
                     >
