@@ -98,6 +98,13 @@ On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** k
 
 The spreadsheet **toolbar, formula bar, and sheet tabs** use the app’s **sans-serif** font and theme colours; **cell selection** uses **FortuneSheet’s default** styling. **Text you type** in the active cell is shown in **high-contrast** colour so it stays readable on the edit box.
 
+### Rows, columns, and scrolling
+
+- The grid starts with a fixed number of **rows** and **columns**; you can **scroll** right or down to use cells beyond what fits on screen.
+- To **add columns**: **right-click** a **column letter** (the header above the grid, e.g. A, B, C) and choose **Insert columns** (you can insert before or after the selection).
+- To **add rows**: **right-click** a **row number** on the left and choose **Insert rows**.
+- Extra toolbar actions (e.g. freeze panes) may appear under **More** on the toolbar.
+
 ### Band-to-band navigation
 
 When viewing a patch workbook or performance files, a **navigation bar** shows:
