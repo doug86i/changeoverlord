@@ -29,7 +29,7 @@ function FilePurposeToggle({
   return (
     <div>
       <span className="muted" style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.35rem" }}>
-        Use as
+        Use as:
       </span>
       <div className="file-purpose-toggle">
         <button
@@ -51,11 +51,6 @@ function FilePurposeToggle({
           Stage plot
         </button>
       </div>
-      {!isRider && !isPlot && (
-        <p className="muted" style={{ fontSize: "0.75rem", margin: "0.35rem 0 0" }}>
-          Other — choose Rider or Stage plot, or leave as general attachments.
-        </p>
-      )}
     </div>
   );
 }
@@ -114,6 +109,12 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
     onSuccess: () => { void qc.invalidateQueries({ queryKey }); setExtractOpen(false); },
   });
 
+  const convertToPdf = useMutation({
+    mutationFn: () =>
+      apiSend<{ file: FileAssetRow }>(`/api/v1/files/${f.id}/convert-to-pdf`, "POST"),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey }); },
+  });
+
   const patchPurpose = useMutation({
     mutationFn: (next: FileAssetPurpose) =>
       apiSend<{ file: FileAssetRow }>(`/api/v1/files/${f.id}`, "PATCH", { purpose: next }),
@@ -137,6 +138,7 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
 
   const pageCount = previewsQ.data?.pageCount ?? 0;
   const thumbs = previewsQ.data?.thumbnails ?? [];
+  const canConvert = Boolean(f.canConvertToPdf);
 
   useEffect(() => {
     if (pageCount > 0 && pageIndex > pageCount) setPageIndex(pageCount);
@@ -183,6 +185,17 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
             >
               Open
             </a>
+            {canConvert && !isPdf && (
+              <button
+                type="button"
+                className="icon-btn"
+                disabled={convertToPdf.isPending}
+                onClick={() => convertToPdf.mutate()}
+                title="Create a PDF copy on the server (images, Word/ODT/RTF, plain text)"
+              >
+                {convertToPdf.isPending ? "Converting…" : "Convert to PDF"}
+              </button>
+            )}
             {isPdf && (
               <button type="button" className="icon-btn" onClick={openExtract} title="Extract one page as a new PDF">
                 Extract
@@ -193,6 +206,11 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
             </button>
           </div>
         </div>
+        {convertToPdf.isError && (
+          <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.85rem", margin: "0.35rem 0 0" }}>
+            {(convertToPdf.error as Error).message}
+          </p>
+        )}
         {extractOpen && isPdf && (
           <div
             style={{
@@ -365,7 +383,8 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
       <div className="title-bar" style={{ marginBottom: "0.75rem" }}>{title}</div>
 
       <p className="muted" style={{ fontSize: "0.9rem", marginBottom: "0.65rem" }}>
-        New uploads start as <strong>Other</strong>. Use <strong>Rider</strong> or <strong>Stage plot</strong> on each row to classify.
+        New uploads start as <strong>Other</strong>. Use <strong>Rider</strong> or <strong>Stage plot</strong> on each row.
+        When <strong>Convert to PDF</strong> appears, the server can turn images, Word/ODT/RTF, or plain text into a PDF so you can <strong>Extract</strong> a page.
       </p>
 
       {/* Drop zone */}

@@ -174,6 +174,7 @@ All uploaded files (patch templates, riders, plots) live on the **server's data 
 - **Drag and drop** — Drop files directly onto the upload zone, or click to browse.
 - **View** — Open a **PDF** in an inline viewer without leaving the page.
 - **Open** — Open the file in a **new browser tab** (same control style as **View** — compact **button-shaped** actions).
+- **Convert to PDF** — When the button appears (images, Word/ODT/RTF, plain text), the **server** creates a **new PDF attachment** linked to the original. You can then use **Extract** on that PDF. The original file is unchanged.
 - **Extract** — For **PDFs** only: click **Extract**, then **choose a page** from the **thumbnail previews** (rendered on the server), and **Extract as new PDF** to save a **single-page** copy. The original PDF is unchanged; the extract is the **Stage plot** for that list unless you change it.
 - **Delete** — Remove files with confirmation.
 

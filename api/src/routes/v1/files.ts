@@ -13,6 +13,10 @@ import {
 } from "../../lib/pdf.js";
 import { renderPdfThumbnailsJpegDataUrls } from "../../lib/pdf-thumbnails.js";
 import {
+  canConvertToPdf as fileCanConvertToPdf,
+  convertFileToPdfBuffer,
+} from "../../lib/convert-to-pdf.js";
+import {
   isAllowedRiderAttachment,
   normalizeRiderMime,
   riderStorageExtension,
@@ -57,6 +61,35 @@ const patchFileBody = z.object({
 
 function safeFilename(name: string): string {
   return name.replace(/[^\w.\- ()]+/g, "_").slice(0, 200);
+}
+
+function toFileJson(
+  row: {
+    id: string;
+    originalName: string;
+    mimeType: string;
+    byteSize: number;
+    purpose: string;
+    stageId: string | null;
+    performanceId: string | null;
+    parentFileId: string | null;
+    createdAt: Date;
+  },
+  extra?: { pageCount?: number },
+) {
+  return {
+    id: row.id,
+    originalName: row.originalName,
+    mimeType: row.mimeType,
+    byteSize: row.byteSize,
+    purpose: row.purpose,
+    stageId: row.stageId,
+    performanceId: row.performanceId,
+    parentFileId: row.parentFileId,
+    createdAt: row.createdAt.toISOString(),
+    canConvertToPdf: fileCanConvertToPdf(row.mimeType, row.originalName),
+    ...(extra ?? {}),
+  };
 }
 
 async function resolvePerformanceStageId(
@@ -162,7 +195,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         .where(eq(fileAssets.performanceId, q.performanceId))
         .orderBy(desc(fileAssets.createdAt))
         .limit(200);
-      return { files: rows };
+      return { files: rows.map((r) => toFileJson(r)) };
     }
 
     const rows = await db
@@ -187,7 +220,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       .orderBy(desc(fileAssets.createdAt))
       .limit(200);
 
-    return { files: rows };
+    return { files: rows.map((r) => toFileJson(r)) };
   });
 
   app.post("/files", async (req, reply) => {
@@ -266,6 +299,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       .returning({
         id: fileAssets.id,
         originalName: fileAssets.originalName,
+        mimeType: fileAssets.mimeType,
         byteSize: fileAssets.byteSize,
         purpose: fileAssets.purpose,
         stageId: fileAssets.stageId,
@@ -281,11 +315,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     );
 
     return reply.code(201).send({
-      file: {
-        ...row,
-        ...(pageCount != null ? { pageCount } : {}),
-        createdAt: row.createdAt.toISOString(),
-      },
+      file: toFileJson(row, pageCount != null ? { pageCount } : undefined),
     });
   });
 
@@ -304,18 +334,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       }
     }
     return {
-      file: {
-        id: row.id,
-        originalName: row.originalName,
-        mimeType: row.mimeType,
-        byteSize: row.byteSize,
-        purpose: row.purpose,
-        stageId: row.stageId,
-        performanceId: row.performanceId,
-        parentFileId: row.parentFileId,
-        createdAt: row.createdAt.toISOString(),
-        pageCount,
-      },
+      file: toFileJson(row, pageCount != null ? { pageCount } : undefined),
     };
   });
 
@@ -382,17 +401,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     req.log.debug({ fileId: id, purpose: row.purpose }, "file purpose updated");
 
     return {
-      file: {
-        id: row.id,
-        originalName: row.originalName,
-        mimeType: row.mimeType,
-        byteSize: row.byteSize,
-        purpose: row.purpose,
-        stageId: row.stageId,
-        performanceId: row.performanceId,
-        parentFileId: row.parentFileId,
-        createdAt: row.createdAt.toISOString(),
-      },
+      file: toFileJson(row),
     };
   });
 
@@ -409,6 +418,96 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         `inline; filename="${safeFilename(row.originalName)}"`,
       )
       .send(buf);
+  });
+
+  app.post("/files/:id/convert-to-pdf", async (req, reply) => {
+    const { id } = uuidParam.parse(req.params);
+    const [parent] = await db
+      .select()
+      .from(fileAssets)
+      .where(eq(fileAssets.id, id));
+    if (!parent) return reply.code(404).send({ error: "NotFound" });
+    if (parent.mimeType === "application/pdf") {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: "Already a PDF",
+      });
+    }
+    if (!fileCanConvertToPdf(parent.mimeType, parent.originalName)) {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: "This file type cannot be converted to PDF here",
+      });
+    }
+
+    const uploadsRoot = getUploadsDir();
+    const parentAbs = path.join(uploadsRoot, parent.storageKey);
+    let pdfBuf: Buffer;
+    try {
+      pdfBuf = await convertFileToPdfBuffer({
+        absPath: parentAbs,
+        mimeType: parent.mimeType,
+        originalName: parent.originalName,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      req.log.warn({ fileId: id, err: msg }, "convert to pdf failed");
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: msg || "Could not convert to PDF",
+      });
+    }
+
+    if (pdfBuf.length > MAX_FILE_BYTES) {
+      return reply.code(413).send({ error: "PayloadTooLarge" });
+    }
+
+    let pageCount: number | undefined;
+    try {
+      pageCount = await getPdfPageCount(pdfBuf);
+    } catch {
+      pageCount = undefined;
+    }
+
+    const storageKey = `files/${randomUUID()}.pdf`;
+    const abs = path.join(uploadsRoot, storageKey);
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+    await fs.writeFile(abs, pdfBuf);
+
+    const baseStem = parent.originalName.replace(/\.[^.]+$/u, "") || "document";
+    const [row] = await db
+      .insert(fileAssets)
+      .values({
+        originalName: `${safeFilename(baseStem)}.pdf`,
+        storageKey,
+        mimeType: "application/pdf",
+        byteSize: pdfBuf.length,
+        purpose: "generic",
+        stageId: parent.stageId,
+        performanceId: parent.performanceId,
+        parentFileId: parent.id,
+      })
+      .returning({
+        id: fileAssets.id,
+        originalName: fileAssets.originalName,
+        mimeType: fileAssets.mimeType,
+        byteSize: fileAssets.byteSize,
+        purpose: fileAssets.purpose,
+        stageId: fileAssets.stageId,
+        performanceId: fileAssets.performanceId,
+        parentFileId: fileAssets.parentFileId,
+        createdAt: fileAssets.createdAt,
+      });
+
+    if (parent.stageId) {
+      invalidateFileQueries(parent.stageId, parent.performanceId);
+    }
+
+    req.log.debug({ fileId: row.id, parentId: parent.id }, "converted to pdf");
+
+    return reply.code(201).send({
+      file: toFileJson(row, pageCount != null ? { pageCount } : undefined),
+    });
   });
 
   app.post("/files/:id/extract-page", async (req, reply) => {
@@ -463,6 +562,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       .returning({
         id: fileAssets.id,
         originalName: fileAssets.originalName,
+        mimeType: fileAssets.mimeType,
         byteSize: fileAssets.byteSize,
         purpose: fileAssets.purpose,
         stageId: fileAssets.stageId,
@@ -480,6 +580,13 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       invalidateFileQueries(parent.stageId, parent.performanceId);
     }
 
+    let pageCount: number | undefined;
+    try {
+      pageCount = await getPdfPageCount(outBuf);
+    } catch {
+      pageCount = undefined;
+    }
+
     req.log.debug(
       {
         fileId: row.id,
@@ -490,10 +597,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     );
 
     return reply.code(201).send({
-      file: {
-        ...row,
-        createdAt: row.createdAt.toISOString(),
-      },
+      file: toFileJson(row, pageCount != null ? { pageCount } : undefined),
     });
   });
 

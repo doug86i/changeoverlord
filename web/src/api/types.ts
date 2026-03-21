@@ -66,4 +66,6 @@ export type FileAssetRow = {
   parentFileId: string | null;
   createdAt: string;
   pageCount?: number;
+  /** Server can build a PDF from images, Word/ODT/RTF, or plain text (see convert-to-pdf). */
+  canConvertToPdf?: boolean;
 };
