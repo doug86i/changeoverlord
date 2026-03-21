@@ -29,8 +29,8 @@ make dev
 # open http://localhost/  (or http://127.0.0.1/)
 ```
 
-- **Change `docker/html/`** (e.g. `index.html`) → save → reload the page; updates appear immediately.
-- **Change `Dockerfile`** → run **`make dev-watch`** in another terminal (foreground). Compose **watch** rebuilds the `app` image when the Dockerfile changes. Stop with Ctrl+C.
+- **Change `docker/html/`** (e.g. `index.html`) → save → reload the page; updates appear immediately (bind mount).
+- **Change `Dockerfile`** → rebuild: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`, **or** stop the stack and run **`make dev-watch`** (foreground). **Watch** rebuilds the `app` image when the Dockerfile changes; Ctrl+C stops it.
 - **Change `docker/nginx/default.conf`** → save, then reload nginx:  
   `docker compose -f docker-compose.yml -f docker-compose.dev.yml exec app nginx -s reload`
 
