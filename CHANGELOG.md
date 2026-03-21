@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **Web — stage day:** When **adding** a performance, choose **End time** or **Set length** (minutes); set length is stored as end time. **Changeover (min)** is optional UI only — it pre-fills the **next** start time after each add (end + changeover, or start + 60 min + changeover when no end).
+- **Web — stage day:** When **adding** a performance, choose **End time** or **Set length** (minutes); set length is stored as end time — **end is always required** (no open-ended slots). **Changeover** (default **30 min**) only pre-fills the next start; first slot defaults to **1 h** length. After each add, the next row pre-fills **length** and **end time** to match the previous slot; switching **End time** ↔ **Set length** keeps the same duration. **Duplicate** spacing after the last end uses the same default changeover (**30 min**).
 
 ### Fixed
 
