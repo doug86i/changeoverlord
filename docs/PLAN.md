@@ -29,6 +29,7 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 | **Media** | Upload riders and plots; **pick a PDF page** to extract when the plot is inside a multi-page rider. |
 | **Clock** | **Server time** + countdown to next performance/changeover; **fullscreen** clock for stage displays. |
 | **Branding** | **Client/event logo** configurable in-app; **fixed** “Powered by Doug Hunt Sound & Light” footer + bundled DHSL logo (offline-safe). |
+| **Source / ship** | **Public GitHub** + **`docker-compose.yml`**; **`docker compose pull`** of pre-built **`app`** from **GHCR** — typical install needs **no local image build** (clone repo for compose + static bind-mounts). |
 
 ---
 
@@ -47,9 +48,12 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 
 ### 4.1 Distribution
 
-- **Public GitHub** repo; **CI** (GitHub Actions) builds and pushes **`app`** to **GHCR**.
+- **Public GitHub** repo; **CI** (GitHub Actions) builds and pushes **`app`** to **GHCR** on pushes to **`main`** and on **version tags** (e.g. `v1.0.0`).
+- **GHCR package** should stay **public** so `docker compose pull` works **without** `docker login` (aligned with a public repo).
 - Typical install: **clone** repo → `docker compose pull` (when online once) → `docker compose up -d`.
+- **Pinning**: use **`APP_IMAGE_TAG`** in `.env` (e.g. semver tag) for production festivals; **`latest`** is fine for dev.
 - After images are cached, the **show site can run fully offline** on the LAN.
+- **Air-gapped** installs: advanced — `docker save` / `docker load` of the same images; document when needed.
 
 ### 4.2 Single Compose file
 
@@ -78,6 +82,14 @@ See **[`data/README.md`](../data/README.md)**. Set **`DATA_DIR`** in **`.env`** 
 ### 4.5 What stays outside the UI
 
 Appropriate for Compose / host docs only: **port binding**, **TLS termination** in front of the stack, **`DATA_DIR` backups**, **firewall**. Not product toggles.
+
+### 4.6 Deployment philosophy (non-IT summary)
+
+- **Goal**: one command (**`docker compose up -d`**) with **no required** YAML or `.env` edits for a default LAN run.
+- **Settings in the app** (not env): authentication mode, **timezone**, clock behaviour, **how to sync host time** (NTP guidance), **public URL / trust** copy, **template defaults** for new performances.
+- **Sensible defaults**: open LAN or **first-run** password to DB; **offline-safe** UI assets (**no** runtime dependency on public CDNs for core flows).
+- **Hardening**: internal Postgres/Redis passwords are **fixed on the Docker network** for LAN; document stricter secrets for internet-facing deployments.
+- **Offline runtime**: bundle **fonts/icons** in the **`app`** image; LAN does not need GitHub or registry after images are cached.
 
 ---
 
@@ -115,67 +127,100 @@ flowchart LR
 | Layer | Direction |
 |-------|-----------|
 | API | **Node.js + TypeScript** (e.g. Fastify) — *or Python + FastAPI if preferred* |
-| Real-time | **WebSockets** + **Yjs** (or similar CRDT) for collaborative grids |
-| DB | **PostgreSQL** |
-| PDF | Server-side thumbnails + page extract (`pdf-lib` / `pdfjs` / poppler as needed) |
-| Frontend | **Vite + React + TypeScript**, TanStack Query |
-| Styling | CSS modules or Tailwind; **three layout profiles** (lg/md/sm) |
+| Real-time | **WebSockets** + **Yjs** (or **Automerge**) for CRDT spreadsheet state |
+| DB | **PostgreSQL** — events, stages, days, performances, metadata, template links, file refs |
+| PDF | **`pdf-lib` / `pdf.js` / `pdftoppm` (poppler)** — thumbnails + extract chosen page → PDF/PNG beside uploads |
+| Frontend | **Vite + React + TypeScript**, TanStack Query — SPA served fully from the LAN appliance |
+| Styling | CSS modules or Tailwind; **three layout profiles** (lg/md/sm) with shared components |
+
+**Alternative API**: **Python + FastAPI** is viable if the team prefers it; architecture stays the same.
 
 ---
 
 ## 6. Data model (core)
 
-- **Event** — name, dates, timezone.
-- **Stage** — belongs to event; **default template(s)** for new performances (blank or pre-built grid).
-- **StageDay** — stage + calendar day; ordered **performances** and **changeover** blocks.
-- **Performance** — times, act name, notes; attachments; **collaborative doc** (Yjs) for patch/RF.
-- **FileAsset** — stored under `uploads/`; types e.g. rider PDF, plot, extracted page.
-- **Templates** — initial grid structure; **cloned** into each new performance from stage defaults.
+- **Event** — name, dates, timezone, optional **auth scope** (if multi-tenant later).
+- **Stage** — belongs to event; **`default_patch_template_id`** (nullable = blank grid); **RF** shares the **same collaborative doc** as input (**tabs: Input \| RF**).
+- **StageDay** — stage + calendar date (or day index); ordered **performances** and **changeover** blocks.
+- **Performance** — start/end times, band name, notes; **attachments**; **live Yjs document id** (and optional **snapshot** table for history).
+- **FileAsset** — local path under `uploads/` (or S3-compatible later); types e.g. `rider_pdf`, `plot_pdf`, `plot_image`, `extracted_page`.
+- **Template** — **Yjs initial state** and/or **JSON schema** for rows/columns; **cloned** into each new performance from stage defaults.
 
 ---
 
 ## 7. UX notes
 
-- **Desktop / 32" touch**: Timeline + now/next + band list; drill into patch/RF tabs.
-- **Tablet**: Focused panel (next act patch or clock); schedule/files secondary.
-- **Mobile**: Jump to band → patch/RF → attachments.
-- **Navigation**: Prev/next band, jump list, search.
-- **Clock route**: e.g. `/clock` with **fullscreen**; **server time API** for countdowns.
-- **NTP**: Explained in **Settings** (host OS sync); not a Compose setting.
+**Routes** (illustrative): e.g. `/stage`, `/clock`, `/patch` — one SPA, **breakpoint-specific** layouts (not three separate apps).
+
+- **Desktop / 32" touch**: **Default home = day timeline / running order** (now/next, jump band); dense strip + **band list**; drill into **patch/RF** tabs; **glanceability** and large tap targets.
+- **Tablet**: **Single primary panel** — default next performance patch sheet or clock; hamburger for schedule and files.
+- **Mobile**: **Stacked** — search/jump band → patch/RF (read-mostly, edit on demand) → attachments.
+- **Navigation**: Prev/next band, jump list, search (shared across form factors).
+- **Clock**: **`GET /api/time`** — UTC + optional `offsetMs` if leap-second handling is added later; clients compute countdown to next **performance start** or **changeover end**. **`/clock`** route with **Fullscreen API**; optional **`/clock?stage=id`**; minimal chrome, large digits + next label.
+- **NTP**: **Settings** shows **server time vs browser time**, drift warning, plain-language steps to enable **NTP on the host running Docker** (no NTP in Compose; optional **sidecar** only as advanced documentation).
 
 ---
 
 ## 8. PDF workflow (planned)
 
-1. Upload PDF → page count + thumbnails.
-2. User picks a page → **extract** as plot asset (original rider unchanged).
+1. Upload PDF → store file → **page count** + **thumbnail sprites** or **on-demand** thumbnails.
+2. UI: grid of pages → user selects page → **extract** to new asset (`plot_from_rider`) and attach to stage/performance.
+3. **Original rider** stays immutable; extracted plot is a **derivative** for quick display on stage.
 
 ---
 
 ## 9. Settings & access (UI)
 
-- Modes: **open LAN**, **shared password** (stored in DB), optional future accounts.
-- **First-run**: optional wizard to set password or continue open (warn if exposed).
-- **Timezone**, clock copy, **DHSL time-drift** help text in UI — not env vars.
+- **Modes** (DB-backed, toggled in Settings): **open** (trusted LAN), **shared password** (global or per-event later), optional future **accounts** for audit.
+- **First-run**: optional wizard — “Set a password now” or “Continue without password” (**warn** on exposed networks).
+- **No `AUTH_DISABLED`-style env**: access mode is visible and editable in the UI — operators should not hunt Compose env docs for auth.
+- **Timezone**, clock copy, **server vs browser time** / NTP guidance — not env vars.
 
 ---
 
 ## 10. Branding
 
-- **Event/client logo**: upload in Settings (header / splash / future print).
-- **Footer**: always **“Powered by Doug Hunt Sound & Light”** + logo → [doughunt.co.uk](https://www.doughunt.co.uk/); assets **bundled** in the app for offline.
+- **Client / festival logo**: configurable in Settings (**per event** or deployment policy); use in **header**, optional **splash/login**, future **print/export**; **PNG/SVG** with safe-area preview.
+- **Fixed attribution**: compact footer on layouts — **“Powered by Doug Hunt Sound & Light”** + logo → [doughunt.co.uk](https://www.doughunt.co.uk/). **Not removable** in normal OSS builds (white-label could be a separate product if ever needed).
+- **Bundled assets**: ship DHSL logo(s) in the frontend bundle (e.g. `web/public/branding/dhsl-logo.svg`) — **no** reliance on live hotlinking for LAN/offline. Prefer a clean horizontal lockup from source art (avoid depending on arbitrary URLs from third-party sites).
+- **Accessibility**: footer readable on **dark** stage theme (default) and **light** if added.
+
+### Open styling default
+
+- On-stage / backstage UI: default **dark, high-contrast** theme for **32"** displays (refinable).
 
 ---
 
 ## 11. Reference products (inspiration only)
 
-[Shoflo](https://shoflo.tv/), [Stage Portal](https://stageportal.gg/), [RoadOps](https://roadops.app/), festival ops suites (Crescat, FestivalPro), RF tools (Wireless Workbench, RF Venue, etc.) — patterns for timelines, riders, collaboration; not feature requirements.
+Not requirements — useful patterns and UX references.
+
+| Product / area | Role | Ideas to borrow |
+|----------------|------|-----------------|
+| [Shoflo](https://shoflo.tv/) (Lasso) | Run-of-show | Timeline collaboration, time math, production **Docs**, roles, guest rundown access, “prompter”-style focused views ↔ our **fullscreen clock** |
+| [Stage Portal](https://stageportal.gg/) | Gig/stage | Tech riders, run sheets, crew roles, shared updates |
+| [RoadOps](https://roadops.app/) | Tour/festival hub | Offline-friendly flows, day sheets, activity feeds, visibility |
+| Crescat / FestivalPro | Festival-wide ops | Multi-day scheduling, advancing — often heavier than **one stage audio** team needs |
+| Shure WWB, RF Venue, RFCoordinator | RF desktop tools | Coordination math / scans — we store **RF notes** in-grid; deep device integration **optional** |
+
+**Patterns worth borrowing later**: change **activity** (who edited what), read-only **guest** links, **print/PDF** day sheet, **notifications** when online, **templates** per show type.
 
 ---
 
 ## 12. Post-MVP backlog (non-binding)
 
-Activity log, guest read-only links, light roles (FOH/monitors), PWA, contingency slots, stage notes, mic walk checklist — **print/PDF** and **kiosk** explicitly deferred per decisions above.
+Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
+
+| Idea | Notes |
+|------|--------|
+| **Print / PDF export** | Day sheet or plot + times — revisit after core is stable |
+| **Activity log** | Append-only schedule/patch history (accountability) |
+| **Kiosk / guest mode** | Read-only URL — revisit if visiting engineers need it |
+| **Light roles** | FOH / monitors / stage — same data, different default views |
+| **PWA / service worker** | Faster reload on poor Wi‑Fi; server remains source of truth |
+| **Contingency slots** | TBD acts without breaking the clock |
+| **Stage notes** | Weather / intercom / SM notes per day (not the spreadsheet) |
+| **Mic line / walk checklist** | Optional separate from patch grid |
 
 ---
 
@@ -194,16 +239,16 @@ Activity log, guest read-only links, light roles (FOH/monitors), PWA, contingenc
 
 ## 14. Roadmap checklist (high level)
 
-| Track | Status |
-|-------|--------|
-| Compose + GHCR + data layout | Done (see repo) |
-| Domain API (events → performances) | Pending |
-| Clock + fullscreen | Pending |
-| Collaborative patch/RF (Yjs + WS) | Pending |
-| PDF pipeline | Pending |
-| Responsive UX (3 breakpoints) | Pending |
-| Settings UI (auth, time, NTP copy) | Pending |
-| Branding UI + bundled DHSL assets | Pending |
+| ID | Track | Status |
+|----|-------|--------|
+| — | Compose + GHCR + `DATA_DIR` layout + single `docker-compose.yml` | **Done** |
+| domain-api | Event → Stage → Day → Performance CRUD + file metadata API | Pending |
+| clock-ui | Server time API + countdown + fullscreen + band navigation | Pending |
+| collab-grids | Stage default templates; clone per performance; Yjs + WebSocket + persistence | Pending |
+| pdf-plots | PDF upload, thumbnails, extract page as plot asset | Pending |
+| responsive-ux | Desktop / tablet / mobile layouts; touch-first stage views | Pending |
+| settings-ui | Settings: auth, passwords, timezone, time/NTP guidance (no ops in Compose) | Pending |
+| branding-ui | Client logo; fixed “Powered by DHSL” footer + bundled logo | Pending |
 
 ---
 
@@ -211,3 +256,4 @@ Activity log, guest read-only links, light roles (FOH/monitors), PWA, contingenc
 
 - Edit **`docs/PLAN.md`** when scope or decisions change.
 - Keep **[`README.md`](../README.md)** focused on **run** / **dev**; link here for **why** and **what’s next**.
+- **Repo layout**: clone the repo at **any path** on disk; application source will grow under e.g. **`api/`** and **`web/`** as implementation proceeds (not present in the initial scaffold).
