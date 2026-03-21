@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web — FortuneSheet theming:** `.patch-workbook-host` overrides extended so **toolbar**, **formula bar**, **sheet tabs**, **row/column headers**, **resize handles**, **formula-range highlights**, and **modals** use **`var(--color-*)`** and **`var(--color-brand)`** instead of hardcoded blues and grays (better **light/dark** alignment with the app).
+
 - **Docs:** **`docs/USER_GUIDE.md`** — patch / RF page **sidebar** (clock, countdown, now/next, links, plot preview) and band-nav wording; **`AGENTS.md`** — implementation status for the patch workbook updated (sidebar replaces the old “mini clock” note).
 
 - **Web — Clock nav:** The header **Clock** link and **`g c`** go to **`/clock/day/{id}`** for the **last viewed stage day** (running order or stage-day clock), using **`ClockNavContext`** and the same **`localStorage`** key as **My stage today** / last visit. If none is stored, behaviour is unchanged (**`/clock`** picker).

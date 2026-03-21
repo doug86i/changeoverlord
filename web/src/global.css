@@ -1321,27 +1321,228 @@ textarea {
   object-fit: contain;
 }
 
-/* FortuneSheet — active cell + in-cell editor: high contrast, app font */
+/* FortuneSheet — theme-aligned (toolbar, tabs, formula bar, grid chrome, selection) */
+.patch-workbook-host {
+  accent-color: var(--color-brand);
+}
+
 .patch-workbook-host .fortune-container {
   font-family: var(--font);
   background-color: var(--color-surface);
   color: var(--color-text);
 }
 
+.patch-workbook-host .fortune-modal-container {
+  background: color-mix(in srgb, var(--color-overlay) 45%, transparent);
+}
+
+.patch-workbook-host .fortune-add-row-button {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.patch-workbook-host .fortune-toolbar {
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.patch-workbook-host .fortune-toolbar-divider,
+.patch-workbook-host .fortune-toolbar-menu-divider {
+  background-color: var(--color-border);
+}
+
+.patch-workbook-host .fortune-toolbar-select,
+.patch-workbook-host .fortune-toolbar-color-picker {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--color-text) 15%, transparent);
+}
+
+.patch-workbook-host .fortune-fx-editor {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.patch-workbook-host .fortune-name-box-container {
+  border-right: 1px solid var(--color-border);
+}
+
+.patch-workbook-host .fortune-name-box {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+
+.patch-workbook-host .fortune-fx-input-container {
+  border-left: 1px solid var(--color-border);
+}
+
+.patch-workbook-host .fortune-fx-input {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+
+.patch-workbook-host .luckysheet-sheet-area,
+.patch-workbook-host #luckysheet-bottom-pager {
+  background-color: var(--color-bg) !important;
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.patch-workbook-host .luckysheet-sheet-area div.luckysheet-sheets-item {
+  background-color: var(--color-bg) !important;
+  color: var(--color-text-muted);
+  border-left-color: var(--color-border);
+  border-right-color: var(--color-border);
+}
+
+.patch-workbook-host .luckysheet-sheet-area div.luckysheet-sheets-item:hover {
+  background-color: color-mix(in srgb, var(--color-brand) 8%, var(--color-bg)) !important;
+  color: var(--color-text);
+}
+
+.patch-workbook-host .luckysheet-sheet-area div.luckysheet-sheets-item-active {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text);
+  border-top-color: var(--color-brand);
+}
+
+.patch-workbook-host .luckysheet-sheet-area div.luckysheet-sheets-item-active:hover {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text);
+}
+
+.patch-workbook-host .fortune-sheettab-container .boundary {
+  background: var(--color-surface);
+}
+
+.patch-workbook-host .fortune-sheettab-button:hover,
+.patch-workbook-host .fortune-sheettab-scroll:hover {
+  background-color: color-mix(in srgb, var(--color-text) 8%, var(--color-bg));
+}
+
+.patch-workbook-host .fortune-row-header,
+.patch-workbook-host .fortune-col-header,
+.patch-workbook-host .fortune-col-header-hover {
+  color: var(--color-text-muted) !important;
+}
+
+.patch-workbook-host .fortune-row-header-selected {
+  border-right-color: var(--color-brand) !important;
+  background-color: color-mix(in srgb, var(--color-brand) 10%, transparent) !important;
+}
+
+.patch-workbook-host .fortune-col-header-selected {
+  border-bottom-color: var(--color-brand) !important;
+  background-color: color-mix(in srgb, var(--color-brand) 10%, transparent) !important;
+}
+
+.patch-workbook-host .fortune-left-top {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+}
+
+.patch-workbook-host .fortune-cols-change-size,
+.patch-workbook-host .fortune-rows-change-size {
+  background: var(--color-brand) !important;
+}
+
+.patch-workbook-host .fortune-change-size-line {
+  border-color: var(--color-brand) !important;
+}
+
+.patch-workbook-host .fortune-selection-copy-hc {
+  border-color: var(--color-brand) !important;
+}
+
+.patch-workbook-host .fortune-cell-selected-extend {
+  border-color: var(--color-brand) !important;
+}
+
 .patch-workbook-host .luckysheet-cell-selected,
 .patch-workbook-host .luckysheet-cell-selected-focus {
   border: 2px solid var(--color-brand) !important;
-  background: color-mix(in srgb, var(--color-brand) 26%, var(--color-surface)) !important;
+  background: color-mix(in srgb, var(--color-brand) 22%, var(--color-surface)) !important;
   margin: -2px 0 0 -2px !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 35%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 30%, transparent);
 }
 
 .patch-workbook-host .luckysheet-cell-selected-focus {
-  background: color-mix(in srgb, var(--color-brand) 34%, var(--color-surface)) !important;
+  background: color-mix(in srgb, var(--color-brand) 28%, var(--color-surface)) !important;
+}
+
+.patch-workbook-host .luckysheet-cs-inner-border {
+  border-color: var(--color-surface);
+}
+
+.patch-workbook-host .luckysheet-cs-fillhandle {
+  background-color: var(--color-brand) !important;
+  border-color: var(--color-surface) !important;
+}
+
+.patch-workbook-host .luckysheet-cs-touchhandle .luckysheet-cs-touchhandle-btn {
+  background-color: var(--color-brand) !important;
 }
 
 .patch-workbook-host .fortune-cell-selected-move {
-  border: 2px solid var(--color-brand);
+  border-color: var(--color-brand) !important;
+}
+
+.patch-workbook-host .luckysheet-postil-show-active
+  .luckysheet-postil-dialog-move
+  .luckysheet-postil-dialog-move-item {
+  border-color: var(--color-brand) !important;
+}
+
+.patch-workbook-host .luckysheet-postil-dialog-resize .luckysheet-postil-dialog-resize-item {
+  border-color: var(--color-brand) !important;
+}
+
+.patch-workbook-host .fortune-formula-functionrange-highlight .fortune-copy {
+  background: var(--color-brand) !important;
+}
+
+.patch-workbook-host .fortune-formula-functionrange-highlight .fortune-selection-copy-top,
+.patch-workbook-host .fortune-formula-functionrange-highlight .fortune-selection-copy-right,
+.patch-workbook-host .fortune-formula-functionrange-highlight .fortune-selection-copy-bottom,
+.patch-workbook-host .fortune-formula-functionrange-highlight .fortune-selection-copy-left {
+  border-color: var(--color-surface) !important;
+}
+
+.patch-workbook-host .fortune-formula-functionrange-highlight .luckysheet-highlight {
+  background: var(--color-brand) !important;
+  border-color: var(--color-surface) !important;
+}
+
+.patch-workbook-host .fortune-formula-functionrange-highlight .fortune-selection-copy-hc {
+  border-color: var(--color-text-muted) !important;
+}
+
+.patch-workbook-host .luckysheet-formula-search-c {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.patch-workbook-host .luckysheet-formula-search-c .luckysheet-formula-search-item {
+  background: var(--color-surface);
+}
+
+.patch-workbook-host .luckysheet-formula-search-c .luckysheet-formula-search-item-active {
+  background: color-mix(in srgb, var(--color-brand) 12%, var(--color-surface));
+  border-color: var(--color-border);
+}
+
+.patch-workbook-host #fortune-location-condition .button-primary {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-on-brand);
+}
+
+.patch-workbook-host .luckysheet-sheet-area
+  div.luckysheet-sheets-item
+  .luckysheet-sheets-item-name[contenteditable="true"]:focus {
+  border-color: var(--color-brand);
 }
 
 .patch-workbook-host .luckysheet-input-box,
