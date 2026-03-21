@@ -8,7 +8,7 @@
 
 ## Development process (agents — follow end-to-end)
 
-This is the **canonical workflow** for implementation tasks: **commit** (small logical units), **test** (Compose), **deploy** (rebuild image), **observe** (health + logs), **record** (changelog). Cursor rules **`git-commits`**, **`local-docker-deploy`**, **`changelog`**, and **`logging`** restate parts of this; details live in the docs below.
+This is the **canonical workflow** for implementation tasks: **commit** (small logical units), **test** (Compose), **deploy** (rebuild image), **observe** (health + logs), **record** (changelog). Cursor rules **`git-commits`**, **`local-docker-deploy`**, **`changelog`**, **`logging`**, and **`agents-process`** (always apply — **full checklist without the user having to repeat “follow the process”**) restate parts of this; details live in the docs below.
 
 | Phase | Requirement |
 |-------|----------------|
@@ -36,6 +36,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | **Operator-facing** how-to (keep in sync when UX changes) |
 | [`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md) | **Doc ownership** — what to update when |
 | [`CHANGELOG.md`](CHANGELOG.md) | **Release notes** — **`[Unreleased]`** entries for fixes/features that ship |
+| [`.cursor/rules/agents-process.mdc`](.cursor/rules/agents-process.mdc) | **Default:** full **commit + `make dev` + health + changelog + USER_GUIDE + report URL** — do not wait for the user to say “follow the process” |
 | [`.cursor/rules/git-commits.mdc`](.cursor/rules/git-commits.mdc) | Commit **each logical unit** separately; **short, specific, imperative** messages |
 | [`.cursor/rules/local-docker-deploy.mdc`](.cursor/rules/local-docker-deploy.mdc) | After code changes, run **`make dev`** yourself |
 | [`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc) | After notable code/build changes, update **`CHANGELOG.md`** |

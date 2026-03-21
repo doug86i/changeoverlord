@@ -1,0 +1,29 @@
+---
+description: >-
+  Mandatory AGENTS.md workflow for every implementation task — do not wait for the
+  user to say "follow the process"
+alwaysApply: true
+---
+
+# AGENTS process (default — no reminder needed)
+
+Treat **every** coding task that changes `api/`, `web/`, Docker, or migrations as requiring the **full** workflow in **[`AGENTS.md`](../../AGENTS.md)**. The user should **not** have to type “follow the process” or “run make dev” — you run it.
+
+## Do by default (unless AGENTS.md says to skip)
+
+1. **`make dev`** from the repo root after changes that affect build or runtime — **you** execute it; do not only tell the user to run it. Skip only for **docs-only** / **comment-only** with zero ship impact.
+2. **Verify** the stack: e.g. `curl` **`/api/v1/health`** → **200**, or **`docker compose ps`**.
+3. **Tell the user the exact base URL** to open: **`http://localhost/`** (port 80) or **`http://localhost:<HOST_PORT>/`** from **`.env`**. If the UI is still stale after `make dev`, run **`make dev-fresh`** and retry.
+4. **`CHANGELOG.md`** — add an **`[Unreleased]`** bullet in the **same** change when behaviour or build output changes; follow **[`changelog.mdc`](changelog.mdc)** skip rules.
+5. **`docs/USER_GUIDE.md`** — update when operator-visible UX, routes, or labels change; follow **[`user-documentation.mdc`](user-documentation.mdc)**.
+6. **`git commit`** — when the repo is Git, commit **each logical unit** with a short imperative message; follow **[`git-commits.mdc`](git-commits.mdc)**. Do not leave a large uncommitted diff unless the user asked to hold commits.
+
+## What not to do
+
+- Do not end a task with “you should run `make dev`” as the only action when you can run commands.
+- Do not skip changelog because the user did not mention release notes.
+- Do not assume hot reload: the **image** embeds **`web/dist`** and **`api/dist`** — see **[`local-docker-deploy.mdc`](local-docker-deploy.mdc)**.
+
+## Canonical doc
+
+Full detail, logging, and edge cases: **[`AGENTS.md`](../../AGENTS.md)** § *Development process* and *Local testing after each change*.
