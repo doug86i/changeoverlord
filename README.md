@@ -72,6 +72,8 @@ Stop: `make dev-down`.
 | `compose.override.example.yml` | Optional deeper overrides (prefer `.env` first) |
 | `.github/workflows/` | Build and push `app` image to **GHCR** |
 | `docs/PLAN.md` | Product vision, architecture, roadmap |
+| `docs/DECISIONS.md` | Pre-build engineering decisions (stack, limits, auth, logging) |
+| `docs/LICENSING.md` | Repo + dependency licence notes |
 
 ## Status
 

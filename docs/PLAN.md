@@ -44,6 +44,17 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 | **Print / PDF export** | **Defer** post-MVP |
 | **Spreadsheet templates** | **Default “base”** for a stage can come from **Microsoft Excel** (`.xlsx`) and, for **Google Sheets**, by **exporting** to `.xlsx` or **CSV** and uploading (LAN/offline-safe). Optional **live Google Sheets** sync is a **post-MVP** track when internet + OAuth are acceptable. |
 | **Portable event packages** | **MVP**: **Export** → **download** an archive; **import** via **upload** on another Changeoverlord instance (e.g. prep laptop → **USB** → live rig). **Future**: **push/pull** via **SeaDrive**, **Dropbox**, **Google Drive** (or similar) when online. |
+| **Multi-person prep** | Different people may prepare **different events/days/stages** on different machines — each **export/import** is independent. |
+| **Auth** | **Default: no password** (trusted LAN). **Optional: single shared password** in Settings. |
+| **Threat model** | If **no password**: assume **trusted environment**; still follow baseline web hygiene. Stricter defaults when password is on or host is **internet-facing** — see **[`DECISIONS.md`](DECISIONS.md)**. |
+| **Limits** | **Generous** server maxima + clear user messages — avoid **“computer says no”** on stage; numbers in **[`DECISIONS.md`](DECISIONS.md)**. |
+| **Browsers** | Current ±1 major **Chrome, Firefox, Safari, Edge**; no bleeding-edge-only APIs; see **[`DECISIONS.md`](DECISIONS.md)**. |
+| **Logging** | **`LOG_LEVEL`** via **`.env` / Compose** for API debug (default `info`) — see **[`DECISIONS.md`](DECISIONS.md)**. |
+| **Locale** | **English** only for MVP. |
+
+**Detailed engineering choices** (IDs, API prefixes, Yjs storage, stack, migrations, E2E, load): **[`DECISIONS.md`](DECISIONS.md)**.
+
+**Licences** (repo MIT vs alternatives, dependency GPL notes): **[`LICENSING.md`](LICENSING.md)**.
 
 ---
 
@@ -175,7 +186,7 @@ flowchart LR
 |------|-----------|
 | **Export** | User selects scope (**one event**, or **event + nested stages/days**, TBD) → server builds a **single archive** (e.g. **`.zip`**) containing: **structured manifest** (JSON or similar), **Postgres-oriented entity dump** (or normalised export format), **files** from `uploads/` referenced by that scope, **Yjs binary snapshots** / checkpoints for patch sheets where needed. User **downloads** the file through the browser. |
 | **Transfer** | Physical **USB**, **AirDrop**, **email**, shared disk — anything that moves a file. |
-| **Import** | On the **target** instance: **Upload** the same archive → server **validates** format/version → **imports** into DB + `uploads/` + restores Yjs seeds. **Conflict policy** (product decision): e.g. **“import as new event”** vs **“replace by stable ID”** — document clearly to avoid wiping live edits. |
+| **Import** | On the **target** instance: **Upload** the archive → validate format/version → **always create new** records (**new UUIDs**) — no silent overwrite of existing prep. Operators **delete** outdated events/stages when replacing prep; optional future **“replace” wizard** is convenience only. |
 | **Versioning** | Export format carries **schema version** so older packages can be migrated or rejected with a clear error. |
 
 **Security (optional later)**: password-encrypted archive or detached checksum for tamper-evidence — not required for trusted crew LANs in v1.
@@ -302,4 +313,6 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 
 - Edit **`docs/PLAN.md`** when scope or decisions change.
 - Keep **[`README.md`](../README.md)** focused on **run** / **dev**; link here for **why** and **what’s next**.
+- **Engineering decisions** (stack, IDs, limits, auth details): **[`DECISIONS.md`](DECISIONS.md)**.
+- **Licencing**: **[`LICENSING.md`](LICENSING.md)**.
 - **Repo layout**: clone the repo at **any path** on disk; application source will grow under e.g. **`api/`** and **`web/`** as implementation proceeds (not present in the initial scaffold).

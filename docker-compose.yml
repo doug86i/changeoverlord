@@ -9,6 +9,7 @@
 # DATA_DIR          ./data      Host root for db/, redis/, uploads/ (one backup tree).
 # HOST_PORT         80          Published HTTP port (e.g. 8080 if 80 is busy or restricted).
 # APP_IMAGE_TAG     latest      GHCR image tag for the app (pin e.g. v1.0.0 for festivals).
+# LOG_LEVEL         info        API logging: error|warn|info|debug (ignored by nginx placeholder).
 #
 # Paths: use forward slashes. Relative paths are relative to this file. On Windows,
 # Docker accepts C:/path or ./path — avoid mixing styles in one value.
@@ -45,6 +46,8 @@ services:
   app:
     image: ghcr.io/doug86i/changeoverlord/app:${APP_IMAGE_TAG:-latest}
     build: .
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     restart: unless-stopped
     ports:
       - "${HOST_PORT:-80}:80"
