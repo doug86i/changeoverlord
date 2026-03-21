@@ -1,0 +1,40 @@
+---
+description: After code changes, deploy to local Docker via Compose (no manual steps)
+alwaysApply: true
+---
+
+# Local Docker deployment (mandatory after implementation)
+
+When you **finish implementing or fixing** something that affects the running app, **deploy it to the local test environment yourself** — do not ask the user to run commands unless Docker is unavailable or the command fails after a retry.
+
+## Command (repo root)
+
+Run:
+
+```bash
+make dev
+```
+
+Equivalent: `docker compose up -d --build` using the project **`docker-compose.yml`**.
+
+Use the **same working directory** as the repo root (path may contain spaces — quote or `cd` correctly).
+
+## When to run
+
+Run after changes to any of:
+
+- `api/`, `web/`, `Dockerfile`, `docker-compose.yml`
+- Root `package.json` / `package-lock.json`, workspace packages
+- `api/drizzle/` migrations or `api/src/db/schema.ts`
+
+Skip only for **docs-only** or **comment-only** edits with zero effect on build/runtime.
+
+## If it fails
+
+- Read **`docker compose logs app`** (or the failing service) and fix the underlying issue, then **run `make dev` again**.
+- Do not leave “you should run docker compose” as the only outcome when the environment can run shell commands.
+
+## Principles
+
+- **Compose is the source of truth** for local integration testing — avoid ad-hoc `docker run` unless debugging an image issue the user requested.
+- **Goal**: zero manual steps for the human to see changes on **http://localhost/** (or `HOST_PORT`).

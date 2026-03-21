@@ -15,6 +15,10 @@ Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, *
 
 The API is mounted at **`/api/v1`**. The same origin serves the SPA for offline-friendly LAN use.
 
+## Development process (local testing)
+
+**Default:** after changes, deploy with **`make dev`** — same as **`docker compose up -d --build`** — so the **Compose file and image stay the source of truth**. No extra manual deploy steps. Full detail: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** (includes Cursor/AI workflow).
+
 ## Quick start (Docker)
 
 Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2 on **Linux**, **macOS**, or **Windows** (Docker Desktop).
@@ -22,7 +26,8 @@ Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2 on **Linu
 ```bash
 git clone https://github.com/doug86i/changeoverlord.git
 cd changeoverlord
-docker compose up -d --build
+make dev
+# same as: docker compose up -d --build
 ```
 
 Open **http://\<server-ip\>** (default **port 80** — no `:port` in the URL).
@@ -88,7 +93,9 @@ Set **`DATA_DIR`** in **`.env`** if needed. Details: **[data/README.md](data/REA
 | `docs/PLAN.md` | Product vision, architecture, roadmap |
 | `docs/DECISIONS.md` | Engineering decisions |
 | `docs/DESIGN.md` | UI themes & tokens |
+| `docs/DEVELOPMENT.md` | Local Docker workflow (`make dev`), AI deploy expectations |
 | `docs/LICENSING.md` | Licences |
+| `.cursor/rules/` | Cursor rules (e.g. auto-deploy to local Compose) |
 
 ## Status
 
