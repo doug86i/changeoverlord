@@ -1,8 +1,18 @@
-# Default: pull pre-built app from GHCR (built by GitHub Actions from this repo).
-# Local dev: docker compose up --build
+# =============================================================================
+# Changeoverlord — single Compose file (Linux / macOS / Windows + Docker Desktop).
 #
-# All persistent data lives under DATA_DIR (default ./data) — one tree for backups / extra disk.
-# See data/README.md
+# Compose loads `.env` from this directory if present. App behaviour (auth,
+# timezone, branding, etc.) is configured in the UI — only infrastructure here.
+#
+# Variable          Default     Purpose
+# ----------------  ----------  -----------------------------------------------
+# DATA_DIR          ./data      Host root for db/, redis/, uploads/ (one backup tree).
+# HOST_PORT         80          Published HTTP port (e.g. 8080 if 80 is busy or restricted).
+# APP_IMAGE_TAG     latest      GHCR image tag for the app (pin e.g. v1.0.0 for festivals).
+#
+# Paths: use forward slashes. Relative paths are relative to this file. On Windows,
+# Docker accepts C:/path or ./path — avoid mixing styles in one value.
+# =============================================================================
 
 services:
   db:
@@ -33,15 +43,22 @@ services:
       retries: 5
 
   app:
-    image: ghcr.io/doug86i/changeoverlord/app:latest
+    image: ghcr.io/doug86i/changeoverlord/app:${APP_IMAGE_TAG:-latest}
     build: .
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${HOST_PORT:-80}:80"
     volumes:
       - ${DATA_DIR:-./data}/uploads:/var/changeoverlord/uploads
+      # From repo checkout: live-edit static/nginx without rebuilding the image.
+      - ./docker/html:/usr/share/nginx/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    develop:
+      watch:
+        - path: ./Dockerfile
+          action: rebuild

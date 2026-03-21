@@ -6,7 +6,7 @@ Everything that must **survive restarts** lives under this single tree so you ca
 - **Back up** one folder on a schedule
 - **Browse** contents with ordinary file tools (see below)
 
-Default location is **`./data`** next to `docker-compose.yml`. Override with **`DATA_DIR`** (see `.env.example`).
+Default location is **`./data`** next to `docker-compose.yml`. Override with **`DATA_DIR`** in `.env` (see `.env.example`). On **Windows** with Docker Desktop, use forward slashes, e.g. `DATA_DIR=C:/changeoverlord/data`.
 
 ## Layout
 
@@ -20,7 +20,7 @@ Create these automatically: they appear the first time you run Compose (Docker c
 
 ## Backup
 
-1. Prefer **quiet traffic** or **stop** the stack: `docker compose down` (or `make dev-down` with dev files).
+1. Prefer **quiet traffic** or **stop** the stack: `docker compose down` (or `make dev-down`).
 2. Copy or archive the **entire** `DATA_DIR` directory (e.g. `tar czf changeoverlord-data.tgz -C /parent data` if `DATA_DIR=/parent/data`).
 
 Restoring: extract into the same paths, fix ownership if needed (`chown` for Postgres/Redis UIDs on Linux), then start Compose again.

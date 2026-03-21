@@ -1,12 +1,12 @@
 .PHONY: dev dev-watch dev-down
 
-# Start stack with live-mounted static files (edit docker/html/ and refresh browser).
-dev:
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# Thin wrappers around the single docker-compose.yml (see file header for env vars).
 
-# Foreground: also rebuild app when Dockerfile changes (Ctrl+C to stop).
+dev:
+	docker compose up -d --build
+
 dev-watch:
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml watch
+	docker compose watch
 
 dev-down:
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+	docker compose down

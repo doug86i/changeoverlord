@@ -1,5 +1,8 @@
-# Copy to docker-compose.override.yml when host port 80 is unavailable.
-# docker compose up -d
+# Optional second file: Docker merges this with docker-compose.yml automatically
+# if you rename it to `docker-compose.override.yml` (gitignored).
+#
+# Prefer setting HOST_PORT (and DATA_DIR) in `.env` — see `.env.example` — so you
+# can stay with a single compose file.
 
 services:
   app:

@@ -6,7 +6,7 @@ Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, *
 
 ## Quick start (Docker)
 
-Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2.
+Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2 on **Linux**, **macOS**, or **Windows** (Docker Desktop).
 
 ```bash
 git clone https://github.com/doug86i/changeoverlord.git
@@ -15,10 +15,19 @@ docker compose pull   # first run: pulls images from GHCR
 docker compose up -d
 ```
 
-Open **http://\<server-ip\>** (port **80** by default — no port in the URL).
+Open **http://\<server-ip\>** (default **port 80** — no `:port` in the URL).
 
-- **Alternate host port** (e.g. 8080): see `compose.override.example.yml`.
+- **`.env`**: optional — copy **`.env.example`**. Only **infrastructure** belongs here (data path, port, image tag). **Product** settings (auth, timezone, logos, etc.) will live in the **app UI**.
 - **Offline after first pull**: images stay in Docker’s cache; no internet needed on show site.
+
+## What lives in Compose vs the UI
+
+| In **Compose** / `.env` | In the **app UI** (when built) |
+|-------------------------|--------------------------------|
+| Data directory (`DATA_DIR`), host **port**, image **tag** | Passwords, timezone, clocks, riders, patch sheets, branding, … |
+| **Bind mounts** (repo files + `data/`) | — |
+
+All defaults are set in **`docker-compose.yml`** so a plain `docker compose up` works without a `.env` file.
 
 ## Data directory (one place for DB, Redis, uploads)
 
@@ -30,38 +39,37 @@ All persistent state uses a **single host directory** — default **`./data`** �
 | `data/redis/` | Redis AOF |
 | `data/uploads/` | User uploads (riders, plots, logos) |
 
-Optional **`.env`**: set **`DATA_DIR`** to an absolute path (e.g. `/mnt/raid/changeoverlord`). See **`.env.example`**.
-
-Details and backup notes: **[data/README.md](data/README.md)**.
+Set **`DATA_DIR`** in `.env` if the default path is wrong for your disk layout (see **`.env.example`** for Linux/Windows examples). Details: **[data/README.md](data/README.md)**.
 
 ## Local development (live edits)
 
-Use the **dev** Compose override: it **bind-mounts** `docker/html/` and `docker/nginx/default.conf` into the `app` container so you can edit files on disk and **refresh the browser** — no image rebuild for HTML/CSS/JS in `docker/html/`.
+The same **`docker-compose.yml`** bind-mounts **`docker/html/`** and **`docker/nginx/default.conf`** so you can edit on disk and **refresh the browser** without rebuilding for static changes.
 
 ```bash
 make dev
-# open http://localhost/  (or http://127.0.0.1/)
+# open http://localhost:PORT/  (PORT = HOST_PORT from .env, default 80)
 ```
 
-- **Change `docker/html/`** (e.g. `index.html`) → save → reload the page; updates appear immediately (bind mount).
-- **Change `Dockerfile`** → rebuild: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`, **or** stop the stack and run **`make dev-watch`** (foreground). **Watch** rebuilds the `app` image when the Dockerfile changes; Ctrl+C stops it.
-- **Change `docker/nginx/default.conf`** → save, then reload nginx:  
-  `docker compose -f docker-compose.yml -f docker-compose.dev.yml exec app nginx -s reload`
+- **Change `docker/html/`** → save → reload the page.
+- **Change `Dockerfile`** → `docker compose up -d --build`, or **`make dev-watch`** (foreground: rebuilds when the Dockerfile changes).
+- **Change `docker/nginx/default.conf`** → save, then: `docker compose exec app nginx -s reload`
 
-Stop the stack: `make dev-down`.
+Stop: `make dev-down`.
+
+**Port 80 on Windows**: binding **80** sometimes needs elevated rights — set **`HOST_PORT=8080`** in `.env` and open `http://localhost:8080/`.
 
 ## Repository layout
 
 | Path | Purpose |
 |------|---------|
-| `docker-compose.yml` | Stack: Postgres, Redis, app |
-| `docker-compose.dev.yml` | Dev overrides: bind mounts + `watch` (Dockerfile rebuild) |
-| `docker/html/` | Static placeholder (mounted live in dev) |
-| `docker/nginx/default.conf` | Nginx site config (mounted live in dev) |
+| `docker-compose.yml` | **Single** stack file: Postgres, Redis, app; defaults in-file; see header comment |
+| `docker/html/` | Static placeholder (bind-mounted for live dev) |
+| `docker/nginx/default.conf` | Nginx site config (bind-mounted) |
 | `Dockerfile` | App image (placeholder until UI/API land) |
 | `Makefile` | `make dev`, `make dev-watch`, `make dev-down` |
 | `data/` | Persistent data root (`DATA_DIR`); see `data/README.md` |
-| `.env.example` | Optional `DATA_DIR` for another disk |
+| `.env.example` | Optional `DATA_DIR`, `HOST_PORT`, `APP_IMAGE_TAG` |
+| `compose.override.example.yml` | Optional deeper overrides (prefer `.env` first) |
 | `.github/workflows/` | Build and push `app` image to **GHCR** |
 
 ## Status
