@@ -1,0 +1,7 @@
+# Copy to docker-compose.override.yml when host port 80 is unavailable.
+# docker compose up -d
+
+services:
+  app:
+    ports:
+      - "8080:80"
