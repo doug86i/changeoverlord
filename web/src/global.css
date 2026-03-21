@@ -1459,16 +1459,18 @@ textarea {
   border-color: var(--color-brand) !important;
 }
 
+/* Selection overlay: translucent brand tint (like default ~15% blue), not
+   color-mix(brand, surface) — that goes very dark/brown in dark theme. */
 .patch-workbook-host .luckysheet-cell-selected,
 .patch-workbook-host .luckysheet-cell-selected-focus {
-  border: 2px solid var(--color-brand) !important;
-  background: color-mix(in srgb, var(--color-brand) 22%, var(--color-surface)) !important;
-  margin: -2px 0 0 -2px !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 30%, transparent);
+  border: 1px solid var(--color-brand) !important;
+  background: color-mix(in srgb, var(--color-brand) 14%, transparent) !important;
+  margin: -1px 0 0 -1px !important;
+  box-shadow: none;
 }
 
 .patch-workbook-host .luckysheet-cell-selected-focus {
-  background: color-mix(in srgb, var(--color-brand) 28%, var(--color-surface)) !important;
+  background: color-mix(in srgb, var(--color-brand) 18%, transparent) !important;
 }
 
 .patch-workbook-host .luckysheet-cs-inner-border {

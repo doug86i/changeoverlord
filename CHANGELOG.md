@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web — FortuneSheet selection:** Active cell fill no longer uses **`color-mix(brand, surface)`** (too dark in **dark theme**). It uses a **translucent brand tint** and a **1px** border again, similar to the default sheet overlay strength.
+
 - **Docker build:** The **API** builder step now removes **`api/dist`** and **`api/.cache/tsconfig.tsbuildinfo`** before **`tsc`**. Without clearing incremental metadata, **`tsc` could emit no files** while exiting successfully, yielding an **empty `api/dist`** in the image and a **crash loop** at runtime (`ERR_MODULE_NOT_FOUND` for `db/client.js`, etc.).
 
 - **Web — file uploads:** New uploads were always stored as **rider**; the Files UI now has **Upload as** (Rider, **Stage plot**, Plot from rider, Other) and a **Type** control on each row. **`PATCH /api/v1/files/:id`** updates **purpose** so existing files can be reclassified.
