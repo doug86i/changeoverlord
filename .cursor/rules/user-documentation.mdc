@@ -25,7 +25,7 @@ If the change affects **what someone does in the browser** (new route, setting, 
 
 ## Patch template presets
 
-If you change **blank** / **example** workbook layouts or the bundled **DH Pick & Patch (example)** seed, update **`api/src/lib/patch-template-presets.ts`** (and **`seed-patch-templates.ts`** if the shipped name or `originalName` changes), **`docs/USER_GUIDE.md`** (templates), and **`docs/MAINTAINING_DOCS.md`** if the maintenance table needs a new row.
+If you change the **blank** workbook layout or the bundled **DH Pick & Patch (example)** seed, update **`api/src/lib/patch-template-presets.ts`** (and **`seed-patch-templates.ts`** if the shipped name or `originalName` changes), **`docs/USER_GUIDE.md`** (templates), and **`docs/MAINTAINING_DOCS.md`** if the maintenance table needs a new row. **`web/src/lib/patchWorkbookCollab.ts`** must stay aligned with the **blank** grid used for **performance** and **template** editors when those defaults change.
 
 ## Process detail
 

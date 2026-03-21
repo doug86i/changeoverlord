@@ -120,10 +120,9 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 **Creating templates**
 
 - **New blank** — Builds a minimal **Input** + **RF** workbook with column headers so you can fill everything in the app (no Excel required).
-- **New from example** — Adds a **DH-style** multi-sheet layout (channel list, mic/DI list, RF, stage box patch), simplified from the Doug Hunt field workbook pattern.
 - **Upload Excel** — Import from **Excel** (`.xlsx`, `.xltx`, macro-enabled `.xlsm` / `.xltm`, etc.) or **Google Sheets** (export to Excel-compatible format first).
 
-A fresh install also includes one bundled example template (**DH Pick & Patch (example)**); you can duplicate it with **New from example** under another name if you removed it.
+A fresh install also includes one bundled example template (**DH Pick & Patch (example)**) seeded from the repo; **Duplicate** it in Settings if you want another copy under a different name.
 
 On **Settings** and on the **stage** template picker you can:
 
@@ -157,7 +156,7 @@ On a stage day clock (`/clock/day/:stageDayId`):
     - **Amber** — 1–5 minutes
     - **Red** — under 1 minute (the **last minute flashes** red/white for visibility)
 - **Auto-advance** — In normal view, focus follows the current act (toggle on/off).
-- **Changeover display** — In normal view, shows changeover duration between acts.
+- **Changeover** — When the schedule is in a **gap between acts** (nobody on stage, next act not yet started), a **Changeover** banner appears — same condition and styling as in **fullscreen/distance** view and the **patch** sidebar. In normal view, the focus card also shows **changeover duration** between the previous act’s end and the focused act’s start when applicable.
 - **Band navigation** — In normal view, click any band in the list, or use **← / →** arrow keys.
 - **Message overlay** — Type a message and click "Show" to display it full-screen (click to dismiss). Useful for "STOP" or timing cues.
 - **End of day** — After the **last performance finishes** on that stage day, for **up to one hour** a full-screen message appears for the crew: it looks ahead to the **next day on this stage** and lists that day’s **lineup** (when configured). **One hour after** the last finish, the clock **automatically switches** to that next day. After the **final** day on the stage, a **thank-you** screen stays up until you navigate away. If a slot has no end time, the clock treats its end as **one hour after start** for this timing only.
