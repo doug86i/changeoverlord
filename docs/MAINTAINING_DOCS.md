@@ -13,6 +13,7 @@ This project splits docs by **audience** so nothing important lives only in chat
 | **Developers** | **[`DEVELOPMENT.md`](DEVELOPMENT.md)**, **[`REALTIME.md`](REALTIME.md)**, **[`DECISIONS.md`](DECISIONS.md)**, **[`LOGGING.md`](LOGGING.md)** | Implementation, sync model, decisions, logging. |
 | **Product / roadmap** | **[`PLAN.md`](PLAN.md)**, **[`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md)** | Vision, architecture, roadmap, and prioritised feature requirements with user-journey analysis. |
 | **AI & architecture guardrails** | **[`AGENTS.md`](../AGENTS.md)**, **[`.cursor/rules/`](../.cursor/rules/)** | Query keys, realtime split, deploy-after-change habits. |
+| **Release notes** | **[`CHANGELOG.md`](../CHANGELOG.md)** | What changed between versions — **`[Unreleased]`** during development. |
 
 ---
 
@@ -20,11 +21,12 @@ This project splits docs by **audience** so nothing important lives only in chat
 
 | Change | Update |
 |--------|--------|
+| Notable **fix**, **feature**, or **engineering change** that **ships** (code, Docker image, migrations, dependency changes affecting the build) | **[`CHANGELOG.md`](../CHANGELOG.md)** — **`[Unreleased]`** (see **[`.cursor/rules/changelog.mdc`](../.cursor/rules/changelog.mdc)** for skip cases). |
 | New or renamed **user-visible** feature, route, or label | **[`USER_GUIDE.md`](USER_GUIDE.md)** (and screenshot copy in-app if applicable). |
 | New **operator-facing** setting or default | **`USER_GUIDE.md`** + one line in **`PLAN.md`** / **`DECISIONS.md`** only if it’s a product decision. |
 | **REST** / **SSE** / **TanStack** keys / Yjs behaviour | **`REALTIME.md`**, **`AGENTS.md`**, and code — not **`USER_GUIDE.md`** unless users need to *know* (e.g. “changes appear live”). |
 | **Docker**, **env**, **ports**, **migrations** | **`README.md`**, **`DEVELOPMENT.md`**, **`data/README.md`**, **`HANDOVER.md`** (if clone/data-move steps change) as appropriate. |
-| **Agent workflow** (Compose testing, deploy steps, logging expectations, Dockerfile speed tricks) | **`AGENTS.md`**, **`DEVELOPMENT.md`**, **`.cursor/rules/development-process.mdc`**, **`local-docker-deploy.mdc`**, **`logging.mdc`**. |
+| **Agent workflow** (Git commit granularity, Compose testing, deploy steps, changelog, logging expectations, Dockerfile speed tricks) | **`AGENTS.md`**, **`CHANGELOG.md`**, **`DEVELOPMENT.md`** § *Git commits*, **`git-commits.mdc`**, **`local-docker-deploy.mdc`**, **`changelog.mdc`**, **`logging.mdc`**. |
 | **Yjs / `@y/protocols` / `yjs` version pins** | **`package.json`** (root **`overrides`**), **`api/package.json`**, **`DECISIONS.md`** (*Yjs / WebSocket npm compatibility*). Regenerate **`package-lock.json`** after changing pins (`rm -rf node_modules package-lock.json && npm install` if npm reports **invalid** hoisting). |
 | **Feature completed or priorities shift** | **`FEATURE_REQUIREMENTS.md`** (update tier/status), **`PLAN.md`** §14 (roadmap checklist). |
 | **Stack or licence** change | **`DECISIONS.md`**, **`LICENSING.md`**. |
@@ -62,4 +64,4 @@ Keep **`docs/README.md`** the single **table of contents** for `docs/`.
 
 ## Cursor / AI
 
-Project rule **`user-documentation`** reminds agents to update **`USER_GUIDE.md`** and indexes when changing operator-visible behaviour. See **[`.cursor/rules/user-documentation.mdc`](../.cursor/rules/user-documentation.mdc)**.
+Project rules **`user-documentation`**, **`changelog`**, and **`git-commits`** remind agents to update **`USER_GUIDE.md`** / **`CHANGELOG.md`** when appropriate, and to **`git commit`** in small logical steps with clear messages. See **[`.cursor/rules/user-documentation.mdc`](../.cursor/rules/user-documentation.mdc)**, **[`.cursor/rules/changelog.mdc`](../.cursor/rules/changelog.mdc)**, and **[`.cursor/rules/git-commits.mdc`](../.cursor/rules/git-commits.mdc)**.

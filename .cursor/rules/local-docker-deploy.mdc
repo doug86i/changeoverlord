@@ -61,6 +61,8 @@ Skip only for **docs-only** or **comment-only** edits with zero effect on build/
 1. **`make dev`** from repo root (skip only for docs-only / comment-only with no build effect).
 2. **Verify** the stack: e.g. **`curl -sS http://127.0.0.1/api/v1/health`** → `200` with `{"ok":true,...}`, or **`docker compose ps`** → `app` running.
 3. **Tell the user the exact base URL** (below). If UI/API still looks stale, **`make dev-fresh`**.
+4. **`CHANGELOG.md`**: if the task changed shipped code, Docker, or migrations, add an **`[Unreleased]`** entry — see **[`changelog.mdc`](changelog.mdc)** (skip pure docs/comment-only).
+5. **`git commit`**: during the session, commit **each logical unit** with a clear message — see **[`git-commits.mdc`](git-commits.mdc)** (skip if not a Git repo or the user asked to defer commits).
 
 ## Tell the user where to click
 

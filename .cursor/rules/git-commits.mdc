@@ -1,0 +1,42 @@
+---
+description: Commit each logical unit separately with clear imperative messages
+alwaysApply: true
+---
+
+# Git commits (granularity and messages)
+
+## When to commit
+
+**Commit after each small logical unit of work**, not only at the end of a large task. Examples:
+
+- After adding **one** feature component or user-visible slice
+- After **fixing one** bug (one cause / one fix)
+- After **refactoring one** specific area (not a whole-repo sweep in one commit)
+- After **writing tests** for **one** behaviour or module
+
+If a session touches several unrelated concerns, use **several commits** so history stays readable and reverts stay safe.
+
+## Commit messages
+
+- **Short** — one line subject (roughly ≤ 72 characters is a good habit)
+- **Specific** — says *what* changed, not “stuff” or “updates”
+- **Action-oriented** — imperative mood, like a concise instruction (common convention: “Add…”, “Fix…”, “Refactor…”, “Update…”)
+
+### Good examples
+
+- `Add pagination to orders endpoint`
+- `Fix null check in payment webhook`
+- `Refactor file upload handler`
+- `Update README setup instructions`
+
+### Weak examples (avoid)
+
+- `stuff`, `changes`, `fixes`, `work on project`, `wip`, `updates`
+
+## Scope with other project rules
+
+- Pair commits with **`CHANGELOG.md`** / **`make dev`** / docs as **[`AGENTS.md`](../AGENTS.md)** requires — a single logical commit may include the matching changelog line and user-guide tweak in the **same** commit when they belong together.
+
+## If Git is unavailable
+
+If the workspace is **not** a Git repository or commits fail (permissions, etc.), note that for the user instead of skipping silently.

@@ -8,15 +8,19 @@
 
 ## Development process (agents — follow end-to-end)
 
-This is the **canonical workflow** for implementation tasks: **test** (Compose), **deploy** (rebuild image), **observe** (health + logs). Cursor rules **`local-docker-deploy`** and **`logging`** restate parts of this; details live in the docs below.
+This is the **canonical workflow** for implementation tasks: **commit** (small logical units), **test** (Compose), **deploy** (rebuild image), **observe** (health + logs), **record** (changelog). Cursor rules **`git-commits`**, **`local-docker-deploy`**, **`changelog`**, and **`logging`** restate parts of this; details live in the docs below.
 
 | Phase | Requirement |
 |-------|----------------|
+| **Commits** | When the repo is **Git**: **`git commit`** after each **logical unit** of work (one feature slice, one bug, one refactor, one test batch) — **not** one giant commit at the end. Messages: **short**, **specific**, **imperative** (e.g. “Add…”, “Fix…”, “Refactor…”). See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** § *Git commits* and **[`.cursor/rules/git-commits.mdc`](.cursor/rules/git-commits.mdc)**. |
 | **Testing** | Local integration testing is **Docker Compose only** — same **`Dockerfile`** and **`docker-compose.yml`** as production. After code changes that affect runtime, run **`make dev`** from the repo root. Confirm **`GET /api/v1/health`** (or **`docker compose ps`**) succeeds. If the browser still shows old UI/API, run **`make dev-fresh`**. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**. |
 | **Deployment** | There is **no** bind-mounted dev server: the app is **`web/dist` + `api/dist`** inside the image. Do **not** tell the user to “just refresh” without a rebuild unless the change is docs-only. Always give the **exact** base URL (**`http://localhost/`** or **`http://localhost:<HOST_PORT>/`**). |
 | **Logging** | Follow **[`docs/LOGGING.md`](docs/LOGGING.md)** for all new or changed server and client logging: **`req.log`** / **`createLogger`**, levels (**`debug`** for routine mutations with ids), **never** secrets or tokens. For local troubleshooting, **`LOG_LEVEL=debug`** in **`.env`** and **`docker compose logs -f app`** — see **DEVELOPMENT.md** and **LOGGING.md**. |
+| **Changelog** | For any change that affects **build output** or **runtime behaviour** (`api/`, `web/`, **`Dockerfile`**, **`docker-compose.yml`**, migrations, dependency changes that ship), add a bullet under **`[Unreleased]`** in **[`CHANGELOG.md`](CHANGELOG.md)** in the **same change**. See **[`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc)** for skip rules (docs-only / comment-only / no ship impact). |
 
 **Skip** `make dev` only for **docs-only** or **comment-only** changes with **zero** build or runtime effect.
+
+**Skip** a changelog entry only when the change **cannot** affect what ships or how the app behaves (same bar as changelog rule — pure docs, comment-only, or non-shipping metadata).
 
 ---
 
@@ -27,11 +31,14 @@ This is the **canonical workflow** for implementation tasks: **test** (Compose),
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Locked product + stack choices |
 | [`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md) | User-journey analysis, competitive research, prioritised feature requirements |
 | [`docs/REALTIME.md`](docs/REALTIME.md) | Authoritative realtime model: SSE vs Yjs, wire format, implementation checklist |
-| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local testing = **Compose only** (`make dev`) — same image path as deploy |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local testing = **Compose only** (`make dev`); **Git commits** — small logical units, message style |
 | [`docs/LOGGING.md`](docs/LOGGING.md) | **Structured logging:** `req.log` / `createLogger`, levels, no secrets, web `logDebug` |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | **Operator-facing** how-to (keep in sync when UX changes) |
 | [`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md) | **Doc ownership** — what to update when |
+| [`CHANGELOG.md`](CHANGELOG.md) | **Release notes** — **`[Unreleased]`** entries for fixes/features that ship |
+| [`.cursor/rules/git-commits.mdc`](.cursor/rules/git-commits.mdc) | Commit **each logical unit** separately; **short, specific, imperative** messages |
 | [`.cursor/rules/local-docker-deploy.mdc`](.cursor/rules/local-docker-deploy.mdc) | After code changes, run **`make dev`** yourself |
+| [`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc) | After notable code/build changes, update **`CHANGELOG.md`** |
 | [`.cursor/rules/logging.mdc`](.cursor/rules/logging.mdc) | Structured logging — **`req.log`**, **`createLogger`**, no secrets |
 | [`.cursor/rules/code-patterns.mdc`](.cursor/rules/code-patterns.mdc) | Concrete examples: new routes, pages, queries, CSS tokens |
 | [`.cursor/rules/pitfalls.mdc`](.cursor/rules/pitfalls.mdc) | Explicit **do-not** list — Yjs, Redis, styling, migrations |
@@ -48,6 +55,8 @@ This is the **canonical workflow** for implementation tasks: **test** (Compose),
 2. Confirm the stack is up (e.g. **`docker compose ps`**, or **`GET /api/v1/health`** on the app port).
 3. **Tell the user the exact base URL:** **`http://localhost/`** when **`HOST_PORT`** is unset or **80**; otherwise **`http://localhost:<HOST_PORT>/`** (from **`.env`**).
 4. If you changed **logging** or need to verify server behaviour, tail **`docker compose logs -f app`** with **`LOG_LEVEL=debug`** as needed — see **[`docs/LOGGING.md`](docs/LOGGING.md)**.
+5. If the task required a **changelog entry** (see [Development process](#development-process-agents--follow-end-to-end)), confirm **`CHANGELOG.md`** has an **`[Unreleased]`** bullet — do not finish without it.
+6. If the workspace is a **Git** repo: **`git commit`** after each **logical unit** of work completed in the session (see **Commits** in [Development process](#development-process-agents--follow-end-to-end)); do not leave a large uncommitted diff unless the user asked to hold commits.
 
 ---
 
@@ -68,6 +77,8 @@ This is the **canonical workflow** for implementation tasks: **test** (Compose),
 ## Obligations when you change code
 
 - **User-visible behaviour** (routes, settings, clocks, templates, labels): update [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) when practical in the same change; follow [`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md). Cursor rule **`user-documentation`** restates this.
+- **Notable fixes and features** (anything that ships in the image or changes runtime): add a line under **`[Unreleased]`** in [`CHANGELOG.md`](CHANGELOG.md); Cursor rule **`changelog`** restates when to skip.
+- **Git history:** commit in **small logical steps** with **clear messages**; Cursor rule **`git-commits`** restates granularity and message style.
 - **New or changed REST mutation** that affects UI-visible data: extend `broadcastInvalidate([...])` in the API route (immediately after success) with keys that match **`queryKey` usage in `web/src/`**. See [`docs/REALTIME.md`](docs/REALTIME.md).
 - **New TanStack `useQuery`:** ensure relevant mutations invalidate that key via `broadcastInvalidate`.
 - **Do not** add a second global realtime mechanism without updating [`docs/DECISIONS.md`](docs/DECISIONS.md) and [`docs/REALTIME.md`](docs/REALTIME.md).
@@ -201,7 +212,9 @@ web/
 Project rules live in **`.cursor/rules/`**:
 - **`pitfalls.mdc`** — things that will break the app (read first)
 - **`code-patterns.mdc`** — concrete examples to copy
+- **`git-commits.mdc`** — one commit per logical unit; short, specific, imperative messages
 - **`local-docker-deploy.mdc`** — run `make dev` after changes
+- **`changelog.mdc`** — update `CHANGELOG.md` for notable code/build changes
 - **`realtime-and-data-sync.mdc`** — SSE vs Yjs split
 - **`logging.mdc`** — structured logging
 - **`user-documentation.mdc`** — keep USER_GUIDE.md in sync

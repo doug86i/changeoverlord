@@ -1,0 +1,38 @@
+---
+description: Update CHANGELOG.md for notable code or build changes
+alwaysApply: true
+---
+
+# Changelog (mandatory for notable changes)
+
+## Canonical file
+
+- **`CHANGELOG.md`** (repo root) — human-readable history of user- and operator-visible fixes and features, plus notable engineering changes.
+
+## When to add an entry
+
+In the **same change** as the work, add a bullet under **`## [Unreleased]`** in **`CHANGELOG.md`** when you change anything that affects **what ships** or **how the app behaves**, including:
+
+- **`api/`**, **`web/`**, **`Dockerfile`**, **`docker-compose.yml`**, root **`package.json`** / lockfile in a way that changes the built image or dependencies
+- **Drizzle migrations** or **`api/src/db/schema.ts`**
+
+## When you may skip
+
+Skip a changelog line **only** when the diff cannot affect operators, build output, or runtime — for example:
+
+- **`docs/`**-only edits (excluding this file when you are recording other work in the same commit)
+- **Comment-only** or **whitespace-only** in code
+- **`.cursor/`** rule tweaks that do not change product behaviour
+
+If you are unsure, add a one-line **`### Changed`** or **`### Fixed`** note — prefer being explicit.
+
+## How to write entries
+
+- Short **imperative** or **past** summary; name the **area** (e.g. Web, API, Docker) when helpful.
+- Link deep internals to **`docs/`** in prose only if operators care; otherwise stay high-level.
+
+## Process link
+
+This rule is part of the same workflow as **`local-docker-deploy.mdc`**, **`git-commits.mdc`**, and **[`AGENTS.md`](../AGENTS.md)** (development process + end-of-task checklist). Do not mark a coding task complete without **`CHANGELOG.md`** updated when an entry is required.
+
+A **changelog-worthy** slice often matches **one Git commit** — see **`git-commits.mdc`** for committing each logical unit separately.

@@ -20,6 +20,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 | **[`LOGGING.md`](LOGGING.md)** | **Structured logging** — API Pino / `req.log`, web `logDebug`, `LOG_LEVEL`, no secrets |
 | **[`LICENSING.md`](LICENSING.md)** | Repository and dependency licences |
 | **[`HANDOVER.md`](HANDOVER.md)** | **New machine / teammate** — clone, `make dev`, moving data |
+| **[`../CHANGELOG.md`](../CHANGELOG.md)** | **Release notes** — unreleased work and version history |
 | **[`../data/README.md`](../data/README.md)** | Host `DATA_DIR` layout (Postgres, uploads) |
 
 ---
@@ -28,7 +29,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 
 | Document | What it is |
 |----------|------------|
-| **[`AGENTS.md`](../AGENTS.md)** | **Start here** — **development process** (Compose testing, deploy, logging), realtime split (SSE vs Yjs), API/query obligations |
+| **[`AGENTS.md`](../AGENTS.md)** | **Start here** — **development process** (Git commits, Compose testing, deploy, changelog, logging), realtime split (SSE vs Yjs), API/query obligations |
 | **[`.cursor/rules/`](../.cursor/rules/)** | Cursor project rules (e.g. deploy after changes, realtime architecture) |
 
 ---

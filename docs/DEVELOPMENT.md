@@ -8,6 +8,29 @@ Changeoverlord is developed **against the same path we ship**: **`docker compose
 
 - **No manual deploy steps** to the local test environment: one repeatable command brings the stack up with a fresh build.
 - **Compose is the contract**: if it works in `docker compose up`, we trust it for LAN installs.
+- **Changelog is part of the same contract** for code changes: update **`[Unreleased]`** in **[`CHANGELOG.md`](../CHANGELOG.md)** when your change ships or affects runtime — see **[`AGENTS.md`](../AGENTS.md)** and **`.cursor/rules/changelog.mdc`**.
+- **Git:** commit **each logical unit** separately as you go — see **§ Git commits** below and **`.cursor/rules/git-commits.mdc`**.
+
+## Git commits
+
+Use **Git** to record work in **small, reviewable steps** — not one enormous commit at the end of a session.
+
+**Commit after** a single coherent unit, for example:
+
+- One feature component or vertical slice
+- One bug fix (one cause / one fix)
+- One refactor of a specific module or area
+- Tests for one behaviour or file
+
+**Message style:** short, specific, imperative — what the commit *does*.
+
+| Good | Weak |
+|------|------|
+| `Add set-length option to performance form` | `changes` |
+| `Fix bulk add range when event dates shown` | `fixes` |
+| `Refactor stage day time helpers` | `wip` |
+
+See **[`.cursor/rules/git-commits.mdc`](../.cursor/rules/git-commits.mdc)** for examples and **[`AGENTS.md`](../AGENTS.md)** for how this fits with **`make dev`** and **`CHANGELOG.md`**.
 
 ## Deploy to local testing (every time)
 
@@ -80,7 +103,7 @@ What usually costs time:
 
 ## AI / Cursor workflow
 
-**Agent development process** (testing, deployment, logging): **[`../AGENTS.md`](../AGENTS.md)** → *Development process (agents)*. Rules: **`.cursor/rules/local-docker-deploy.mdc`**, **`.cursor/rules/logging.mdc`**, **`.cursor/rules/development-process.mdc`**. After implementation, **`make dev`** keeps the local stack aligned with production.
+**Agent development process** (commits, testing, deployment, changelog, logging): **[`../AGENTS.md`](../AGENTS.md)** → *Development process (agents)*. Rules: **`.cursor/rules/git-commits.mdc`**, **`.cursor/rules/local-docker-deploy.mdc`**, **`.cursor/rules/changelog.mdc`**, **`.cursor/rules/logging.mdc`**. After implementation, **`make dev`** keeps the local stack aligned with production.
 
 ## Database resets
 

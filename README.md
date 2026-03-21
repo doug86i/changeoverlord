@@ -59,6 +59,7 @@ The API lives at **`/api/v1`**. The browser loads the SPA from the **same origin
 | **[`docs/DESIGN.md`](docs/DESIGN.md)** | UI themes and tokens |
 | **[`docs/LICENSING.md`](docs/LICENSING.md)** | Licences |
 | **[`docs/HANDOVER.md`](docs/HANDOVER.md)** | **New machine or teammate** — clone, env, data move |
+| **[`CHANGELOG.md`](CHANGELOG.md)** | **What changed** — unreleased fixes/features and version history |
 
 **AI assistants and architecture rules:** **[`AGENTS.md`](AGENTS.md)** (not required for deploy-only readers).
 
