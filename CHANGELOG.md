@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **Examples:** **`examples/DH_Pick_Patch_TEMPLATE_v5.1_satbox_index_match.json`** — DH Pick & Patch workbook with **SatBox Lables** lookups rewritten from nested **`IF`** chains to **`INDEX`/`MATCH`** so FortuneSheet can resolve **SatBox#** codes (**B1**, **O2**, etc.) on **Channel List** into **Item** text on the labels sheet.
+- **Examples:** **`examples/DH_Pick_Patch_TEMPLATE_v5.2_satbox_vlookup.json`** — DH Pick & Patch workbook with **SatBox Lables** lookups using **`VLOOKUP` (exact)** instead of nested **`IF`** or **`INDEX`/`MATCH`**; **formulajs** `MATCH` type 0 uses regex substring matching (**`B1`** can match **`B10`**), so **`VLOOKUP(..., 0)`** is required for correct **SatBox#** → **Item** resolution.
 
 - **Examples:** **`examples/patch-template-conditional-format-demo.json`** — uploadable FortuneSheet JSON with **`luckysheet_conditionformat_save`** (color scale + data bars); **`examples/README.md`** updated for **`.json`** starters.
 

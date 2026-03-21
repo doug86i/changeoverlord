@@ -1,8 +1,8 @@
 {
   "changeoverlordWorkbook": 1,
-  "exportedAt": "2026-03-21T21:07:33.465Z",
+  "exportedAt": "2026-03-21T21:11:46.579Z",
   "kind": "patchTemplate",
-  "label": "DH Pick & Patch TEMPLATE v5.1 (SatBox INDEX/MATCH)",
+  "label": "DH Pick & Patch TEMPLATE v5.2 (SatBox VLOOKUP exact)",
   "sheets": [
     {
       "id": "sheet_1",
@@ -17797,7 +17797,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A6),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A6),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "v": "Drum or instrument ",
             "m": "Drum or instrument ",
             "bg": "#FFFFFF",
@@ -17827,7 +17827,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D6),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D6),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -17858,7 +17858,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A7),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A7),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -17888,7 +17888,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D7),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D7),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -17919,7 +17919,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A8),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A8),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -17949,7 +17949,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D8),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D8),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -17980,7 +17980,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A9),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A9),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18010,7 +18010,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D9),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D9),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18041,7 +18041,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A10),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A10),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18071,7 +18071,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D10),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D10),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18102,7 +18102,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A11),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A11),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18132,7 +18132,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D11),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D11),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18163,7 +18163,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A12),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A12),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18193,7 +18193,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D12),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D12),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18224,7 +18224,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A13),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A13),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18254,7 +18254,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D13),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D13),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "v": "Example 3",
             "m": "Example 3",
             "bg": "#F6F8FA",
@@ -18285,7 +18285,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A14),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A14),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18315,7 +18315,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D14),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D14),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18346,7 +18346,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A15),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A15),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18376,7 +18376,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D15),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D15),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18407,7 +18407,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A16),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A16),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18437,7 +18437,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D16),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D16),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18468,7 +18468,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A17),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A17),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18498,7 +18498,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D17),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D17),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18652,7 +18652,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A21),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A21),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18682,7 +18682,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D21),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D21),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18713,7 +18713,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A22),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A22),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18743,7 +18743,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D22),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D22),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18774,7 +18774,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A23),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A23),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "v": "Vocal for vocalist",
             "m": "Vocal for vocalist",
             "bg": "#F6F8FA",
@@ -18804,7 +18804,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D23),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D23),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "v": "doug",
             "m": "doug",
             "bg": "#F6F8FA",
@@ -18835,7 +18835,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A24),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A24),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18865,7 +18865,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D24),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D24),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18896,7 +18896,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A25),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A25),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18926,7 +18926,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D25),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D25),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -18957,7 +18957,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A26),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A26),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -18987,7 +18987,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D26),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D26),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19018,7 +19018,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A27),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A27),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19048,7 +19048,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D27),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D27),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19079,7 +19079,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A28),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A28),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19109,7 +19109,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D28),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D28),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19140,7 +19140,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A29),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A29),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19170,7 +19170,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D29),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D29),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "v": "Example 4",
             "m": "Example 4",
             "bg": "#F6F8FA",
@@ -19201,7 +19201,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A30),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A30),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19231,7 +19231,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D30),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D30),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19262,7 +19262,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A31),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A31),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19292,7 +19292,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D31),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D31),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19323,7 +19323,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A32),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A32),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19353,7 +19353,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D32),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D32),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19507,7 +19507,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A36),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A36),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19537,7 +19537,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D36),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D36),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19568,7 +19568,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A37),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A37),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19598,7 +19598,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D37),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D37),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19629,7 +19629,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A38),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A38),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19659,7 +19659,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D38),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D38),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19690,7 +19690,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A39),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A39),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "v": "Example 5",
             "m": "Example 5",
             "bg": "#F6F8FA",
@@ -19720,7 +19720,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D39),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D39),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19751,7 +19751,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A40),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A40),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19781,7 +19781,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D40),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D40),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19812,7 +19812,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A41),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A41),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19842,7 +19842,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D41),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D41),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19873,7 +19873,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A42),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A42),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19903,7 +19903,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D42),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D42),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -19934,7 +19934,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A43),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A43),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19964,7 +19964,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D43),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D43),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -19995,7 +19995,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A44),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A44),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -20025,7 +20025,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D44),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D44),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -20056,7 +20056,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A45),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A45),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -20086,7 +20086,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D45),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D45),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -20117,7 +20117,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A46),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A46),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#FFFFFF",
             "fc": "#243447",
             "fs": 10,
@@ -20147,7 +20147,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D46),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D46),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "v": "Example 6",
             "m": "Example 6",
             "bg": "#FFFFFF",
@@ -20178,7 +20178,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(A47),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(A47),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
@@ -20208,7 +20208,7 @@
             }
           },
           {
-            "f": "=IFERROR(INDEX('Channel List'!$D$5:$D$104,MATCH(TRIM(D47),'Channel List'!$B$5:$B$104,0)),\"\")",
+            "f": "=IFERROR(VLOOKUP(TRIM(D47),'Channel List'!$B$5:$D$104,3,0),\"\")",
             "bg": "#F6F8FA",
             "fc": "#243447",
             "fs": 10,
