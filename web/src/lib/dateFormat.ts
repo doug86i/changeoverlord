@@ -60,19 +60,29 @@ export function formatCountdown(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const SECONDS_PER_DAY = 24 * 60 * 60;
+const SECONDS_PER_HOUR = 60 * 60;
+const SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
 
 /**
- * Time until the next act (or similar long horizons): **M:SS** under 24 hours,
- * otherwise whole **days** only (e.g. "3 days").
+ * Time until the next act: explicit units at three scales —
+ * under 1 hour: minutes + seconds (e.g. `12m 05s`);
+ * 1 hour up to (but not including) 24 hours: hours + minutes (e.g. `2h 15m`);
+ * 24 hours or more: whole days (e.g. `3 days`).
  */
 export function formatCountdownOrDays(seconds: number): string {
-  if (seconds < 0) return "0:00";
+  if (seconds < 0) return "0m 00s";
   if (seconds >= SECONDS_PER_DAY) {
     const days = Math.floor(seconds / SECONDS_PER_DAY);
     return days === 1 ? "1 day" : `${days} days`;
   }
-  return formatCountdown(seconds);
+  if (seconds >= SECONDS_PER_HOUR) {
+    const h = Math.floor(seconds / SECONDS_PER_HOUR);
+    const m = Math.floor((seconds % SECONDS_PER_HOUR) / 60);
+    return `${h}h ${m}m`;
+  }
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s.toString().padStart(2, "0")}s`;
 }
 
 /**
