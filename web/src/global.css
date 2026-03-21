@@ -1357,8 +1357,15 @@ a.patch-sidebar-perf-link:hover {
   object-fit: contain;
 }
 
-/* FortuneSheet — theme-aligned (toolbar, tabs, formula bar, sheet tabs); cell selection / in-cell editor use library defaults */
+/* FortuneSheet — always light: pin light-theme tokens so toolbar icons, menus,
+   and cell canvas stay readable regardless of the app's light/dark theme. */
 .patch-workbook-host {
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-border: #d1d5db;
+  --color-text: #111827;
+  --color-text-muted: #52525b;
+  --color-overlay: rgba(0, 0, 0, 0.45);
   accent-color: var(--color-brand);
 }
 
@@ -1514,19 +1521,11 @@ a.patch-sidebar-perf-link:hover {
   border-color: var(--color-brand);
 }
 
-/* In-cell editor: FortuneSheet copies cell font colour onto inner nodes (inline styles beat a single parent colour). Default box stays library white; we only force black text in both themes. */
-:root[data-theme="light"] .patch-workbook-host .luckysheet-input-box-inner,
-:root[data-theme="light"] .patch-workbook-host .luckysheet-input-box-inner *,
-:root[data-theme="light"] .patch-workbook-host .luckysheet-cell-input,
-:root[data-theme="light"] .patch-workbook-host .luckysheet-cell-input * {
-  color: #000 !important;
-  -webkit-text-fill-color: #000 !important;
-}
-
-:root[data-theme="dark"] .patch-workbook-host .luckysheet-input-box-inner,
-:root[data-theme="dark"] .patch-workbook-host .luckysheet-input-box-inner *,
-:root[data-theme="dark"] .patch-workbook-host .luckysheet-cell-input,
-:root[data-theme="dark"] .patch-workbook-host .luckysheet-cell-input * {
+/* In-cell editor: force black text so typed content stays readable on the white cell background. */
+.patch-workbook-host .luckysheet-input-box-inner,
+.patch-workbook-host .luckysheet-input-box-inner *,
+.patch-workbook-host .luckysheet-cell-input,
+.patch-workbook-host .luckysheet-cell-input * {
   color: #000 !important;
   -webkit-text-fill-color: #000 !important;
   caret-color: #000;
