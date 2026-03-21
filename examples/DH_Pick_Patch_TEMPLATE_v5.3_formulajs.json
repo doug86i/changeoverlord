@@ -1,8 +1,8 @@
 {
   "changeoverlordWorkbook": 1,
-  "exportedAt": "2026-03-21T21:11:46.579Z",
+  "exportedAt": "2026-03-21T21:42:49.388Z",
   "kind": "patchTemplate",
-  "label": "DH Pick & Patch TEMPLATE v5.2 (SatBox VLOOKUP exact)",
+  "label": "DH Pick & Patch TEMPLATE v5.3 (formulajs-native helpers)",
   "sheets": [
     {
       "id": "sheet_1",
@@ -10,7 +10,7 @@
       "status": 1,
       "order": 0,
       "row": 104,
-      "column": 30,
+      "column": 31,
       "data": [
         [
           {
@@ -72,6 +72,7 @@
           null,
           null,
           null,
+          null,
           null
         ],
         [
@@ -96,6 +97,7 @@
               "cs": 10
             }
           },
+          null,
           null,
           null,
           null,
@@ -280,6 +282,14 @@
           null,
           null,
           null,
+          {
+            "v": 0,
+            "m": "0",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null
         ],
         [
@@ -478,6 +488,7 @@
           null,
           null,
           null,
+          null,
           null
         ],
         [
@@ -621,10 +632,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E5=\"\",\"\",E5)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E5=\"\",\"\",MAX($AD$3:$AD4)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G5=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G5&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G5&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G5&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -767,10 +797,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E6=\"\",\"\",E6)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E6=\"\",\"\",MAX($AD$3:$AD5)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G6=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G6&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G6&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G6&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -909,10 +958,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E7=\"\",\"\",E7)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E7=\"\",\"\",MAX($AD$3:$AD6)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G7=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G7&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G7&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G7&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -1059,10 +1127,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E8=\"\",\"\",E8)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E8=\"\",\"\",MAX($AD$3:$AD7)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G8=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G8&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G8&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G8&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -1201,10 +1288,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E9=\"\",\"\",E9)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E9=\"\",\"\",MAX($AD$3:$AD8)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G9=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G9&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G9&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G9&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -1343,10 +1449,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E10=\"\",\"\",E10)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E10=\"\",\"\",MAX($AD$3:$AD9)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G10=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G10&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G10&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G10&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -1485,10 +1610,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E11=\"\",\"\",E11)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E11=\"\",\"\",MAX($AD$3:$AD10)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G11=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G11&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G11&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G11&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -1631,10 +1775,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E12=\"\",\"\",E12)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E12=\"\",\"\",MAX($AD$3:$AD11)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G12=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G12&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G12&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G12&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -1773,10 +1936,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E13=\"\",\"\",E13)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E13=\"\",\"\",MAX($AD$3:$AD12)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G13=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G13&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G13&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G13&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -1919,10 +2101,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E14=\"\",\"\",E14)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E14=\"\",\"\",MAX($AD$3:$AD13)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G14=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G14&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G14&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G14&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -2061,10 +2262,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E15=\"\",\"\",E15)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E15=\"\",\"\",MAX($AD$3:$AD14)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G15=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G15&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G15&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G15&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -2203,10 +2423,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E16=\"\",\"\",E16)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E16=\"\",\"\",MAX($AD$3:$AD15)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G16=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G16&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G16&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G16&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -2345,10 +2584,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E17=\"\",\"\",E17)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E17=\"\",\"\",MAX($AD$3:$AD16)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G17=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G17&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G17&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G17&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -2487,10 +2745,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E18=\"\",\"\",E18)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E18=\"\",\"\",MAX($AD$3:$AD17)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G18=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G18&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G18&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G18&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -2633,10 +2910,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E19=\"\",\"\",E19)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E19=\"\",\"\",MAX($AD$3:$AD18)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G19=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G19&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G19&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G19&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -2779,10 +3075,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E20=\"\",\"\",E20)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E20=\"\",\"\",MAX($AD$3:$AD19)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G20=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G20&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G20&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G20&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -2921,10 +3236,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E21=\"\",\"\",E21)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E21=\"\",\"\",MAX($AD$3:$AD20)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G21=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G21&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G21&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G21&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -3063,10 +3397,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E22=\"\",\"\",E22)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E22=\"\",\"\",MAX($AD$3:$AD21)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G22=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G22&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G22&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G22&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -3205,10 +3558,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E23=\"\",\"\",E23)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E23=\"\",\"\",MAX($AD$3:$AD22)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G23=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G23&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G23&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G23&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -3347,10 +3719,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E24=\"\",\"\",E24)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E24=\"\",\"\",MAX($AD$3:$AD23)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G24=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G24&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G24&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G24&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -3489,10 +3880,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E25=\"\",\"\",E25)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E25=\"\",\"\",MAX($AD$3:$AD24)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G25=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G25&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G25&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G25&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -3631,10 +4041,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E26=\"\",\"\",E26)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E26=\"\",\"\",MAX($AD$3:$AD25)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G26=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G26&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G26&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G26&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -3773,10 +4202,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E27=\"\",\"\",E27)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E27=\"\",\"\",MAX($AD$3:$AD26)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G27=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G27&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G27&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G27&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -3915,10 +4363,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E28=\"\",\"\",E28)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E28=\"\",\"\",MAX($AD$3:$AD27)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G28=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G28&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G28&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G28&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -4057,10 +4524,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E29=\"\",\"\",E29)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E29=\"\",\"\",MAX($AD$3:$AD28)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G29=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G29&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G29&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G29&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -4199,10 +4685,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E30=\"\",\"\",E30)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E30=\"\",\"\",MAX($AD$3:$AD29)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G30=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G30&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G30&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G30&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -4341,10 +4846,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E31=\"\",\"\",E31)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E31=\"\",\"\",MAX($AD$3:$AD30)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G31=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G31&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G31&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G31&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -4483,10 +5007,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E32=\"\",\"\",E32)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E32=\"\",\"\",MAX($AD$3:$AD31)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G32=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G32&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G32&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G32&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -4625,10 +5168,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E33=\"\",\"\",E33)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E33=\"\",\"\",MAX($AD$3:$AD32)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G33=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G33&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G33&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G33&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -4767,10 +5329,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E34=\"\",\"\",E34)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E34=\"\",\"\",MAX($AD$3:$AD33)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G34=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G34&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G34&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G34&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -4909,10 +5490,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E35=\"\",\"\",E35)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E35=\"\",\"\",MAX($AD$3:$AD34)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G35=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G35&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G35&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G35&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -5051,10 +5651,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E36=\"\",\"\",E36)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E36=\"\",\"\",MAX($AD$3:$AD35)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G36=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G36&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G36&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G36&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -5193,10 +5812,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E37=\"\",\"\",E37)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E37=\"\",\"\",MAX($AD$3:$AD36)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G37=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G37&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G37&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G37&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -5335,10 +5973,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E38=\"\",\"\",E38)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E38=\"\",\"\",MAX($AD$3:$AD37)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G38=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G38&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G38&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G38&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -5477,10 +6134,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E39=\"\",\"\",E39)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E39=\"\",\"\",MAX($AD$3:$AD38)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G39=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G39&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G39&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G39&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -5619,10 +6295,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E40=\"\",\"\",E40)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E40=\"\",\"\",MAX($AD$3:$AD39)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G40=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G40&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G40&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G40&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -5761,10 +6456,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E41=\"\",\"\",E41)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E41=\"\",\"\",MAX($AD$3:$AD40)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G41=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G41&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G41&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G41&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -5903,10 +6617,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E42=\"\",\"\",E42)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E42=\"\",\"\",MAX($AD$3:$AD41)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G42=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G42&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G42&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G42&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -6045,10 +6778,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E43=\"\",\"\",E43)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E43=\"\",\"\",MAX($AD$3:$AD42)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G43=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G43&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G43&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G43&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -6187,10 +6939,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E44=\"\",\"\",E44)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E44=\"\",\"\",MAX($AD$3:$AD43)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G44=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G44&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G44&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G44&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -6329,10 +7100,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E45=\"\",\"\",E45)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E45=\"\",\"\",MAX($AD$3:$AD44)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G45=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G45&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G45&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G45&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -6471,10 +7261,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E46=\"\",\"\",E46)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E46=\"\",\"\",MAX($AD$3:$AD45)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G46=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G46&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G46&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G46&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -6613,10 +7422,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E47=\"\",\"\",E47)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E47=\"\",\"\",MAX($AD$3:$AD46)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G47=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G47&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G47&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G47&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -6755,10 +7583,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E48=\"\",\"\",E48)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E48=\"\",\"\",MAX($AD$3:$AD47)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G48=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G48&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G48&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G48&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -6897,10 +7744,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E49=\"\",\"\",E49)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E49=\"\",\"\",MAX($AD$3:$AD48)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G49=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G49&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G49&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G49&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -7039,10 +7905,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E50=\"\",\"\",E50)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E50=\"\",\"\",MAX($AD$3:$AD49)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G50=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G50&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G50&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G50&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -7181,10 +8066,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E51=\"\",\"\",E51)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E51=\"\",\"\",MAX($AD$3:$AD50)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G51=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G51&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G51&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G51&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -7323,10 +8227,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E52=\"\",\"\",E52)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E52=\"\",\"\",MAX($AD$3:$AD51)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G52=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G52&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G52&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G52&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -7463,10 +8386,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E53=\"\",\"\",E53)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E53=\"\",\"\",MAX($AD$3:$AD52)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G53=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G53&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G53&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G53&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -7603,10 +8545,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E54=\"\",\"\",E54)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E54=\"\",\"\",MAX($AD$3:$AD53)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G54=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G54&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G54&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G54&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -7743,10 +8704,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E55=\"\",\"\",E55)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E55=\"\",\"\",MAX($AD$3:$AD54)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G55=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G55&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G55&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G55&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -7883,10 +8863,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E56=\"\",\"\",E56)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E56=\"\",\"\",MAX($AD$3:$AD55)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G56=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G56&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G56&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G56&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -8023,10 +9022,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E57=\"\",\"\",E57)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E57=\"\",\"\",MAX($AD$3:$AD56)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G57=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G57&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G57&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G57&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -8163,10 +9181,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E58=\"\",\"\",E58)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E58=\"\",\"\",MAX($AD$3:$AD57)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G58=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G58&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G58&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G58&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -8303,10 +9340,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E59=\"\",\"\",E59)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E59=\"\",\"\",MAX($AD$3:$AD58)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G59=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G59&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G59&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G59&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -8443,10 +9499,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E60=\"\",\"\",E60)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E60=\"\",\"\",MAX($AD$3:$AD59)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G60=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G60&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G60&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G60&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -8583,10 +9658,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E61=\"\",\"\",E61)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E61=\"\",\"\",MAX($AD$3:$AD60)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G61=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G61&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G61&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G61&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -8723,10 +9817,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E62=\"\",\"\",E62)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E62=\"\",\"\",MAX($AD$3:$AD61)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G62=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G62&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G62&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G62&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -8863,10 +9976,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E63=\"\",\"\",E63)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E63=\"\",\"\",MAX($AD$3:$AD62)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G63=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G63&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G63&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G63&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -9003,10 +10135,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E64=\"\",\"\",E64)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E64=\"\",\"\",MAX($AD$3:$AD63)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G64=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G64&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G64&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G64&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -9152,10 +10303,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E65=\"\",\"\",E65)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E65=\"\",\"\",MAX($AD$3:$AD64)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G65=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G65&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G65&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G65&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -9301,10 +10471,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E66=\"\",\"\",E66)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E66=\"\",\"\",MAX($AD$3:$AD65)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G66=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G66&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G66&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G66&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -9450,10 +10639,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E67=\"\",\"\",E67)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E67=\"\",\"\",MAX($AD$3:$AD66)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G67=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G67&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G67&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G67&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -9599,10 +10807,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E68=\"\",\"\",E68)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E68=\"\",\"\",MAX($AD$3:$AD67)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G68=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G68&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G68&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G68&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -9748,10 +10975,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E69=\"\",\"\",E69)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E69=\"\",\"\",MAX($AD$3:$AD68)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G69=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G69&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G69&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G69&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -9897,10 +11143,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E70=\"\",\"\",E70)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E70=\"\",\"\",MAX($AD$3:$AD69)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G70=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G70&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G70&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G70&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -10046,10 +11311,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E71=\"\",\"\",E71)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E71=\"\",\"\",MAX($AD$3:$AD70)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G71=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G71&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G71&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G71&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -10195,10 +11479,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E72=\"\",\"\",E72)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E72=\"\",\"\",MAX($AD$3:$AD71)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G72=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G72&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G72&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G72&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -10344,10 +11647,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E73=\"\",\"\",E73)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E73=\"\",\"\",MAX($AD$3:$AD72)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G73=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G73&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G73&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G73&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -10493,10 +11815,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E74=\"\",\"\",E74)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E74=\"\",\"\",MAX($AD$3:$AD73)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G74=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G74&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G74&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G74&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -10642,10 +11983,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E75=\"\",\"\",E75)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E75=\"\",\"\",MAX($AD$3:$AD74)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G75=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G75&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G75&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G75&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -10791,10 +12151,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E76=\"\",\"\",E76)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E76=\"\",\"\",MAX($AD$3:$AD75)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G76=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G76&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G76&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G76&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -10940,10 +12319,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E77=\"\",\"\",E77)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E77=\"\",\"\",MAX($AD$3:$AD76)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G77=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G77&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G77&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G77&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -11089,10 +12487,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E78=\"\",\"\",E78)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E78=\"\",\"\",MAX($AD$3:$AD77)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G78=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G78&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G78&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G78&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -11238,10 +12655,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E79=\"\",\"\",E79)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E79=\"\",\"\",MAX($AD$3:$AD78)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G79=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G79&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G79&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G79&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -11387,10 +12823,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E80=\"\",\"\",E80)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E80=\"\",\"\",MAX($AD$3:$AD79)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G80=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G80&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G80&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G80&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -11536,10 +12991,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E81=\"\",\"\",E81)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E81=\"\",\"\",MAX($AD$3:$AD80)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G81=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G81&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G81&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G81&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -11685,10 +13159,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E82=\"\",\"\",E82)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E82=\"\",\"\",MAX($AD$3:$AD81)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G82=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G82&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G82&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G82&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -11834,10 +13327,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E83=\"\",\"\",E83)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E83=\"\",\"\",MAX($AD$3:$AD82)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G83=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G83&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G83&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G83&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -11983,10 +13495,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E84=\"\",\"\",E84)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E84=\"\",\"\",MAX($AD$3:$AD83)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G84=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G84&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G84&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G84&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -12132,10 +13663,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E85=\"\",\"\",E85)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E85=\"\",\"\",MAX($AD$3:$AD84)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G85=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G85&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G85&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G85&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -12281,10 +13831,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E86=\"\",\"\",E86)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E86=\"\",\"\",MAX($AD$3:$AD85)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G86=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G86&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G86&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G86&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -12430,10 +13999,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E87=\"\",\"\",E87)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E87=\"\",\"\",MAX($AD$3:$AD86)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G87=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G87&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G87&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G87&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -12579,10 +14167,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E88=\"\",\"\",E88)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E88=\"\",\"\",MAX($AD$3:$AD87)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G88=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G88&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G88&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G88&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -12728,10 +14335,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E89=\"\",\"\",E89)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E89=\"\",\"\",MAX($AD$3:$AD88)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G89=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G89&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G89&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G89&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -12877,10 +14503,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E90=\"\",\"\",E90)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E90=\"\",\"\",MAX($AD$3:$AD89)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G90=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G90&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G90&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G90&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -13026,10 +14671,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E91=\"\",\"\",E91)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E91=\"\",\"\",MAX($AD$3:$AD90)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G91=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G91&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G91&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G91&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -13175,10 +14839,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E92=\"\",\"\",E92)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E92=\"\",\"\",MAX($AD$3:$AD91)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G92=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G92&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G92&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G92&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -13324,10 +15007,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E93=\"\",\"\",E93)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E93=\"\",\"\",MAX($AD$3:$AD92)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G93=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G93&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G93&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G93&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -13473,10 +15175,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E94=\"\",\"\",E94)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E94=\"\",\"\",MAX($AD$3:$AD93)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G94=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G94&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G94&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G94&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -13622,10 +15343,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E95=\"\",\"\",E95)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E95=\"\",\"\",MAX($AD$3:$AD94)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G95=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G95&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G95&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G95&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -13771,10 +15511,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E96=\"\",\"\",E96)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E96=\"\",\"\",MAX($AD$3:$AD95)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G96=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G96&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G96&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G96&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -13920,10 +15679,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E97=\"\",\"\",E97)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E97=\"\",\"\",MAX($AD$3:$AD96)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G97=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G97&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G97&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G97&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -14069,10 +15847,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E98=\"\",\"\",E98)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E98=\"\",\"\",MAX($AD$3:$AD97)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G98=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G98&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G98&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G98&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -14218,10 +16015,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E99=\"\",\"\",E99)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E99=\"\",\"\",MAX($AD$3:$AD98)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G99=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G99&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G99&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G99&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -14367,10 +16183,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E100=\"\",\"\",E100)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E100=\"\",\"\",MAX($AD$3:$AD99)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G100=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G100&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G100&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G100&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -14539,10 +16374,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E101=\"\",\"\",E101)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E101=\"\",\"\",MAX($AD$3:$AD100)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G101=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G101&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G101&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G101&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -14690,10 +16544,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E102=\"\",\"\",E102)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E102=\"\",\"\",MAX($AD$3:$AD101)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G102=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G102&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G102&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G102&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -14841,10 +16714,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E103=\"\",\"\",E103)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E103=\"\",\"\",MAX($AD$3:$AD102)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G103=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G103&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G103&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G103&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ],
         [
           {
@@ -14992,10 +16884,29 @@
           null,
           null,
           null,
+          {
+            "f": "=IF(E104=\"\",\"\",E104)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
           null,
           null,
-          null,
-          null
+          {
+            "f": "=IF(E104=\"\",\"\",MAX($AD$3:$AD103)+1)",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          },
+          {
+            "f": "=IF(G104=\"\",\"\",IF(ISNUMBER(SEARCH(\"tall\",LOWER(G104&\"\"))),\"tall\",IF(ISNUMBER(SEARCH(\"short\",LOWER(G104&\"\"))),\"short\",IF(ISNUMBER(SEARCH(\"round\",LOWER(G104&\"\"))),\"round\",\"\"))))",
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            }
+          }
         ]
       ],
       "config": {
@@ -15687,7 +17598,7 @@
             }
           },
           {
-            "f": "=COUNTIF('Channel List'!$G$5:$G$104,\"Tall*\")",
+            "f": "=COUNTIF('Channel List'!$AE$5:$AE$104,\"tall\")",
             "v": 1,
             "m": "1",
             "bg": "#F7FCFD",
@@ -15751,7 +17662,7 @@
             }
           },
           {
-            "f": "=COUNTIF('Channel List'!$G$5:$G$104,\"Short*\")",
+            "f": "=COUNTIF('Channel List'!$AE$5:$AE$104,\"short\")",
             "v": 0,
             "m": "0",
             "bg": "#F7FCFD",
@@ -15815,7 +17726,7 @@
             }
           },
           {
-            "f": "=COUNTIF('Channel List'!$G$5:$G$104,\"Round*\")",
+            "f": "=COUNTIF('Channel List'!$AE$5:$AE$104,\"round\")",
             "v": 0,
             "m": "0",
             "bg": "#F7FCFD",

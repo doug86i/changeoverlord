@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web — patch / template workbook:** After the initial **Yjs opLog** replay, the grid runs **`calculateFormula`** twice (covers cross-sheet dependency order). **Imported** or **synced** workbooks with cross-sheet formulas (e.g. **SatBox** labels reading **Channel List**) now show evaluated values instead of staying stale. **`onOp`** is ignored during that pass so formula value patches are **not** appended to **Yjs**.
+
 - **API — patch templates:** **Replace** (multipart) now accepts **FortuneSheet JSON** when the browser sends **`text/plain`** or omits a **`.json`** filename — content sniffing plus storing **`.json`** on disk when the body looks like workbook JSON (avoids saving JSON under a **`.xlsx`** key). **Replace** also persists via **`workbookSnapshotBufferForPersist`** so an open **template editor** collab session picks up the new sheets.
 
 - **API — build:** `yjs-collab-replace` imports **`@y/websocket-server/utils`** without the **`.js`** suffix so **TypeScript** resolves the module the same way as **`collab-ws.ts`** (Docker **`npm run build -w api`**).
@@ -28,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **Examples:** **`examples/DH_Pick_Patch_TEMPLATE_v5.2_satbox_vlookup.json`** — DH Pick & Patch workbook with **SatBox Lables** lookups using **`VLOOKUP` (exact)** instead of nested **`IF`** or **`INDEX`/`MATCH`**; **formulajs** `MATCH` type 0 uses regex substring matching (**`B1`** can match **`B10`**), so **`VLOOKUP(..., 0)`** is required for correct **SatBox#** → **Item** resolution.
+- **Examples:** **`examples/DH_Pick_Patch_TEMPLATE_v5.3_formulajs.json`** — DH Pick & Patch workbook (**v5.3**) with **Channel List** helpers **AA** (mic text), **AD** (running mic index), **AE** (stand tokens for **tall**/**short**/**round**); **Mic & DI List** stand counts use **`COUNTIF`** on **AE** (no **`Tall*`** wildcards). **SatBox** labels use **`VLOOKUP(..., 0)`** + **`TRIM`**. Replaces **`DH_Pick_Patch_TEMPLATE_v5.2_satbox_vlookup.json`**.
 
 - **Examples:** **`examples/patch-template-conditional-format-demo.json`** — uploadable FortuneSheet JSON with **`luckysheet_conditionformat_save`** (color scale + data bars); **`examples/README.md`** updated for **`.json`** starters.
 

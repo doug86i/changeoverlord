@@ -88,6 +88,17 @@ Cell **`f`** is stored as-is on import, but the **browser** evaluates formulas w
 1. **Keep formulas** that are known to behave well in this stack (e.g. **`VLOOKUP(…, range, col, 0)`** for exact string keys; avoid relying on **`MATCH` type 0** for short codes that are prefixes of others, like **`B1`** vs **`B10`**).
 2. **Value-only cells** for static snapshots: set **`v`** / **`m`** to what operators should see and **remove** **`f`**. Import stays valid; those cells no longer recalculate until someone types a new formula.
 
+#### Engine quirks (formulajs) that break common Excel templates
+
+These matter for **DH Pick & Patch**-style workbooks and any template that relied on Excel-specific behaviour.
+
+| Excel assumption | In this app | What to do |
+|------------------|------------|------------|
+| **`COUNTIF(range, "Tall*")`** uses `*` as wildcard | Criteria are parsed as **comparison to a literal string** (e.g. `= "Tall*"`). Cells like **`tall`** never match. | Add a **helper column** on the source sheet that normalizes stand text to a **fixed token** (`tall` / `short` / `round`) using **`IF` + `ISNUMBER` + `SEARCH`** on **`LOWER(G5&"")`**, then **`COUNTIF`** that column for **`"tall"`** etc. Or use several **`COUNTIF`s** for exact spellings you actually enter. |
+| **`MATCH(…, 0)`** on short codes | Type **0** uses **substring / regex-style** matching on strings (e.g. **`B1`** can match **`B10`**). | Prefer **`VLOOKUP(…, col, 0)`** for **exact** keys, or value-only cells. |
+| **Mic list** uses **`INDEX`/`MATCH`** on hidden **`AA`** + **`AD`** | Those columns must hold **mic text** and a **running index** (1, 2, 3…) for each non-empty mic row. If **`AA`/`AD` are empty**, the list stays blank. | On **Channel List**, set **`AD4 = 0`** (numeric). **`AA5`**: `=IF(E5="","",E5)` (Mic/DI column **E**); **`AD5`**: `=IF(E5="","",MAX($AD$4:AD4)+1)`; fill **AA5:AA104** and **AD5:AD104** (adjust **E** if your mic column moved). |
+| **`VLOOKUP` exact** on SatBox codes | Lookup uses **strict `===`**. Whitespace is not ignored unless you **`TRIM`** the needle; type must match the cell (string vs number). | Keep **`TRIM`**, use **consistent codes** on **Channel List** column **B** and on the SatBox sheet; remember **green-slot** codes (e.g. **G1**) must exist in **B** or the label is correctly blank. |
+
 ## Per-sheet requirements (`@fortune-sheet/core` `Sheet`)
 
 Each array element must be a **plain object** (one FortuneSheet **sheet**).
@@ -165,6 +176,8 @@ If present on the **sheet object** (top level, not only inside `config`), these 
 ## Example file (repository)
 
 **`examples/patch-template-conditional-format-demo.json`** — ready to **Upload** / **Replace (Excel/JSON)** / **Import workbook JSON**. It includes **`luckysheet_conditionformat_save`** with **`colorGradation`** and **`dataBar`** rules (Luckysheet sheet-config shape). If a rule type does not render, the bundled FortuneSheet build may not implement it yet; the field is still preserved on the sheet for forward compatibility.
+
+**`examples/DH_Pick_Patch_TEMPLATE_v5.3_formulajs.json`** — large multi-tab **DH Pick & Patch** starter with **formulajs-safe** helpers on **Channel List** (**AA**/**AD**/**AE**); see **`examples/README.md`**.
 
 ## Compatibility notes
 
