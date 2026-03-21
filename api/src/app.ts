@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
 import { v1Routes } from "./routes/v1/index.js";
+import { registerAuth } from "./plugins/auth-guard.js";
 import { log } from "./lib/log.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,7 +24,9 @@ export async function buildApp() {
     disableRequestLogging: process.env.NODE_ENV === "production",
   });
 
-  await app.register(cors, { origin: true });
+  await app.register(cors, { origin: true, credentials: true });
+
+  await registerAuth(app);
 
   await app.register(v1Routes, { prefix: "/api/v1" });
 

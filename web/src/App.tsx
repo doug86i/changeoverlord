@@ -1,11 +1,14 @@
 import { Routes, Route, NavLink, Outlet } from "react-router-dom";
 import { useTheme } from "./theme/ThemeContext";
+import { AuthGate } from "./auth/AuthGate";
 import { EventsPage } from "./pages/EventsPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
 import { StageDetailPage } from "./pages/StageDetailPage";
 import { StageDayPage } from "./pages/StageDayPage";
 import { ClockPage } from "./pages/ClockPage";
+import { ClockDayPage } from "./pages/ClockDayPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { LoginPage } from "./pages/LoginPage";
 
 function Layout() {
   const { toggle, theme } = useTheme();
@@ -49,7 +52,15 @@ function Layout() {
           {theme === "dark" ? "Light" : "Dark"}
         </button>
       </header>
-      <main style={{ flex: 1, padding: "1.25rem", maxWidth: 960, width: "100%", margin: "0 auto" }}>
+      <main
+        style={{
+          flex: 1,
+          padding: "1.25rem",
+          maxWidth: 960,
+          width: "100%",
+          margin: "0 auto",
+        }}
+      >
         <Outlet />
       </main>
       <footer
@@ -73,12 +84,20 @@ function Layout() {
 export function App() {
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        element={
+          <AuthGate>
+            <Layout />
+          </AuthGate>
+        }
+      >
         <Route index element={<EventsPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
         <Route path="stages/:stageId" element={<StageDetailPage />} />
         <Route path="stage-days/:stageDayId" element={<StageDayPage />} />
         <Route path="clock" element={<ClockPage />} />
+        <Route path="clock/day/:stageDayId" element={<ClockDayPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

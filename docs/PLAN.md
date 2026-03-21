@@ -300,12 +300,12 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 | ID | Track | Status |
 |----|-------|--------|
 | — | Compose + GHCR + `DATA_DIR` layout + single `docker-compose.yml` | **Done** |
-| domain-api | Event → Stage → Day → Performance CRUD + file metadata API | Pending |
-| clock-ui | Server time API + countdown + fullscreen + band navigation | Pending |
+| domain-api | Event → Stage → Day → Performance CRUD + file metadata API | **In progress** (CRUD done; file metadata pending) |
+| clock-ui | Server time API + countdown + fullscreen + band navigation | **In progress** (day clock + countdown + nav + fullscreen; polish pending) |
 | collab-grids | Stage default templates (**Excel/Google-via-export** as base); clone per performance; **import `.xlsx`**; Yjs + WebSocket + persistence | Pending |
 | pdf-plots | PDF upload, thumbnails, extract page as plot asset | Pending |
 | responsive-ux | Desktop / tablet / mobile layouts; touch-first stage views | Pending |
-| settings-ui | Settings: auth, passwords, local event time / clock, time+NTP guidance (no ops in Compose) | Pending |
+| settings-ui | Settings: auth, passwords, local event time / clock, time+NTP guidance (no ops in Compose) | **In progress** (shared password + session cookie; NTP copy still light) |
 | branding-ui | Client logo; fixed “Powered by DHSL” footer + bundled logo | Pending |
 | event-pack | **Export** / **import** event packages (zip + manifest + uploads + Yjs snapshots); conflict/version rules | Pending |
 

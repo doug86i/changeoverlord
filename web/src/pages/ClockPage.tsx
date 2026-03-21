@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { apiGet } from "../api/client";
 import { useEffect, useState } from "react";
 
@@ -55,6 +56,11 @@ export function ClockPage() {
           show-critical accuracy.
         </p>
       )}
+      <p className="muted" style={{ marginTop: "1.5rem" }}>
+        For countdowns and band focus, open a{" "}
+        <Link to="/">day</Link> from an event → stage → day, then use{" "}
+        <strong>Open stage clock</strong>.
+      </p>
     </div>
   );
 }

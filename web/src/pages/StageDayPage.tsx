@@ -78,7 +78,10 @@ export function StageDayPage() {
         {day.dayDate}
       </p>
       <h1 style={{ marginTop: 0 }}>Running order</h1>
-      <p className="muted">Local times (HH:mm).</p>
+      <p className="muted">
+        Local times (HH:mm).{" "}
+        <Link to={`/clock/day/${stageDayId}`}>Open stage clock</Link>
+      </p>
 
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <div className="title-bar" style={{ marginBottom: "0.75rem" }}>

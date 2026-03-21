@@ -10,6 +10,7 @@
 # HOST_PORT         80          Published HTTP port (e.g. 8080 if 80 is busy or restricted).
 # APP_IMAGE_TAG     latest      Local/GHCR image tag for the app.
 # LOG_LEVEL         info        API logging: error|warn|info|debug
+# SESSION_SECRET    (generate)  HMAC for session cookie — set in production
 #
 # Paths: use forward slashes. Relative paths are relative to this file. On Windows,
 # Docker accepts C:/path or ./path — avoid mixing styles in one value.
@@ -50,6 +51,7 @@ services:
     environment:
       DATABASE_URL: postgresql://stageops:stageops@db:5432/stageops
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-generate-a-long-random-string}
       PORT: "80"
       WEB_PUBLIC_DIR: /app/public
       NODE_ENV: production

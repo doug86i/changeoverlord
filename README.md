@@ -65,7 +65,8 @@ npm run build
 | In **Compose** / `.env` | In the **app UI** |
 |-------------------------|-------------------|
 | Data directory (`DATA_DIR`), host **port**, **`LOG_LEVEL`** | Passwords, branding, clocks copy, … |
-| **`DATABASE_URL`** (set by Compose for the app service) | — |
+| **`DATABASE_URL`**, **`SESSION_SECRET`** (Compose defaults; override in production) | — |
+| Optional **shared password** (Settings UI) | — |
 
 ## Data directory (one place for DB, Redis, uploads)
 
