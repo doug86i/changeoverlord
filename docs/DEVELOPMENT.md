@@ -93,6 +93,7 @@ What usually costs time:
 | **`npm install`** | Cached by Docker **layer** when `package.json` / `package-lock.json` are unchanged. The **Dockerfile** also uses **BuildKit cache mounts** (`/root/.npm`) so repeated installs stay quicker when layers invalidate. Requires **BuildKit** (default in current Docker Desktop / Engine). |
 | **`vite build` + `tsc`** | Re-runs when **`api/`** or **`web/`** source changes. This repo’s **Dockerfile** splits them into **two `RUN` steps** (`build -w api` then `COPY web` + `build -w web`) so a change in **only one** workspace reuses the cached layer for the **other** — the biggest win for day-to-day work. |
 | **Tool caches (BuildKit)** | The builder mounts **Vite’s** cache (`node_modules/.vite`) and **tsc incremental** metadata (`api/.cache/`) so repeated builds of the same tree stay faster even when a layer re-runs. |
+| **API `tsc` + empty `dist`** | The **Dockerfile** removes **`api/dist`** and **`api/.cache/tsconfig.tsbuildinfo`** before **`npm run build -w api`**. Clearing only **`dist`** while the incremental file still says “up to date” could make **`tsc` emit nothing** (still exit **0**), producing an **empty or partial** `api/dist` and a broken runtime image (e.g. missing `db/client.js`). |
 | **`--no-cache`** | Only use **`make dev-fresh`** when the running app is clearly stale; it disables **all** layer cache and is much slower. |
 
 **Practical tips**

@@ -18,7 +18,12 @@ RUN --mount=type=cache,target=/root/.npm \
     npm install
 
 COPY api api
+# Wipe `api/dist` and incremental metadata before `tsc`. If we only remove `dist`
+# but keep `api/.cache/tsconfig.tsbuildinfo` (on the cache mount), tsc can emit
+# nothing while exiting 0 — producing an empty `api/dist` and a broken image.
 RUN --mount=type=cache,target=/build/api/.cache \
+    rm -rf api/dist && \
+    rm -f api/.cache/tsconfig.tsbuildinfo && \
     npm run build -w api
 
 COPY web web
