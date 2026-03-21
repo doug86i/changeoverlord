@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useMemo } from "react";
+import type { Sheet } from "@fortune-sheet/core";
 import { Workbook } from "@fortune-sheet/react";
 import { apiGet } from "../api/client";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
@@ -15,9 +16,13 @@ export function PatchTemplateEditorPage() {
   const tplQ = useQuery({
     queryKey: ["patchTemplate", templateId],
     queryFn: () =>
-      apiGet<{ patchTemplate: { id: string; name: string } }>(
-        `/api/v1/patch-templates/${templateId}`,
-      ),
+      apiGet<{
+        patchTemplate: {
+          id: string;
+          name: string;
+          initialSheets?: Sheet[];
+        };
+      }>(`/api/v1/patch-templates/${templateId}`),
     enabled: Boolean(templateId),
   });
 
@@ -29,10 +34,11 @@ export function PatchTemplateEditorPage() {
     workbookReady,
   });
 
-  const initialSheets = useMemo(
-    () => createDefaultPatchWorkbookSheets(),
-    [templateId],
-  );
+  const initialSheets = useMemo((): Sheet[] => {
+    const fromApi = tplQ.data?.patchTemplate.initialSheets;
+    if (fromApi && fromApi.length > 0) return fromApi;
+    return createDefaultPatchWorkbookSheets();
+  }, [templateId, tplQ.data?.patchTemplate.initialSheets]);
 
   if (!templateId) return null;
   if (tplQ.isLoading) return <p className="muted">Loading…</p>;

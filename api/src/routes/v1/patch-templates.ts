@@ -10,12 +10,12 @@ import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { excelBufferToSheets } from "../../lib/excel-to-sheets.js";
 import { getUploadsDir } from "../../lib/uploads-dir.js";
 import { sheetsToPreviewPayload } from "../../lib/sheet-preview.js";
+import { createDefaultPatchWorkbookSheets } from "../../lib/default-patch-sheets.js";
+import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import {
   decodeTemplateSnapshotToSheets,
   encodeTemplateSnapshotFromSheets,
 } from "../../lib/yjs-template-snapshot.js";
-import { buildBlankPatchTemplateSheets } from "../../lib/patch-template-presets.js";
-import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import { patchTemplates, stages } from "../../db/schema.js";
 import { uuidParam } from "../../schemas/api.js";
 import {
@@ -34,8 +34,8 @@ const duplicateBody = z.object({
   name: z.string().min(1).max(200).optional(),
 });
 
-const newFromBlankBody = z.object({
-  name: z.string().min(1).max(200),
+const blankTemplateBody = z.object({
+  name: z.string().min(1).max(200).optional(),
 });
 
 function invalidateAll() {
@@ -43,39 +43,6 @@ function invalidateAll() {
 }
 
 export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
-  app.post("/patch-templates/new", async (req, reply) => {
-    const body = newFromBlankBody.parse(req.body);
-    const sheets = buildBlankPatchTemplateSheets();
-    const snapshot = encodeTemplateSnapshotFromSheets(sheets);
-    const buf = await sheetsToExcelBuffer(sheets);
-    if (buf.length > MAX_BYTES) {
-      return reply.code(413).send({ error: "PayloadTooLarge" });
-    }
-    const uploadsRoot = getUploadsDir();
-    const storageKey = `patch-templates/${randomUUID()}.xlsx`;
-    const abs = path.join(uploadsRoot, storageKey);
-    await fs.mkdir(path.dirname(abs), { recursive: true });
-    await fs.writeFile(abs, buf);
-    const [inserted] = await db
-      .insert(patchTemplates)
-      .values({
-        name: body.name.trim(),
-        originalName: "new-blank.xlsx",
-        storageKey,
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        byteSize: buf.length,
-        snapshot,
-      })
-      .returning({ id: patchTemplates.id });
-    invalidateAll();
-    req.log.info(
-      { templateId: inserted?.id },
-      "patch template created from blank preset",
-    );
-    return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
-  });
-
   app.get("/patch-templates", async () => {
     const rows = await db
       .select({
@@ -91,6 +58,36 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     return { patchTemplates: rows };
   });
 
+  app.post("/patch-templates/blank", async (req, reply) => {
+    const body = blankTemplateBody.parse(req.body ?? {});
+    const displayName = body.name?.trim() || "New template";
+    const sheets = createDefaultPatchWorkbookSheets();
+    const snapshot = encodeTemplateSnapshotFromSheets(sheets);
+    const xlsxBuf = await sheetsToExcelBuffer(sheets);
+    const uploadsRoot = getUploadsDir();
+    const storageKey = `patch-templates/${randomUUID()}.xlsx`;
+    const abs = path.join(uploadsRoot, storageKey);
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+    await fs.writeFile(abs, xlsxBuf);
+
+    const [inserted] = await db
+      .insert(patchTemplates)
+      .values({
+        name: displayName.slice(0, 200),
+        originalName: "blank-template.xlsx",
+        storageKey,
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        byteSize: xlsxBuf.length,
+        snapshot,
+      })
+      .returning({ id: patchTemplates.id });
+
+    invalidateAll();
+    req.log.debug({ templateId: inserted?.id }, "patch template created from blank");
+    return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
+  });
+
   app.get("/patch-templates/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
     const [row] = await db
@@ -102,6 +99,22 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       .select({ c: count() })
       .from(stages)
       .where(eq(stages.defaultPatchTemplateId, id));
+
+    const uploadsRoot = getUploadsDir();
+    const abs = path.join(uploadsRoot, row.storageKey);
+    const fromYjs = decodeTemplateSnapshotToSheets(Buffer.from(row.snapshot));
+    let initialSheets: Sheet[];
+    if (fromYjs.length > 0) {
+      initialSheets = fromYjs;
+    } else {
+      try {
+        const buf = await fs.readFile(abs);
+        initialSheets = await excelBufferToSheets(buf);
+      } catch {
+        initialSheets = [];
+      }
+    }
+
     return {
       patchTemplate: {
         id: row.id,
@@ -111,6 +124,8 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
         usedByStageCount: Number(usage?.c ?? 0),
+        /** FortuneSheet `data` seed so remount + Yjs opLog replay match stored structure (avoids Immer path errors). */
+        initialSheets,
       },
     };
   });

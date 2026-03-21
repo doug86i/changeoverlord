@@ -4,6 +4,7 @@ import type { Op } from "@fortune-sheet/core";
 import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Transaction, YArrayEvent } from "yjs";
 import type * as Y from "yjs";
+import { logDebug } from "./debug";
 
 /** Must match `ydoc.transact(..., origin)` in onOp handlers for patch/template workbooks. */
 export const PATCH_WORKBOOK_Y_ORIGIN = "fortune-local";
@@ -70,25 +71,32 @@ export function usePatchWorkbookOpLogEffects(
     let attempts = 0;
     const maxAttempts = 120;
 
-    const run = () => {
+    const run = async () => {
       if (cancelled) return;
       const wb = wbRef.current;
       if (!wb) {
-        if (attempts++ < maxAttempts) requestAnimationFrame(run);
+        if (attempts++ < maxAttempts) requestAnimationFrame(() => void run());
         return;
       }
-      for (const item of yops.toArray()) {
+      const entries = yops.toArray();
+      for (let i = 0; i < entries.length; i++) {
+        if (cancelled) return;
+        const item = entries[i];
         try {
           const ops = JSON.parse(item) as Op[];
           wb.applyOp(ops);
-        } catch {
-          /* ignore */
+        } catch (e) {
+          logDebug("patch-workbook-yjs", `opLog replay batch ${i} failed`, e);
         }
+        // One animation frame per Yjs batch so Immer / FortuneSheet can commit before the next applyOp.
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => resolve());
+        });
       }
-      hydratedRef.current = true;
+      if (!cancelled) hydratedRef.current = true;
     };
 
-    requestAnimationFrame(run);
+    void run();
     return () => {
       cancelled = true;
     };
