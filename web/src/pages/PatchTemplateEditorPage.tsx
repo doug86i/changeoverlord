@@ -2,15 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
-import type { Transaction, YArrayEvent } from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { Workbook, type WorkbookInstance } from "@fortune-sheet/react";
 import type { Op, Sheet } from "@fortune-sheet/core";
 import { apiGet } from "../api/client";
 import { logDebug } from "../lib/debug";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
-
-const ORIGIN = "fortune-local";
+import {
+  PATCH_WORKBOOK_Y_ORIGIN,
+  usePatchWorkbookOpLogEffects,
+} from "../lib/patchWorkbookYjs";
 
 function createEmptyPatchSheets(): Sheet[] {
   return [
@@ -59,13 +60,15 @@ export function PatchTemplateEditorPage() {
     (ops: Op[]) => {
       ydoc.transact(() => {
         yops.push([JSON.stringify(ops)]);
-      }, ORIGIN);
+      }, PATCH_WORKBOOK_Y_ORIGIN);
     },
     [ydoc, yops],
   );
 
   useEffect(() => {
     if (!templateId) return;
+
+    setSynced(false);
 
     logDebug("patch-workbook", "Template editor Yjs provider starting", {
       templateId,
@@ -101,28 +104,14 @@ export function PatchTemplateEditorPage() {
     };
   }, [templateId, ydoc]);
 
-  useEffect(() => {
-    const handler = (event: YArrayEvent<string>, transaction: Transaction) => {
-      if (transaction.origin === ORIGIN) return;
-      for (const d of event.changes.delta) {
-        if (d.insert === undefined) continue;
-        const inserts = Array.isArray(d.insert) ? d.insert : [d.insert];
-        for (const item of inserts) {
-          if (typeof item !== "string") continue;
-          try {
-            const ops = JSON.parse(item) as Op[];
-            wbRef.current?.applyOp(ops);
-          } catch {
-            /* ignore bad remote payload */
-          }
-        }
-      }
-    };
-    yops.observe(handler);
-    return () => {
-      yops.unobserve(handler);
-    };
-  }, [yops]);
+  const workbookReady = Boolean(templateId && tplQ.isSuccess && tplQ.data);
+  usePatchWorkbookOpLogEffects(
+    templateId,
+    yops,
+    wbRef,
+    synced,
+    workbookReady,
+  );
 
   if (!templateId) return null;
   if (tplQ.isLoading) return <p className="muted">Loading…</p>;

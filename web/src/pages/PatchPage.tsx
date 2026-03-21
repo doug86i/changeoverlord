@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
-import type { Transaction, YArrayEvent } from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { Workbook, type WorkbookInstance } from "@fortune-sheet/react";
 import type { Op, Sheet } from "@fortune-sheet/core";
@@ -12,8 +11,10 @@ import { logDebug } from "../lib/debug";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
 import { PatchPageSidebar } from "../components/PatchPageSidebar";
-
-const ORIGIN = "fortune-local";
+import {
+  PATCH_WORKBOOK_Y_ORIGIN,
+  usePatchWorkbookOpLogEffects,
+} from "../lib/patchWorkbookYjs";
 
 const PATCH_SIDEBAR_COLLAPSED_KEY = "patch-sidebar-collapsed";
 
@@ -103,7 +104,7 @@ export function PatchPage() {
       dirtyRef.current = true;
       ydoc.transact(() => {
         yops.push([JSON.stringify(ops)]);
-      }, ORIGIN);
+      }, PATCH_WORKBOOK_Y_ORIGIN);
     },
     [ydoc, yops],
   );
@@ -121,6 +122,8 @@ export function PatchPage() {
 
   useEffect(() => {
     if (!performanceId) return;
+
+    setSynced(false);
 
     logDebug("patch-workbook", "PatchPage Yjs provider starting", {
       performanceId,
@@ -156,28 +159,16 @@ export function PatchPage() {
     };
   }, [performanceId, ydoc]);
 
-  useEffect(() => {
-    const handler = (event: YArrayEvent<string>, transaction: Transaction) => {
-      if (transaction.origin === ORIGIN) return;
-      for (const d of event.changes.delta) {
-        if (d.insert === undefined) continue;
-        const inserts = Array.isArray(d.insert) ? d.insert : [d.insert];
-        for (const item of inserts) {
-          if (typeof item !== "string") continue;
-          try {
-            const ops = JSON.parse(item) as Op[];
-            wbRef.current?.applyOp(ops);
-          } catch {
-            /* ignore bad remote payload */
-          }
-        }
-      }
-    };
-    yops.observe(handler);
-    return () => {
-      yops.unobserve(handler);
-    };
-  }, [yops]);
+  const workbookReady = Boolean(
+    performanceId && perfQ.isSuccess && perfQ.data,
+  );
+  usePatchWorkbookOpLogEffects(
+    performanceId,
+    yops,
+    wbRef,
+    synced,
+    workbookReady,
+  );
 
   if (!performanceId) return null;
   if (perfQ.isLoading) return <p className="muted">Loading…</p>;
@@ -211,7 +202,7 @@ export function PatchPage() {
 
   return (
     <div className={layoutClass}>
-      {showPatchSidebar && day && (
+      {showPatchSidebar && day && stageDayId && (
         <PatchPageSidebar
           performanceId={performanceId}
           stageDayId={stageDayId}
