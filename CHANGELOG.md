@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API — Yjs persistence:** Edits could be silently lost on container restart. The 3-second debounce timer was killed by SIGTERM with no shutdown handler to flush pending writes. Added **graceful shutdown** (SIGTERM / SIGINT) that persists every active Yjs doc to Postgres before exit. Debounce reduced from **3 s → 1 s**. Compose now uses `init: true` and `stop_grace_period: 15s` for reliable signal delivery.
+
+- **API — Yjs opLog compaction:** The Yjs opLog (append-only array of cell edits) grew unboundedly, making page-load replay slow and fragile. Persistence now **compacts** the opLog to a single `replace luckysheetfile` op when it exceeds 200 entries, keeping snapshots small and replay fast.
+
 - **API — patch workbooks:** **`GET …/sheets-export`** now replays the full persisted **Yjs `opLog`** as **direct JSON mutations** (set-at-path, splice for row/column ops). The previous implementation routed ops through FortuneSheet’s `opToPatch` + Immer `applyPatches`, but the return value of `applyPatches` was never captured — every edit after the initial upload was silently discarded. Exports now match the live collaborative state. **`immer`** removed from API dependencies.
 
 - **API — formula recalculation:** **`normalizeSheetFromRaw`** now **builds `calcChain`** from the data matrix when the source (Excel or JSON) omits it. FortuneSheet’s incremental recalc (`execFunctionGroup`) only re-evaluates formulas registered in `calcChain` — without entries, cell edits never trigger formula updates. The opLog replay also fills missing entries on exported sheets.
@@ -18,9 +22,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **`examples/DH_Pick_Patch_TEMPLATE_v6.json`** — clean four-sheet DH Pick & Patch starter (rebuilt; **`changeoverlordWorkbook: 1`** envelope).
+- **API — Excel CF extraction:** Direct `.xlsx` template uploads now extract conditional formatting rules from the raw OOXML XML (`api/src/lib/excel-cf-extract.ts`). The `@zenmrp/fortune-sheet-excel` library does not support CF; the new module parses `conditionalFormatting` blocks, resolves dxf styles and theme colours, and maps `beginsWith`/`cellIs`/`expression` rules to FortuneSheet's `luckysheet_conditionformat_save` format.
 
-- **`scripts/build-dh-template.mjs`** — regenerates v6 JSON (`node scripts/build-dh-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v6.json`).
+- **`examples/DH_Pick_Patch_TEMPLATE_v7.json`** — four-sheet DH Pick & Patch v7.0 starter built from the human-made Excel, with conditional formatting (SatBox colour coding, zero grey-out) and cross-sheet formulas (`changeoverlordWorkbook: 1` envelope).
+
+- **`scripts/build-v7-template.mjs`** — regenerates v7 JSON from the Excel source (`node scripts/build-v7-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v7.json`).
 
 - **Root `package.json` scripts:** **`build:test`** (api then web) and **`docker:build:app`** (`docker compose build app`).
 

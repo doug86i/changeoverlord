@@ -8,6 +8,7 @@ if (typeof globalThis.window === "undefined") {
 
 import { transformExcelToFortune } from "@zenmrp/fortune-sheet-excel";
 import type { Cell, CellMatrix, Sheet } from "@fortune-sheet/core";
+import { extractConditionalFormatting } from "./excel-cf-extract.js";
 
 function decodeHtmlEntities(s: string): string {
   return s
@@ -217,6 +218,9 @@ export function normalizeSheetFromRaw(
  *
  * Uses `@zenmrp/fortune-sheet-excel` which preserves cell styles, borders, number
  * formatting, formulas, column widths, row heights, and merged cells.
+ *
+ * Conditional formatting is extracted separately from the raw OOXML XML because
+ * the library does not support it.
  */
 export async function excelBufferToSheets(buffer: Buffer): Promise<Sheet[]> {
   const savedLog = console.log;
@@ -233,7 +237,16 @@ export async function excelBufferToSheets(buffer: Buffer): Promise<Sheet[]> {
       throw new Error("Workbook has no sheets");
     }
 
-    return raw.map((s, i) => normalizeSheetFromRaw(s, i));
+    const cfMap = await extractConditionalFormatting(buffer);
+
+    return raw.map((s, i) => {
+      const sheet = normalizeSheetFromRaw(s, i);
+      const cf = cfMap.get(i);
+      if (cf?.length) {
+        (sheet as Record<string, unknown>).luckysheet_conditionformat_save = cf;
+      }
+      return sheet;
+    });
   } catch (e) {
     console.log = savedLog;
     throw e;

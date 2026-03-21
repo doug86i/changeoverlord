@@ -4,22 +4,37 @@ Place **Excel** (`.xlsx`, etc.) or **FortuneSheet JSON** (`.json`) files here if
 
 The app does **not** read this folder at runtime. **Blank** patch sheets are **not** library rows: when a stage has **no** default template, new performances use an **empty** grid in the browser only (see **`web/src/lib/patchWorkbookCollab.ts`**).
 
-## Example JSON (conditional formatting)
+## DH Pick & Patch v7.0
 
-**`patch-template-conditional-format-demo.json`** — small two-tab workbook with **`luckysheet_conditionformat_save`** rules (**color scale** on column **B**, **data bars** on column **D**) in the shape described in Luckysheet’s sheet config docs. Upload it as a template to confirm native JSON keeps conditional formatting metadata (see **`docs/PATCH_TEMPLATE_JSON.md`**).
+**Source Excel:** `DH Pick & Patch TEMPLATE v7.0 - human made.xlsx` — the human-authored master.
 
-## DH Pick & Patch v5.3 (formulajs-native)
+**Generated JSON:** `DH_Pick_Patch_TEMPLATE_v7.json` — built from the Excel by `scripts/build-v7-template.mjs`. This JSON includes `luckysheet_conditionformat_save` rules for SatBox colour coding and zero-value grey-out that the Excel library cannot extract automatically.
 
-**`DH_Pick_Patch_TEMPLATE_v5.3_formulajs.json`** — full four-tab starter based on the **v5.2 SatBox** layout, with **helpers rebuilt for `@formulajs/formulajs`** (FortuneSheet’s runtime engine):
+### Importing
 
-- **SatBox Lables** — **`VLOOKUP(…, 'Channel List'!$B$5:$D$104, 3, 0)`** + **`TRIM`** for exact **SatBox#** → **Item** (avoids **`MATCH` type 0** substring bugs on codes like **B1** vs **B10**).
-- **Channel List** — column **AA** mirrors **Mic/DI** (**E**); **AD** is a running mic index (seed **`0`** in **AD3**); column **AE** normalizes **Stand** (**G**) to tokens **`tall` / `short` / `round`** via **`SEARCH`/`LOWER`/`ISNUMBER`/`IF`** so substring matches work without Excel-style wildcards.
-- **Mic & DI List** — existing **INDEX**/**MATCH** mic rows use **AA**/**AD**; **Tall**/**Short**/**Round** counts use **`COUNTIF('Channel List'!$AE$5:$AE$104, "tall")`** (etc.).
+- **JSON import** (recommended): Settings → *Import workbook JSON* or `PUT /api/v1/patch-templates/:id/sheets-import`. The JSON carries conditional formatting and cross-sheet formulas.
+- **Excel upload**: Settings → *Upload*. The API now extracts conditional formatting from OOXML XML during import (`api/src/lib/excel-cf-extract.ts`), so direct `.xlsx` uploads also preserve CF rules.
 
-**Grid:** **Channel List** is **31** columns (**A**–**AE**). See **`docs/PATCH_TEMPLATE_JSON.md`** (*Engine quirks*) for why older **`COUNTIF(...,"Tall*")`** patterns fail in-app.
+### Structure (4 sheets)
 
-## DH Pick & Patch v6 (rebuilt starter)
+| Sheet | Purpose |
+|-------|---------|
+| **Channel List** | Main patch list — one row per input. Columns: Stage Box Input, SatBox#, Desk Ch#, Item, Mic/DI, Stand, Position, Notes. Hidden helper columns (AA–AD) drive the Mic & DI and SatBox lookups. |
+| **Mic & DI List** | Auto-populated from Channel List — unique mic/DI items with quantities, plus stand total counts (Tall, Short, Round). |
+| **SatBox Lables** | Auto-populated from Channel List — label lookup by SatBox# (Red, Green, Blue, Yellow, Orange, Purple sections). |
+| **Equipment Pick List** | Manual checklist for packing — Type, Item, Quantity, Pack Where?, Notes. |
 
-**`DH_Pick_Patch_TEMPLATE_v6.json`** — four-sheet workbook regenerated from a clean structure (**`changeoverlordWorkbook: 1`**), with **`calcChain`** populated for formula cells. Use **Import workbook JSON** (or **Replace**) when you want a known-good baseline without accumulated Yjs history.
+### Conditional formatting
 
-Regenerate from repo: **`node scripts/build-dh-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v6.json`**.
+- **Channel List** (B2:C98): SatBox prefix colour coding — **R** red, **G** green, **B** blue, **Y** yellow, **O** orange, **P** purple.
+- **SatBox Lables** (rows 4–46): Cells equal to `0` shown in grey text to hide empty lookup results.
+
+### Cross-sheet formulas
+
+All formulas in Mic & DI List, SatBox Lables, and Equipment Pick List reference Channel List. FortuneSheet evaluates these live in the browser via `@formulajs/formulajs`. The `calcChain` array ensures formula recalculation triggers on edits.
+
+### Regenerating
+
+```bash
+node scripts/build-v7-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v7.json
+```
