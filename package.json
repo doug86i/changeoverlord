@@ -1,0 +1,12 @@
+{
+  "name": "changeoverlord",
+  "private": true,
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build -w web && npm run build -w api",
+    "dev": "npm run dev -w api & npm run dev -w web"
+  }
+}

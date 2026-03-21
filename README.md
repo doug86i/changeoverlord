@@ -4,6 +4,17 @@ Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, *
 
 **Powered by [Doug Hunt Sound & Light](https://www.doughunt.co.uk/).**
 
+## Stack (implemented)
+
+| Part | Tech |
+|------|------|
+| API | **Fastify** + **TypeScript**, **Drizzle ORM**, **PostgreSQL**, **Zod** |
+| Web | **Vite** + **React** + **TypeScript**, **TanStack Query**, **React Router** |
+| Realtime / grid | **WebSockets + Yjs + FortuneSheet** — planned (see [`docs/PLAN.md`](docs/PLAN.md)) |
+| Deploy | **Docker Compose**: Postgres, Redis (for future sessions/pub-sub), single **Node** container serving **REST** + **static SPA** |
+
+The API is mounted at **`/api/v1`**. The same origin serves the SPA for offline-friendly LAN use.
+
 ## Quick start (Docker)
 
 Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2 on **Linux**, **macOS**, or **Windows** (Docker Desktop).
@@ -11,74 +22,77 @@ Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2 on **Linu
 ```bash
 git clone https://github.com/doug86i/changeoverlord.git
 cd changeoverlord
-docker compose pull   # first run: pulls images from GHCR
-docker compose up -d
+docker compose up -d --build
 ```
 
 Open **http://\<server-ip\>** (default **port 80** — no `:port` in the URL).
 
-- **`.env`**: optional — copy **`.env.example`**. Only **infrastructure** belongs here (data path, port, image tag). **Product** settings (auth, timezone, logos, etc.) will live in the **app UI**.
-- **Offline after first pull**: images stay in Docker’s cache; no internet needed on show site.
+- **`.env`**: optional — copy **`.env.example`**. Infrastructure only (`DATA_DIR`, `HOST_PORT`, `LOG_LEVEL`, …). Product settings (auth, branding, …) will live in the **app UI** as features land.
+- **Offline after first image build**: no registry pull required once images are local.
+
+### Fresh database
+
+If you change schema during development, wipe the Postgres volume (or delete `data/db/`) before `docker compose up` so migrations apply cleanly. **Back up** `DATA_DIR` before doing this on a machine with real prep data.
+
+## Local development (without rebuilding the image every time)
+
+From the repo root (requires **Node.js 22+** and `npm`):
+
+```bash
+npm install
+# Terminal 1 — API (default http://127.0.0.1:3000)
+export DATABASE_URL=postgresql://stageops:stageops@127.0.0.1:5432/stageops
+npm run dev -w api
+# Terminal 2 — Vite dev server (proxies /api → :3000)
+npm run dev -w web
+```
+
+Run Postgres locally or `docker compose up -d db redis` and point `DATABASE_URL` at `db`.
+
+Production build:
+
+```bash
+npm run build
+```
 
 ## What lives in Compose vs the UI
 
-| In **Compose** / `.env` | In the **app UI** (when built) |
-|-------------------------|--------------------------------|
-| Data directory (`DATA_DIR`), host **port**, image **tag** | Passwords, timezone, clocks, riders, patch sheets, branding, … |
-| **Bind mounts** (repo files + `data/`) | — |
-
-All defaults are set in **`docker-compose.yml`** so a plain `docker compose up` works without a `.env` file.
+| In **Compose** / `.env` | In the **app UI** |
+|-------------------------|-------------------|
+| Data directory (`DATA_DIR`), host **port**, **`LOG_LEVEL`** | Passwords, branding, clocks copy, … |
+| **`DATABASE_URL`** (set by Compose for the app service) | — |
 
 ## Data directory (one place for DB, Redis, uploads)
 
-All persistent state uses a **single host directory** — default **`./data`** — so you can aim it at a **larger disk**, **sync**, or **back up** one tree.
+All persistent state uses a **single host directory** — default **`./data`**.
 
 | Subfolder | Role |
 |-----------|------|
 | `data/db/` | PostgreSQL files |
-| `data/redis/` | Redis AOF |
-| `data/uploads/` | User uploads (riders, plots, logos) |
+| `data/redis/` | Redis AOF (reserved for WS / sessions) |
+| `data/uploads/` | User uploads (riders, plots, logos) — wired for future file APIs |
 
-Set **`DATA_DIR`** in `.env` if the default path is wrong for your disk layout (see **`.env.example`** for Linux/Windows examples). Details: **[data/README.md](data/README.md)**.
-
-## Local development (live edits)
-
-The same **`docker-compose.yml`** bind-mounts **`docker/html/`** and **`docker/nginx/default.conf`** so you can edit on disk and **refresh the browser** without rebuilding for static changes.
-
-```bash
-make dev
-# open http://localhost:PORT/  (PORT = HOST_PORT from .env, default 80)
-```
-
-- **Change `docker/html/`** → save → reload the page.
-- **Change `Dockerfile`** → `docker compose up -d --build`, or **`make dev-watch`** (foreground: rebuilds when the Dockerfile changes).
-- **Change `docker/nginx/default.conf`** → save, then: `docker compose exec app nginx -s reload`
-
-Stop: `make dev-down`.
-
-**Port 80 on Windows**: binding **80** sometimes needs elevated rights — set **`HOST_PORT=8080`** in `.env` and open `http://localhost:8080/`.
+Set **`DATA_DIR`** in **`.env`** if needed. Details: **[data/README.md](data/README.md)**.
 
 ## Repository layout
 
 | Path | Purpose |
 |------|---------|
-| `docker-compose.yml` | **Single** stack file: Postgres, Redis, app; defaults in-file; see header comment |
-| `docker/html/` | Static placeholder (bind-mounted for live dev) |
-| `docker/nginx/default.conf` | Nginx site config (bind-mounted) |
-| `Dockerfile` | App image (placeholder until UI/API land) |
-| `Makefile` | `make dev`, `make dev-watch`, `make dev-down` |
+| `docker-compose.yml` | Postgres, Redis, app (Node + built SPA) |
+| `Dockerfile` | Multi-stage: build `web/` + `api/`, run Fastify |
+| `api/` | REST API, Drizzle schema & SQL migrations |
+| `web/` | Vite React SPA |
+| `package.json` | npm workspaces (root) |
 | `data/` | Persistent data root (`DATA_DIR`); see `data/README.md` |
-| `.env.example` | Optional `DATA_DIR`, `HOST_PORT`, `APP_IMAGE_TAG` |
-| `compose.override.example.yml` | Optional deeper overrides (prefer `.env` first) |
-| `.github/workflows/` | Build and push `app` image to **GHCR** |
+| `.env.example` | Optional infrastructure env |
 | `docs/PLAN.md` | Product vision, architecture, roadmap |
-| `docs/DECISIONS.md` | Pre-build engineering decisions (stack, limits, auth, logging) |
-| `docs/LICENSING.md` | Repo + dependency licence notes |
-| `docs/DESIGN.md` | UI theme direction (light + dark, tokens, consistency) |
+| `docs/DECISIONS.md` | Engineering decisions |
+| `docs/DESIGN.md` | UI themes & tokens |
+| `docs/LICENSING.md` | Licences |
 
 ## Status
 
-**Early scaffold** — application features are tracked in project issues and **[`docs/PLAN.md`](docs/PLAN.md)** (product & engineering plan). PRs welcome.
+Core **CRUD** for **events → stages → stage-days → performances**, **health** / **time** / **settings** stubs, **light/dark** UI shell, and **Docker** deployment are in place. **Collaborative spreadsheet (FortuneSheet + Yjs)**, **PDF plots**, **export/import packages**, and **optional auth** are next — see **[`docs/PLAN.md`](docs/PLAN.md)**.
 
 ## License
 

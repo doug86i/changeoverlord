@@ -2,14 +2,14 @@
 # Changeoverlord — single Compose file (Linux / macOS / Windows + Docker Desktop).
 #
 # Compose loads `.env` from this directory if present. App behaviour (auth,
-# timezone, branding, etc.) is configured in the UI — only infrastructure here.
+# branding, etc.) is configured in the UI — only infrastructure here.
 #
 # Variable          Default     Purpose
 # ----------------  ----------  -----------------------------------------------
 # DATA_DIR          ./data      Host root for db/, redis/, uploads/ (one backup tree).
 # HOST_PORT         80          Published HTTP port (e.g. 8080 if 80 is busy or restricted).
-# APP_IMAGE_TAG     latest      GHCR image tag for the app (pin e.g. v1.0.0 for festivals).
-# LOG_LEVEL         info        API logging: error|warn|info|debug (ignored by nginx placeholder).
+# APP_IMAGE_TAG     latest      Local/GHCR image tag for the app.
+# LOG_LEVEL         info        API logging: error|warn|info|debug
 #
 # Paths: use forward slashes. Relative paths are relative to this file. On Windows,
 # Docker accepts C:/path or ./path — avoid mixing styles in one value.
@@ -46,22 +46,29 @@ services:
   app:
     image: ghcr.io/doug86i/changeoverlord/app:${APP_IMAGE_TAG:-latest}
     build: .
-    environment:
-      LOG_LEVEL: ${LOG_LEVEL:-info}
     restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://stageops:stageops@db:5432/stageops
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: "80"
+      WEB_PUBLIC_DIR: /app/public
+      NODE_ENV: production
     ports:
       - "${HOST_PORT:-80}:80"
     volumes:
       - ${DATA_DIR:-./data}/uploads:/var/changeoverlord/uploads
-      # From repo checkout: live-edit static/nginx without rebuilding the image.
-      - ./docker/html:/usr/share/nginx/html:ro
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    develop:
-      watch:
-        - path: ./Dockerfile
-          action: rebuild
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
