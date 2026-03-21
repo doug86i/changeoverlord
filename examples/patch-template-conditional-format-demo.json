@@ -1,0 +1,65 @@
+{
+  "changeoverlordWorkbook": 1,
+  "exportedAt": "2026-03-21T00:00:00.000Z",
+  "kind": "patchTemplate",
+  "label": "Conditional format demo (upload me)",
+  "sheets": [
+    {
+      "name": "Input",
+      "celldata": [
+        {
+          "r": 0,
+          "c": 0,
+          "v": {
+            "v": "Sample values (column B)",
+            "m": "Sample values (column B)",
+            "ct": { "fa": "General", "t": "g" }
+          }
+        },
+        { "r": 0, "c": 1, "v": { "v": "Color scale (1–10)", "m": "Color scale (1–10)", "ct": { "fa": "General", "t": "g" } } },
+        { "r": 0, "c": 3, "v": { "v": "Data bars", "m": "Data bars", "ct": { "fa": "General", "t": "g" } } },
+        { "r": 1, "c": 0, "v": { "v": "Low", "m": "Low", "ct": { "fa": "General", "t": "g" } } },
+        { "r": 1, "c": 1, "v": { "v": 1, "m": "1", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 1, "c": 3, "v": { "v": 5, "m": "5", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 2, "c": 1, "v": { "v": 3, "m": "3", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 2, "c": 3, "v": { "v": 25, "m": "25", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 3, "c": 1, "v": { "v": 5, "m": "5", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 3, "c": 3, "v": { "v": 50, "m": "50", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 4, "c": 1, "v": { "v": 7, "m": "7", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 4, "c": 3, "v": { "v": 75, "m": "75", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 5, "c": 1, "v": { "v": 10, "m": "10", "ct": { "fa": "General", "t": "n" } } },
+        { "r": 5, "c": 3, "v": { "v": 100, "m": "100", "ct": { "fa": "General", "t": "n" } } }
+      ],
+      "luckysheet_conditionformat_save": [
+        {
+          "type": "colorGradation",
+          "cellrange": [{ "row": [1, 5], "column": [1, 1] }],
+          "format": [
+            "rgb(99, 190, 123)",
+            "rgb(255, 235, 132)",
+            "rgb(248, 105, 107)"
+          ]
+        },
+        {
+          "type": "dataBar",
+          "cellrange": [{ "row": [1, 5], "column": [3, 3] }],
+          "format": ["#6aa84f", "#ffffff"]
+        }
+      ]
+    },
+    {
+      "name": "RF",
+      "celldata": [
+        {
+          "r": 0,
+          "c": 0,
+          "v": {
+            "v": "Second tab placeholder (patch templates often use Input + RF).",
+            "m": "Second tab placeholder (patch templates often use Input + RF).",
+            "ct": { "fa": "General", "t": "g" }
+          }
+        }
+      ]
+    }
+  ]
+}

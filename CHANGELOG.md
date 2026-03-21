@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API — patch templates:** **Replace** (multipart) now accepts **FortuneSheet JSON** when the browser sends **`text/plain`** or omits a **`.json`** filename — content sniffing plus storing **`.json`** on disk when the body looks like workbook JSON (avoids saving JSON under a **`.xlsx`** key). **Replace** also persists via **`workbookSnapshotBufferForPersist`** so an open **template editor** collab session picks up the new sheets.
+
+- **API — build:** `yjs-collab-replace` imports **`@y/websocket-server/utils`** without the **`.js`** suffix so **TypeScript** resolves the module the same way as **`collab-ws.ts`** (Docker **`npm run build -w api`**).
+
 - **API — patch templates:** Normalizing imported sheets now **fills `mc.r` / `mc.c`** on merge-master cells when only **`rs`/`cs`** were present (common in JSON exports), and **coerces numeric `tb` to string** so FortuneSheet’s text-wrap checks match. Fixes template **Edit spreadsheet** crashes / errors for those workbooks; **re-upload or Replace** an affected template to refresh the stored snapshot.
 
 ### Changed
@@ -23,6 +27,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Web — stage day clock:** **Compact** (normal) view shows the same **Changeover** banner as fullscreen/distance when the day is between acts.
 
 ### Added
+
+- **Examples:** **`examples/patch-template-conditional-format-demo.json`** — uploadable FortuneSheet JSON with **`luckysheet_conditionformat_save`** (color scale + data bars); **`examples/README.md`** updated for **`.json`** starters.
+
+- **Web + API — patch workbooks:** **Export JSON** / **Import JSON** for **library templates** (`GET`/`PUT` `/api/v1/patch-templates/:id/sheets-export|sheets-import`), **new template from JSON body** (`POST` `/api/v1/patch-templates/sheets-import`), and **per-performance** workbooks (`GET`/`PUT` `/api/v1/performances/:id/sheets-export|sheets-import`). Envelope **`changeoverlordWorkbook: 1`** plus raw sheet-array uploads are accepted on import. UI: **Settings**, **stage** template picker, and **Patch & RF** page. See **`docs/PATCH_TEMPLATE_JSON.md`**.
 
 - **Web + API — patch templates:** Upload **FortuneSheet-native JSON** (`.json`) on create/replace (same multipart **`file`** field as Excel). Preserves extra sheet fields (e.g. conditional formatting metadata) that the Excel import path drops; see **`docs/PATCH_TEMPLATE_JSON.md`**.
 

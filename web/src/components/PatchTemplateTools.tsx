@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
-import { apiGet, apiSend, apiSendForm } from "../api/client";
+import {
+  apiGet,
+  apiSend,
+  apiSendForm,
+  downloadWorkbookJson,
+  readFileAsText,
+} from "../api/client";
 import type {
   PatchTemplatePreview,
   PatchTemplateRow,
@@ -114,6 +120,8 @@ export function PatchTemplateLibrarySettings() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const replaceRef = useRef<HTMLInputElement>(null);
+  const replaceJsonRef = useRef<HTMLInputElement>(null);
+  const newWorkbookJsonRef = useRef<HTMLInputElement>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -185,6 +193,34 @@ export function PatchTemplateLibrarySettings() {
     },
   });
 
+  const importNewWorkbookJson = useMutation({
+    mutationFn: async ({ text, name }: { text: string; name: string }) => {
+      const body = JSON.parse(text) as unknown;
+      const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
+      return apiSend<{ patchTemplate: { id: string } }>(
+        `/api/v1/patch-templates/sheets-import${q}`,
+        "POST",
+        body,
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
+      void qc.invalidateQueries({ queryKey: ["events"] });
+      setNewName("");
+    },
+  });
+
+  const replaceWorkbookJson = useMutation({
+    mutationFn: async ({ id, text }: { id: string; text: string }) => {
+      const body = JSON.parse(text) as unknown;
+      return apiSend(`/api/v1/patch-templates/${id}/sheets-import`, "PUT", body);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
+      void qc.invalidateQueries({ queryKey: ["patchTemplate"] });
+    },
+  });
+
   const deleteTpl = useMutation({
     mutationFn: (id: string) =>
       apiSend(`/api/v1/patch-templates/${id}`, "DELETE"),
@@ -216,8 +252,11 @@ export function PatchTemplateLibrarySettings() {
       <p className="muted" style={{ marginTop: 0 }}>
         Add templates by <strong>uploading Excel</strong> or <strong>create a blank template</strong>{" "}
         (two empty tabs — <strong>Input</strong> and <strong>RF</strong>) and edit in the browser.
-        Starter workbooks can come from <code>examples/</code> in the repo. Each stage picks a{" "}
-        <strong>stored</strong> template for new performances. Max 10&nbsp;MB per upload.
+        Use <strong>Export JSON</strong> / <strong>Import JSON</strong> to share FortuneSheet-native
+        workbooks with tools or another server (see <code>docs/PATCH_TEMPLATE_JSON.md</code>). Starter
+        workbooks can come from <code>examples/</code> in the repo. Each stage picks a{" "}
+        <strong>stored</strong> template for new performances. Max 10&nbsp;MB per upload; JSON body
+        import limit 12&nbsp;MB.
       </p>
 
       <div
@@ -264,6 +303,31 @@ export function PatchTemplateLibrarySettings() {
         >
           Create blank template
         </button>
+        <button
+          type="button"
+          disabled={importNewWorkbookJson.isPending}
+          onClick={() => newWorkbookJsonRef.current?.click()}
+        >
+          Import workbook JSON
+        </button>
+        <input
+          ref={newWorkbookJsonRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: "none" }}
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f) return;
+            try {
+              const text = await readFileAsText(f);
+              importNewWorkbookJson.mutate({ text, name: newName });
+            } catch (err) {
+              importNewWorkbookJson.reset();
+              window.alert((err as Error).message);
+            }
+          }}
+        />
       </div>
 
       {listQ.isLoading && <p className="muted">Loading templates…</p>}
@@ -328,7 +392,33 @@ export function PatchTemplateLibrarySettings() {
                       replaceRef.current?.click();
                     }}
                   >
-                    Replace
+                    Replace (Excel/JSON)
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={async () => {
+                      try {
+                        await downloadWorkbookJson(
+                          `/api/v1/patch-templates/${t.id}/sheets-export`,
+                          `${t.name}_workbook.json`,
+                        );
+                      } catch (err) {
+                        window.alert((err as Error).message);
+                      }
+                    }}
+                  >
+                    Export JSON
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => {
+                      replaceJsonRef.current?.setAttribute("data-id", t.id);
+                      replaceJsonRef.current?.click();
+                    }}
+                  >
+                    Import JSON
                   </button>
                   <button
                     type="button"
@@ -362,6 +452,25 @@ export function PatchTemplateLibrarySettings() {
           const f = e.target.files?.[0];
           if (id && f) replaceTpl.mutate({ id, file: f });
           e.target.value = "";
+        }}
+      />
+
+      <input
+        ref={replaceJsonRef}
+        type="file"
+        accept=".json,application/json"
+        style={{ display: "none" }}
+        onChange={async (e) => {
+          const id = replaceJsonRef.current?.getAttribute("data-id");
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!id || !f) return;
+          try {
+            const text = await readFileAsText(f);
+            replaceWorkbookJson.mutate({ id, text });
+          } catch (err) {
+            window.alert((err as Error).message);
+          }
         }}
       />
 
@@ -425,14 +534,18 @@ export function PatchTemplateLibrarySettings() {
         renameTpl.isError ||
         replaceTpl.isError ||
         deleteTpl.isError ||
-        duplicateTpl.isError) && (
-        <p style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
+        duplicateTpl.isError ||
+        importNewWorkbookJson.isError ||
+        replaceWorkbookJson.isError) && (
+        <p role="alert" style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
           {(createTpl.error ??
             createBlankTpl.error ??
             renameTpl.error ??
             replaceTpl.error ??
             deleteTpl.error ??
-            duplicateTpl.error)?.message}
+            duplicateTpl.error ??
+            importNewWorkbookJson.error ??
+            replaceWorkbookJson.error)?.message}
         </p>
       )}
     </div>
@@ -455,6 +568,8 @@ export function StagePatchTemplatePicker({
   const navigate = useNavigate();
   const qc = useQueryClient();
   const replaceRef = useRef<HTMLInputElement>(null);
+  const replaceJsonRef = useRef<HTMLInputElement>(null);
+  const newWorkbookJsonRef = useRef<HTMLInputElement>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -506,6 +621,35 @@ export function StagePatchTemplatePicker({
     },
   });
 
+  const importNewWorkbookJson = useMutation({
+    mutationFn: async ({ text, name }: { text: string; name: string }) => {
+      const body = JSON.parse(text) as unknown;
+      const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
+      return apiSend<{ patchTemplate: { id: string } }>(
+        `/api/v1/patch-templates/sheets-import${q}`,
+        "POST",
+        body,
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
+      void qc.invalidateQueries({ queryKey: ["stage", stageId] });
+      void qc.invalidateQueries({ queryKey: ["stages", eventId] });
+      setStageNewName("");
+    },
+  });
+
+  const replaceWorkbookJson = useMutation({
+    mutationFn: async ({ id, text }: { id: string; text: string }) => {
+      const body = JSON.parse(text) as unknown;
+      return apiSend(`/api/v1/patch-templates/${id}/sheets-import`, "PUT", body);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
+      void qc.invalidateQueries({ queryKey: ["patchTemplate"] });
+    },
+  });
+
   const deleteTpl = useMutation({
     mutationFn: (id: string) =>
       apiSend(`/api/v1/patch-templates/${id}`, "DELETE"),
@@ -551,8 +695,10 @@ export function StagePatchTemplatePicker({
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
         Choose a <strong>stored</strong> spreadsheet template for new performances on this stage.
-        Upload templates in Settings (e.g. from <code>examples/</code>). Manage all templates in
-        Settings.
+        Upload templates in Settings (e.g. from <code>examples/</code>) or import a{" "}
+        <strong>workbook JSON</strong> package. Use <strong>Export JSON</strong> /{" "}
+        <strong>Import JSON</strong> on the selected template to share with tools or another
+        server. Manage all templates in Settings.
       </p>
 
       <div style={{ marginBottom: "0.75rem" }}>
@@ -634,7 +780,33 @@ export function StagePatchTemplatePicker({
               replaceRef.current?.click();
             }}
           >
-            Replace file
+            Replace (Excel/JSON)
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={async () => {
+              try {
+                await downloadWorkbookJson(
+                  `/api/v1/patch-templates/${selected.id}/sheets-export`,
+                  `${selected.name}_workbook.json`,
+                );
+              } catch (err) {
+                window.alert((err as Error).message);
+              }
+            }}
+          >
+            Export JSON
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => {
+              replaceJsonRef.current?.setAttribute("data-id", selected.id);
+              replaceJsonRef.current?.click();
+            }}
+          >
+            Import JSON
           </button>
           <button
             type="button"
@@ -688,6 +860,31 @@ export function StagePatchTemplatePicker({
               }}
             />
           </label>
+          <button
+            type="button"
+            disabled={importNewWorkbookJson.isPending}
+            onClick={() => newWorkbookJsonRef.current?.click()}
+          >
+            Import workbook JSON
+          </button>
+          <input
+            ref={newWorkbookJsonRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              try {
+                const text = await readFileAsText(f);
+                importNewWorkbookJson.mutate({ text, name: stageNewName });
+              } catch (err) {
+                importNewWorkbookJson.reset();
+                window.alert((err as Error).message);
+              }
+            }}
+          />
         </div>
       </div>
 
@@ -701,6 +898,25 @@ export function StagePatchTemplatePicker({
           const f = e.target.files?.[0];
           if (id && f) replaceTpl.mutate({ id, file: f });
           e.target.value = "";
+        }}
+      />
+
+      <input
+        ref={replaceJsonRef}
+        type="file"
+        accept=".json,application/json"
+        style={{ display: "none" }}
+        onChange={async (e) => {
+          const id = replaceJsonRef.current?.getAttribute("data-id");
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!id || !f) return;
+          try {
+            const text = await readFileAsText(f);
+            replaceWorkbookJson.mutate({ id, text });
+          } catch (err) {
+            window.alert((err as Error).message);
+          }
         }}
       />
 
@@ -764,14 +980,18 @@ export function StagePatchTemplatePicker({
         renameTpl.isError ||
         replaceTpl.isError ||
         deleteTpl.isError ||
-        duplicateTpl.isError) && (
-        <p style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
+        duplicateTpl.isError ||
+        importNewWorkbookJson.isError ||
+        replaceWorkbookJson.isError) && (
+        <p role="alert" style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
           {(patchStage.error ??
             createTpl.error ??
             renameTpl.error ??
             replaceTpl.error ??
             deleteTpl.error ??
-            duplicateTpl.error)?.message}
+            duplicateTpl.error ??
+            importNewWorkbookJson.error ??
+            replaceWorkbookJson.error)?.message}
         </p>
       )}
     </div>

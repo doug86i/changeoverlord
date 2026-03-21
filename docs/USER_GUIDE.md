@@ -113,6 +113,8 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 - **Alt+← / Alt+→** keyboard shortcuts for quick switching.
 - On the **patch** page, **time** and **countdown** are in the **sidebar** (see above). Connection status is next to the page title: green (live), amber (syncing), red (error).
 
+**Export / import workbook JSON (this act)** — Next to the title, **Export JSON** downloads the current band’s spreadsheet as a JSON file (FortuneSheet-native; includes a small **`changeoverlordWorkbook`** envelope). **Import JSON** replaces this act’s workbook from a file you choose. The page **reloads** after import so everyone sees the same grid. Use this to edit in external tools, share with agents, or copy a sheet between servers. Details: **`docs/PATCH_TEMPLATE_JSON.md`**.
+
 ### Templates (shared library)
 
 **Spreadsheet templates** are **global**: manage them in **Settings** (or add from a **stage**), then **assign a default template per stage** on the **stage** screen. New performances get a copy seeded from that template when one is selected.
@@ -131,7 +133,9 @@ On **Settings** and on the **stage** template picker you can:
 - **Preview** — See a sample of sheets/cells without opening the full editor.
 - **Edit name** — Change the **display name** of a template in the library.
 - **Duplicate** — Copy a template to a new library entry (name becomes **"… (copy)"**; rename if you like).
-- **Replace** — Upload a new Excel-compatible workbook **or** `.json` file for an existing template (updates the stored file and snapshot for new use).
+- **Replace (Excel/JSON)** — Upload a new Excel-compatible workbook **or** FortuneSheet **`.json`** for an existing template (updates the stored file and snapshot). If the browser labels the file as plain text, the server still detects workbook JSON by content.
+- **Export JSON** / **Import JSON** — Download or replace the **stored** template workbook as JSON (same envelope as performance exports; good for tooling and copying templates between systems).
+- **Import workbook JSON** — Create a **new** library template from a JSON file only (optional display name field applies, like Excel upload).
 - **Delete** — Remove a template from the library (stages using it may need a new assignment).
 
 ---

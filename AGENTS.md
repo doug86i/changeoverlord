@@ -142,8 +142,8 @@ api/
       events.ts           # Event CRUD
       stages.ts           # Stage CRUD
       stage-days.ts       # StageDay CRUD
-      performances.ts     # Performance CRUD + template cloning
-      patch-templates.ts  # Template library CRUD + Excel upload + POST …/blank (empty two-tab shell)
+      performances.ts     # Performance CRUD + template cloning + GET/PUT …/sheets-export|sheets-import (JSON workbook)
+      patch-templates.ts  # Template library CRUD + Excel upload + POST …/blank + JSON sheets import/export
       files.ts            # Attachments upload, list, raw download, PDF extract page, delete
       search.ts           # GET /search?q= — band/event/stage ILIKE search
       export-import.ts    # GET /events/:id/export, POST /import — JSON event packages
@@ -161,7 +161,9 @@ api/
       pdf.ts              # PDF page count + single-page extract (pdf-lib)
       upload-allowlists.ts # allowed MIME/extensions for files + patch templates
       excel-to-sheets.ts  # OOXML Excel → Sheet[]; normalizeSheetFromRaw (+ JSON native passthrough)
-      json-patch-template.ts  # FortuneSheet JSON → Sheet[] (template upload)
+      json-patch-template.ts  # FortuneSheet JSON → Sheet[] (upload + REST import; envelope + raw roots)
+      workbook-json-envelope.ts  # changeoverlordWorkbook v1 export shape + safe download basename
+      yjs-collab-replace.ts  # replace live collab opLog from sheets; snapshot buffer for persist
       default-patch-sheets.ts  # two-tab empty shell for POST …/patch-templates/blank
       sheets-to-excel.ts  # Sheet[] → .xlsx buffer
       sheet-preview.ts    # Sheet[] → preview JSON

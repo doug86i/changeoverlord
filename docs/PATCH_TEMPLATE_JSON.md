@@ -9,9 +9,47 @@ This document is for **operators** generating tooling exports and for **agents**
 ## API (same as Excel upload)
 
 - **Create:** `POST /api/v1/patch-templates` — multipart field **`file`**, optional query **`name`**.
-- **Replace:** `POST /api/v1/patch-templates/:id/replace` — multipart field **`file`**.
+- **Replace:** `POST /api/v1/patch-templates/:id/replace` — multipart field **`file`** (same formats as create).
 
-Accepted when the part is **`.json`** and/or MIME **`application/json`** (also **`text/json`**). Maximum body size matches Excel templates (**10 MiB** in `api/src/routes/v1/patch-templates.ts`).
+Accepted when the part is **`.json`** and/or MIME **`application/json`**, **`text/json`**, or (common from some file pickers) **`text/plain`** with a **`.json`** name. If the filename/MIME are wrong but the bytes start with **`{`** or **`[`** (after BOM/whitespace), the server treats the upload as workbook **JSON**. Maximum body size matches Excel templates (**10 MiB** in `api/src/routes/v1/patch-templates.ts`).
+
+## Workbook JSON export / import (REST, agents & cross-server)
+
+These endpoints move **FortuneSheet `Sheet[]` data** as JSON (with an optional **envelope**) so you can edit offline, diff in git, or copy a workbook between deployments without a full event package.
+
+**Body limit:** JSON bodies for import are capped at **12 MiB** (`JSON_SHEETS_BODY_LIMIT`).
+
+### Envelope (`changeoverlordWorkbook`)
+
+Exports use **`api/src/lib/workbook-json-envelope.ts`**:
+
+| Field | Meaning |
+|-------|--------|
+| `changeoverlordWorkbook` | Always **`1`** for this format |
+| `exportedAt` | ISO timestamp |
+| `kind` | **`patchTemplate`** or **`performance`** |
+| `label` | Display name (template name or band name) |
+| `templateId` / `performanceId` | Present when known |
+| `sheets` | Array of FortuneSheet sheets |
+
+**Imports** accept the same shapes as multipart JSON upload (array, `{ sheets }`, `{ luckysheetfile }`) **or** an envelope with **`changeoverlordWorkbook: 1`** and **`sheets`** — see `parseWorkbookJsonRoot` in `api/src/lib/json-patch-template.ts`.
+
+### Patch template library
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/v1/patch-templates/:id/sheets-export` | Download workbook as JSON (**attachment**) |
+| `PUT` | `/api/v1/patch-templates/:id/sheets-import` | Replace template workbook from JSON body (updates disk file, DB snapshot, live template collab room if open) |
+| `POST` | `/api/v1/patch-templates/sheets-import?name=` | Create a **new** library template from JSON body (optional **`name`** query) |
+
+### Performance (per-band) workbook
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/v1/performances/:id/sheets-export` | Download this band’s workbook (**404** if no snapshot yet) |
+| `PUT` | `/api/v1/performances/:id/sheets-import` | Replace workbook from JSON body (persists snapshot; updates live performance collab room if open) |
+
+**UI:** **Settings** and **stage** template cards expose **Export JSON** / **Import JSON** / **Import workbook JSON**; the **Patch & RF** page exposes **Export JSON** / **Import JSON** for the current performance. After a performance import, the page **reloads** so the grid reconnects with the new state.
 
 Stored on disk as **`patch-templates/<uuid>.json`** with **`mimeType`** **`application/json`**. The Postgres **`snapshot`** column still holds the usual **Yjs**-encoded template seed (same as Excel uploads).
 
@@ -22,6 +60,7 @@ The parser (`api/src/lib/json-patch-template.ts`) accepts **one** of:
 1. **Array of sheets** — `[ { ...sheet }, ... ]`
 2. **Wrapper object** — `{ "sheets": [ ... ] }`
 3. **FortuneSheet-style wrapper** — `{ "luckysheetfile": [ ... ] }`
+4. **Changeoverlord envelope** — `{ "changeoverlordWorkbook": 1, "sheets": [ ... ], ... }`
 
 UTF-8 encoding. A leading **UTF-8 BOM** is stripped before `JSON.parse`.
 
@@ -101,6 +140,10 @@ If present on the **sheet object** (top level, not only inside `config`), these 
 - Non-object sheet entry → **`Invalid sheet at index N`**
 - Unsupported file type (neither JSON nor OOXML Excel) → **`Unsupported file: upload Excel ... or FortuneSheet JSON (.json)`**
 
+## Example file (repository)
+
+**`examples/patch-template-conditional-format-demo.json`** — ready to **Upload** / **Replace (Excel/JSON)** / **Import workbook JSON**. It includes **`luckysheet_conditionformat_save`** with **`colorGradation`** and **`dataBar`** rules (Luckysheet sheet-config shape). If a rule type does not render, the bundled FortuneSheet build may not implement it yet; the field is still preserved on the sheet for forward compatibility.
+
 ## Compatibility notes
 
 1. **FortuneSheet version** in this app defines what rule types actually run; JSON preserves **data**, not guarantees of Excel parity.
@@ -113,6 +156,9 @@ If present on the **sheet object** (top level, not only inside `config`), these 
 |-------|------|
 | JSON parse + sheet array extraction | `api/src/lib/json-patch-template.ts` |
 | Normalization + JSON passthrough | `api/src/lib/excel-to-sheets.ts` (`normalizeSheetFromRaw`) |
-| Upload / replace / preview | `api/src/routes/v1/patch-templates.ts` |
+| Upload / replace / preview / sheets export-import | `api/src/routes/v1/patch-templates.ts` |
+| Performance sheets export-import | `api/src/routes/v1/performances.ts` |
+| Export envelope | `api/src/lib/workbook-json-envelope.ts` |
+| Live collab replace + persist buffer | `api/src/lib/yjs-collab-replace.ts` |
 | Extension / MIME helpers | `api/src/lib/upload-allowlists.ts` (`isPatchTemplateJsonFile`, `patchTemplateStorageExtension`, `stripPatchTemplateBasename`) |
 | Yjs snapshot encode/decode | `api/src/lib/yjs-template-snapshot.ts` |

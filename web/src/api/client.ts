@@ -58,7 +58,50 @@ export async function apiSend<T>(
   return r.json() as Promise<T>;
 }
 
-/** Multipart upload; do not set Content-Type — browser sets multipart boundary. */
+/** Read a browser `File` as UTF-8 text (e.g. JSON import). */
+export function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("File read failed"));
+    reader.readAsText(file);
+  });
+}
+
+/** Download JSON workbook export (session cookie). Uses `Content-Disposition` filename when present. */
+export async function downloadWorkbookJson(
+  path: string,
+  filenameFallback: string,
+): Promise<void> {
+  const r = await fetch(`${base}${path}`, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  if (!r.ok) {
+    redirectToLoginIfNeeded(path, r.status);
+    const text = await r.text();
+    let msg = text || r.statusText;
+    try {
+      const j = JSON.parse(text) as { message?: string };
+      if (typeof j.message === "string" && j.message) msg = j.message;
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(msg);
+  }
+  const cd = r.headers.get("Content-Disposition");
+  let filename = filenameFallback;
+  const m = cd?.match(/filename="([^"]+)"/);
+  if (m?.[1]) filename = m[1];
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function apiSendForm<T>(
   path: string,
   method: string,

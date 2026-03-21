@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Workbook } from "@fortune-sheet/react";
-import { apiGet } from "../api/client";
+import { apiGet, apiSend, downloadWorkbookJson, readFileAsText } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
@@ -17,6 +17,7 @@ const PATCH_SIDEBAR_COLLAPSED_KEY = "patch-sidebar-collapsed";
 export function PatchPage() {
   const { performanceId } = useParams<{ performanceId: string }>();
   const dirtyRef = useRef(false);
+  const perfJsonImportRef = useRef<HTMLInputElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
@@ -42,6 +43,18 @@ export function PatchPage() {
         `/api/v1/performances/${performanceId}`,
       ),
     enabled: Boolean(performanceId),
+  });
+
+  const importPerfWorkbookJson = useMutation({
+    mutationFn: async (text: string) => {
+      const id = performanceId;
+      if (!id) throw new Error("Missing performance");
+      const body = JSON.parse(text) as unknown;
+      return apiSend(`/api/v1/performances/${id}/sheets-import`, "PUT", body);
+    },
+    onSuccess: () => {
+      window.location.reload();
+    },
   });
 
   const stageDayId = perfQ.data?.performance.stageDayId;
@@ -168,12 +181,59 @@ export function PatchPage() {
         }}
       >
         <h1 style={{ margin: 0 }}>Patch &amp; RF — {perf.bandName}</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="icon-btn"
+            disabled={importPerfWorkbookJson.isPending}
+            onClick={async () => {
+              try {
+                await downloadWorkbookJson(
+                  `/api/v1/performances/${performanceId}/sheets-export`,
+                  `${perf.bandName || "performance"}_workbook.json`,
+                );
+              } catch (err) {
+                window.alert((err as Error).message);
+              }
+            }}
+          >
+            Export JSON
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            disabled={importPerfWorkbookJson.isPending}
+            onClick={() => perfJsonImportRef.current?.click()}
+          >
+            Import JSON
+          </button>
+          <input
+            ref={perfJsonImportRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              try {
+                const text = await readFileAsText(f);
+                importPerfWorkbookJson.mutate(text);
+              } catch (err) {
+                window.alert((err as Error).message);
+              }
+            }}
+          />
           <span className={`${connClass}`} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
             ● {connLabel}
           </span>
         </div>
       </div>
+      {importPerfWorkbookJson.isError && (
+        <p role="alert" style={{ color: "var(--color-brand)", marginTop: 0 }}>
+          {(importPerfWorkbookJson.error as Error).message}
+        </p>
+      )}
       <div
         className="patch-workbook-host"
         style={{
