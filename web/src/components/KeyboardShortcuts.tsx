@@ -59,11 +59,14 @@ export function useGlobalShortcuts({
   onHelp,
   navigate,
   onMyStageToday,
+  onClockNavigate,
 }: {
   onSearch: () => void;
   onHelp: () => void;
   navigate: (path: string) => void;
   onMyStageToday?: () => void | Promise<void>;
+  /** When set (e.g. last-viewed stage day), `g c` uses this instead of `/clock`. */
+  onClockNavigate?: () => void;
 }) {
   const [gPending, setGPending] = useState(false);
 
@@ -95,7 +98,11 @@ export function useGlobalShortcuts({
           void onMyStageToday();
           return;
         }
-        if (e.key === "c") { navigate("/clock"); return; }
+        if (e.key === "c") {
+          if (onClockNavigate) onClockNavigate();
+          else navigate("/clock");
+          return;
+        }
         if (e.key === "s") { navigate("/settings"); return; }
         return;
       }
@@ -106,5 +113,5 @@ export function useGlobalShortcuts({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onSearch, onHelp, navigate, onMyStageToday, gPending]);
+  }, [onSearch, onHelp, navigate, onMyStageToday, onClockNavigate, gPending]);
 }

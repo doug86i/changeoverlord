@@ -53,6 +53,8 @@ A **banner** appears at the top of the screen when the connection to the server 
 - **Set length** — Enter the slot length in **minutes**; the app stores it as an end time (start + length). Switching between **End time** and **Set length** keeps the **same duration** where possible.
 - **Defaults** — First act on an empty day: **1 hour** slot and **30 minutes** changeover. After each **Add**, the next row suggests the **same length** as the act you just added, and **changeover** only affects the gap before that next start (not saved on the performance).
 - **Changeover (min)** — Not saved on the performance. After **Add**, the next **Start** is this act’s **end + changeover**.
+- **Enter** — In **Band / act**, **Enter** submits **Add** (same as the button).
+- **Multi-user** — If someone else adds an act on another machine, the **next suggested start / end / length** updates to match the new last slot (same rules as after your own **Add**).
 
 On the **stage day page**, each performance supports:
 - **Inline editing** — Click band name, start time, or end time to edit in place.
@@ -117,7 +119,8 @@ On **Settings** and on the **stage** template picker you can:
 
 ## Clock
 
-- **Clock** in the nav shows today's stage days (if any exist for today's date). If there's only one, it auto-redirects.
+- **Clock** in the nav opens the **last stage day you were viewing** (running order or stage-day clock), when that is known — same remembered day as **My stage today** uses. Otherwise it opens the **Clock** picker (`/clock`). The **`g c`** shortcut follows the same rule.
+- On the **Clock** picker, **today’s stages** are listed when any exist for today’s date. If there’s only one today, it **auto-redirects** to that day’s clock.
 - **All stage days** are listed below for quick access to any day's clock.
 - The clock display shows **server-synced time** (corrected for any device clock drift).
 
@@ -127,8 +130,8 @@ On a stage day clock (`/clock/day/:stageDayId`):
 
 - **Normal view** — Lists all acts, focus card, and server-synced time.
 - **Fullscreen (distance view)** — Press **F** or **Fullscreen** for a layout meant to be read from across the room:
-  - **Top** — Band name, then the **countdown** as the **largest** text on screen (time left on stage, or **until the next act**). During **changeover** (between acts), a **Changeover** banner appears with **Next: …** and the upcoming band.
-  - **Middle** — **Local time** (**HH:MM:SS**) — smaller than the countdown, still easy to read.
+  - **Top** — Band / changeover context, then the **countdown** — it **grows as large as the space allows** (without overlapping other elements) as the timer text changes.
+  - **Middle** — **Local time** (**HH:MM:SS**) — readable but secondary to the countdown.
   - **Bottom** — Stage, date, countdown pace, and slot/next start in a compact **multi-column** row.
   - **Countdown colours** (high-contrast in both light and dark theme):
     - **Green** — more than 5 minutes
@@ -138,7 +141,9 @@ On a stage day clock (`/clock/day/:stageDayId`):
 - **Changeover display** — In normal view, shows changeover duration between acts.
 - **Band navigation** — In normal view, click any band in the list, or use **← / →** arrow keys.
 - **Message overlay** — Type a message and click "Show" to display it full-screen (click to dismiss). Useful for "STOP" or timing cues.
+- **End of day** — After the **last performance finishes** on that stage day, for **up to one hour** a full-screen message appears for the crew: it looks ahead to the **next day on this stage** and lists that day’s **lineup** (when configured). **One hour after** the last finish, the clock **automatically switches** to that next day. After the **final** day on the stage, a **thank-you** screen stays up until you navigate away. If a slot has no end time, the clock treats its end as **one hour after start** for this timing only.
 - **Distance view (no fullscreen)** — On the stage day clock, click **Distance view** for the same large layout as fullscreen **without** the browser fullscreen API. Use this when you want a **bookmark**, **home-screen shortcut**, **split-screen** with another app, or when fullscreen is awkward on a tablet. The URL is `?kiosk=1` (legacy name). Use **Full clock — controls & schedule** to return to the normal view.
+- **Fullscreen + resize** — If the browser **leaves fullscreen** (e.g. window resize or snap), the **large distance layout stays**; use **F** to go fullscreen again, or **Compact clock** to return to the normal clock with the band list. **Exit fullscreen (F)** still appears while the page is actually in fullscreen.
 
 ---
 

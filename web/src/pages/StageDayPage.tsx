@@ -11,7 +11,7 @@ import {
   formatCountdownOrDays,
   addMinutesToHhmm,
 } from "../lib/dateFormat";
-import { useLastVisited } from "../lib/useLastVisited";
+import { useClockNav } from "../ClockNavContext";
 import { PrintDaySheet } from "../components/PrintDaySheet";
 
 type TimeRes = { iso: string; unixMs: number };
@@ -97,11 +97,11 @@ function InlineInput({
 export function StageDayPage() {
   const { stageDayId } = useParams<{ stageDayId: string }>();
   const qc = useQueryClient();
-  const { setLastStageDayId } = useLastVisited();
+  const { setPreferredStageDayId } = useClockNav();
 
   useEffect(() => {
-    if (stageDayId) setLastStageDayId(stageDayId);
-  }, [stageDayId, setLastStageDayId]);
+    if (stageDayId) setPreferredStageDayId(stageDayId);
+  }, [stageDayId, setPreferredStageDayId]);
 
   const dayQ = useQuery({
     queryKey: ["stageDay", stageDayId],
@@ -160,7 +160,6 @@ export function StageDayPage() {
   const [addDurationMins, setAddDurationMins] = useState(String(DEFAULT_SET_LENGTH_MINS));
   /** Minutes after this act’s end (or implied slot) — not saved; used to pre-fill the next start time. */
   const [addChangeoverMins, setAddChangeoverMins] = useState(DEFAULT_CHANGEOVER_MINS);
-  const addFormSuggestedForDay = useRef<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState<Set<string>>(new Set());
 
@@ -176,34 +175,35 @@ export function StageDayPage() {
     [perfQ.data],
   );
 
+  /** Signature of the last performance — when it changes (local or remote), refresh add-form suggestions. */
+  const lastPerfSignature = useMemo(() => {
+    if (!sorted.length) return "empty";
+    const last = sorted[sorted.length - 1];
+    return `${last.id}:${last.startTime}:${last.endTime ?? ""}`;
+  }, [sorted]);
+
   useEffect(() => {
-    addFormSuggestedForDay.current = null;
+    setAddChangeoverMins(DEFAULT_CHANGEOVER_MINS);
   }, [stageDayId]);
 
-  /** First suggested start / end / length when opening a stage day (not after each add — that uses onSuccess). */
+  /** Next-slot start / end / length when the running order’s last slot changes (local or remote). */
   useEffect(() => {
     if (!stageDayId || perfQ.isLoading) return;
-    if (addFormSuggestedForDay.current === stageDayId) return;
-    const list = perfQ.data?.performances ?? [];
-    const sortedList = sortPerfs(list);
-    if (!sortedList.length) {
+    if (!sorted.length) {
       setStart("12:00");
       setEnd(addMinutesToHhmm("12:00", DEFAULT_SET_LENGTH_MINS));
       setAddDurationMins(String(DEFAULT_SET_LENGTH_MINS));
-      setAddChangeoverMins(DEFAULT_CHANGEOVER_MINS);
-    } else {
-      const last = sortedList[sortedList.length - 1];
-      const durM = durationMinsFromLastPerformance(last);
-      const next = last.endTime
-        ? addMinutesToHhmm(last.endTime, DEFAULT_CHANGEOVER_MINS)
-        : addMinutesToHhmm(last.startTime, DEFAULT_SET_LENGTH_MINS + DEFAULT_CHANGEOVER_MINS);
-      setStart(next);
-      setEnd(addMinutesToHhmm(next, durM));
-      setAddDurationMins(String(durM));
-      setAddChangeoverMins(DEFAULT_CHANGEOVER_MINS);
+      return;
     }
-    addFormSuggestedForDay.current = stageDayId;
-  }, [stageDayId, perfQ.isLoading, perfQ.data]);
+    const last = sorted[sorted.length - 1];
+    const durM = durationMinsFromLastPerformance(last);
+    const next = last.endTime
+      ? addMinutesToHhmm(last.endTime, addChangeoverMins)
+      : addMinutesToHhmm(last.startTime, DEFAULT_SET_LENGTH_MINS + addChangeoverMins);
+    setStart(next);
+    setEnd(addMinutesToHhmm(next, durM));
+    setAddDurationMins(String(durM));
+  }, [stageDayId, perfQ.isLoading, lastPerfSignature, addChangeoverMins]);
 
   const day = dayQ.data?.stageDay;
   const stage = stageQ.data?.stage;
@@ -488,7 +488,14 @@ export function StageDayPage() {
         <div className="title-bar" style={{ marginBottom: "0.75rem" }}>
           Add performance
         </div>
-        <div className="form-row" style={{ alignItems: "flex-end" }}>
+        <form
+          className="form-row"
+          style={{ alignItems: "flex-end" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (canSubmitAddPerformance && !createPerf.isPending) createPerf.mutate();
+          }}
+        >
           <label>
             <span className="form-label">Band / act</span>
             <input
@@ -598,14 +605,13 @@ export function StageDayPage() {
             />
           </label>
           <button
-            type="button"
+            type="submit"
             className="primary"
-            onClick={() => createPerf.mutate()}
             disabled={!canSubmitAddPerformance || createPerf.isPending}
           >
             Add
           </button>
-        </div>
+        </form>
         <p className="muted" style={{ fontSize: "0.8rem", margin: "0.75rem 0 0" }}>
           {addTimeMode === "duration"
             ? "Set length is stored as end time (start + length). Every slot has an end. Changeover fills the next start only — it is not saved. Switching to End time keeps the same length."

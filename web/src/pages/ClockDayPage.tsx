@@ -1,8 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiGet } from "../api/client";
-import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { EventRow, PerformanceRow, StageDayRow, StageRow } from "../api/types";
+import { ClockEndOfDayOverlay } from "../components/ClockEndOfDayOverlay";
+import {
+  findNextStageDay,
+  getLastPerformanceEndMs,
+  HOUR_AFTER_LAST_MS,
+} from "../lib/clockSchedule";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useClockNav } from "../ClockNavContext";
+import { useFitCountdownInBox } from "../hooks/useFitCountdownInBox";
 import {
   formatDateShort,
   minutesBetween,
@@ -69,6 +77,9 @@ function isArenaFullscreen(el: HTMLElement | null): boolean {
 }
 
 export function ClockDayPage() {
+  const navigate = useNavigate();
+  const { setPreferredStageDayId } = useClockNav();
+  const navigatedRef = useRef(false);
   const { stageDayId } = useParams<{ stageDayId: string }>();
   const [searchParams] = useSearchParams();
   /** Same distance layout as fullscreen, but without the Fullscreen API — bookmarkable, works on some tablets / split-screen. */
@@ -128,6 +139,77 @@ export function ClockDayPage() {
   );
 
   const dayDate = dayQ.data?.stageDay.dayDate ?? "";
+  const stageId = dayQ.data?.stageDay?.stageId;
+
+  const stageDaysQ = useQuery({
+    queryKey: ["stageDays", stageId],
+    queryFn: () =>
+      apiGet<{ stageDays: StageDayRow[] }>(`/api/v1/stages/${stageId}/days`),
+    enabled: Boolean(stageId),
+  });
+
+  const eventId = stageQ.data?.stage?.eventId;
+  const eventQ = useQuery({
+    queryKey: ["event", eventId],
+    queryFn: () => apiGet<{ event: EventRow }>(`/api/v1/events/${eventId}`),
+    enabled: Boolean(eventId),
+  });
+
+  const nextStageDay = useMemo((): StageDayRow | null | undefined => {
+    if (!stageDayId) return undefined;
+    if (stageDaysQ.isLoading && !stageDaysQ.data) return undefined;
+    const days = stageDaysQ.data?.stageDays;
+    if (!days) return null;
+    return findNextStageDay(days, stageDayId);
+  }, [stageDayId, stageDaysQ.isLoading, stageDaysQ.data]);
+
+  const nextStageDayId = nextStageDay?.id;
+  const nextDayPerfQ = useQuery({
+    queryKey: ["performances", nextStageDayId],
+    queryFn: () =>
+      apiGet<{ performances: PerformanceRow[] }>(
+        `/api/v1/stage-days/${nextStageDayId}/performances`,
+      ),
+    enabled: Boolean(nextStageDayId),
+  });
+
+  const nextSorted = useMemo(
+    () => sortPerformances(nextDayPerfQ.data?.performances ?? []),
+    [nextDayPerfQ.data],
+  );
+
+  const lastEndMs = useMemo(
+    () => getLastPerformanceEndMs(dayDate, sorted),
+    [dayDate, sorted],
+  );
+  const advanceAtMs = lastEndMs !== null ? lastEndMs + HOUR_AFTER_LAST_MS : null;
+  const tMs = now.getTime();
+  const hasSchedule = sorted.length > 0;
+  const inGraceWindow =
+    hasSchedule &&
+    lastEndMs !== null &&
+    advanceAtMs !== null &&
+    tMs >= lastEndMs &&
+    tMs < advanceAtMs;
+  const pastGraceWindow =
+    hasSchedule && lastEndMs !== null && advanceAtMs !== null && tMs >= advanceAtMs;
+
+  useEffect(() => {
+    navigatedRef.current = false;
+  }, [stageDayId]);
+
+  useEffect(() => {
+    if (stageDayId) setPreferredStageDayId(stageDayId);
+  }, [stageDayId, setPreferredStageDayId]);
+
+  useEffect(() => {
+    if (nextStageDay === undefined || nextStageDay === null) return;
+    if (lastEndMs === null || sorted.length === 0) return;
+    if (advanceAtMs === null || now.getTime() < advanceAtMs) return;
+    if (navigatedRef.current) return;
+    navigatedRef.current = true;
+    navigate(`/clock/day/${nextStageDay.id}`, { replace: true });
+  }, [nextStageDay, lastEndMs, sorted.length, advanceAtMs, now, navigate]);
 
   const { currentIdx, nextIdx, secondsToNext, secondsRemaining } = useMemo(() => {
     if (!dayDate || sorted.length === 0) {
@@ -237,12 +319,21 @@ export function ClockDayPage() {
 
   const distanceMode = distanceOnlyNoFs || fsIntent || isFs;
 
+  const countdownMeasureRef = useRef<HTMLDivElement>(null);
+  const countdownTextRef = useRef<HTMLDivElement>(null);
+  const countdownDisplay = useMemo(
+    () =>
+      heroSeconds !== null ? formatClockHeroCountdown(heroLabel, heroSeconds) : "—",
+    [heroLabel, heroSeconds],
+  );
+  useFitCountdownInBox(countdownMeasureRef, countdownTextRef, countdownDisplay, distanceMode);
+
   useEffect(() => {
     const onFs = () => {
       const el = arenaRef.current;
-      const active = isArenaFullscreen(el);
-      setIsFs(active);
-      if (!active) setFsIntent(false);
+      setIsFs(isArenaFullscreen(el));
+      /** Do not clear `fsIntent` here — the browser may leave fullscreen on resize/snap;
+       *  keep the distance layout until F / Exit fullscreen / Compact clock. */
     };
     onFs();
     document.addEventListener("fullscreenchange", onFs);
@@ -262,15 +353,10 @@ export function ClockDayPage() {
       return;
     }
     setFsIntent(true);
-  }, []);
-
-  useEffect(() => {
-    if (!fsIntent) return;
-    const id = requestAnimationFrame(() => {
-      void requestFullscreenOn(arenaRef.current).catch(() => setFsIntent(false));
+    requestAnimationFrame(() => {
+      void requestFullscreenOn(el).catch(() => setFsIntent(false));
     });
-    return () => cancelAnimationFrame(id);
-  }, [fsIntent]);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -315,13 +401,60 @@ export function ClockDayPage() {
     second: "2-digit",
   });
 
+  const commonEnd = {
+    stageName: stage?.name ?? "This stage",
+    eventName: eventQ.data?.event?.name ?? "the event",
+    currentDayLabel: formatDateShort(dayDate),
+  };
+
+  let endOfDayOverlay: ReactNode = null;
+  if (hasSchedule && lastEndMs !== null && advanceAtMs !== null) {
+    const t = now.getTime();
+    if (t >= lastEndMs) {
+      if (t < advanceAtMs) {
+        if (nextStageDay === undefined) {
+          endOfDayOverlay = (
+            <ClockEndOfDayOverlay mode="grace_next" {...commonEnd} nextDayLoading />
+          );
+        } else if (nextStageDay === null) {
+          endOfDayOverlay = (
+            <ClockEndOfDayOverlay mode="grace_final" {...commonEnd} />
+          );
+        } else {
+          endOfDayOverlay = (
+            <ClockEndOfDayOverlay
+              mode="grace_next"
+              {...commonEnd}
+              nextDayLabel={formatDateShort(nextStageDay.dayDate)}
+              nextPerformances={nextSorted}
+              nextDayLoading={nextDayPerfQ.isLoading}
+            />
+          );
+        }
+      } else if (nextStageDay === undefined) {
+        endOfDayOverlay = (
+          <div className="clock-end-overlay" role="status">
+            <div className="clock-end-overlay-inner">
+              <p className="clock-end-overlay-title">Next day</p>
+              <p className="clock-end-overlay-muted">Loading schedule…</p>
+            </div>
+          </div>
+        );
+      } else if (nextStageDay === null) {
+        endOfDayOverlay = <ClockEndOfDayOverlay mode="thank_you" {...commonEnd} />;
+      }
+    }
+  }
+
   return (
     <div
       style={{
-        minHeight: "100%",
+        minHeight: distanceMode ? "100dvh" : "100%",
         maxWidth: distanceMode ? "none" : 900,
         margin: "0 auto",
         padding: distanceMode ? 0 : "0 1rem 2rem",
+        display: distanceMode ? "flex" : undefined,
+        flexDirection: distanceMode ? "column" : undefined,
       }}
     >
       {showMessage && message && (
@@ -370,21 +503,21 @@ export function ClockDayPage() {
         </p>
       )}
 
-      <div ref={arenaRef} className={distanceMode ? "clock-arena" : "clock-compact-wrap"}>
+      <div
+        ref={arenaRef}
+        className={distanceMode ? "clock-arena clock-arena--fill" : "clock-compact-wrap"}
+      >
+        {endOfDayOverlay}
         {distanceMode ? (
           <div className="clock-arena-inner">
-            {/* Top: band + countdown (compact so wall clock can dominate) */}
-            <div className="clock-arena-top" aria-live="polite">
+            <div className="clock-arena-top-meta">
               {isChangeover && (
                 <div className="clock-arena-changeover-strip">Changeover</div>
               )}
               {isChangeover ? (
-                <>
-                  <div className="clock-arena-top-band">
-                    Next: <strong>{actPresentation.title}</strong>
-                  </div>
-                  <div className="clock-arena-label clock-arena-label--top">{heroLabel}</div>
-                </>
+                <div className="clock-arena-top-band">
+                  Next: <strong>{actPresentation.title}</strong>
+                </div>
               ) : currentIdx >= 0 ? (
                 <>
                   <div className="clock-arena-top-band">
@@ -396,7 +529,6 @@ export function ClockDayPage() {
                   {actPresentation.sub ? (
                     <div className="clock-arena-label clock-arena-label--slot">{actPresentation.sub}</div>
                   ) : null}
-                  <div className="clock-arena-label clock-arena-label--top">{heroLabel}</div>
                 </>
               ) : (
                 <>
@@ -404,24 +536,27 @@ export function ClockDayPage() {
                   {actPresentation.sub ? (
                     <div className="clock-arena-label clock-arena-label--slot">{actPresentation.sub}</div>
                   ) : null}
-                  <div className="clock-arena-label clock-arena-label--top">{heroLabel}</div>
                 </>
               )}
-              <div className="clock-arena-countdown-wrap">
+            </div>
+            <div className="clock-arena-countdown-region" aria-live="polite">
+              <div className="clock-arena-countdown-label">{heroLabel}</div>
+              <div className="clock-arena-countdown-measurer" ref={countdownMeasureRef}>
                 <div
-                  className={`clock-arena-countdown-top ${heroClass}${heroFlashClass}`}
+                  ref={countdownTextRef}
+                  className={`clock-arena-countdown-top clock-arena-countdown-top--fit ${heroClass}${heroFlashClass}`}
                   title={
                     heroSeconds !== null
                       ? `${heroLabel}: ${formatClockHeroCountdown(heroLabel, heroSeconds)}`
                       : undefined
                   }
                 >
-                  {heroSeconds !== null ? formatClockHeroCountdown(heroLabel, heroSeconds) : "—"}
+                  {countdownDisplay}
                 </div>
               </div>
             </div>
 
-            {/* Middle: local time of day — largest */}
+            {/* Middle: local time of day */}
             <div className="clock-arena-wall-mid">
               <div className="clock-arena-wall-caption">Local time</div>
               <div className="clock-arena-wall clock-arena-wall--primary" aria-label="Current time">
@@ -480,11 +615,23 @@ export function ClockDayPage() {
                     Full clock — controls &amp; schedule
                   </Link>
                 ) : (
-                  isFs && (
-                    <button type="button" className="primary" onClick={toggleFullscreen}>
-                      Exit fullscreen (F)
-                    </button>
-                  )
+                  <>
+                    {isFs && (
+                      <button type="button" className="primary" onClick={toggleFullscreen}>
+                        Exit fullscreen (F)
+                      </button>
+                    )}
+                    {fsIntent && !isFs && (
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => setFsIntent(false)}
+                        title="Leave large layout — show band list and controls"
+                      >
+                        Compact clock
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </footer>

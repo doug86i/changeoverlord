@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { resolveMyStageTodayPath } from "./lib/myStageToday";
-import { Routes, Route, NavLink, Outlet, useMatch, useNavigate } from "react-router-dom";
+import { Routes, Route, NavLink, Outlet, useMatch, useNavigate, useLocation } from "react-router-dom";
+import { ClockNavProvider, useClockNav } from "./ClockNavContext";
 import { useTheme } from "./theme/ThemeContext";
 import { AuthGate } from "./auth/AuthGate";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -22,6 +23,13 @@ import { PerformanceFilesPage } from "./pages/PerformanceFilesPage";
 function Layout() {
   const { toggle, theme } = useTheme();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { preferredStageDayId } = useClockNav();
+  const clockHref = useMemo(
+    () => (preferredStageDayId ? `/clock/day/${preferredStageDayId}` : "/clock"),
+    [preferredStageDayId],
+  );
+  const clockNavActive = pathname === "/clock" || pathname.startsWith("/clock/");
   const patchView = useMatch("/patch/:performanceId");
   const templateEditView = useMatch("/patch-templates/:templateId/edit");
   const wideMain = Boolean(patchView || templateEditView);
@@ -45,11 +53,16 @@ function Layout() {
     }
   }, [navigate, closeMenu]);
 
+  const goClock = useCallback(() => {
+    navigate(clockHref);
+  }, [navigate, clockHref]);
+
   useGlobalShortcuts({
     onSearch: openSearch,
     onHelp: openHelp,
     navigate,
     onMyStageToday: goMyStageToday,
+    onClockNavigate: goClock,
   });
 
   return (
@@ -87,7 +100,15 @@ function Layout() {
             >
               {myStageBusy ? "…" : "My stage today"}
             </button>
-            <NavLink to="/clock" onClick={closeMenu}>Clock</NavLink>
+            <NavLink
+              to={clockHref}
+              className={({ isActive }) =>
+                isActive || clockNavActive ? "active" : undefined
+              }
+              onClick={closeMenu}
+            >
+              Clock
+            </NavLink>
             <NavLink to="/settings" onClick={closeMenu}>Settings</NavLink>
           </nav>
           <button
@@ -135,7 +156,9 @@ export function App() {
         <Route
           element={
             <AuthGate>
-              <Layout />
+              <ClockNavProvider>
+                <Layout />
+              </ClockNavProvider>
             </AuthGate>
           }
         >

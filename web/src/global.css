@@ -474,15 +474,120 @@ textarea {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  padding: clamp(0.75rem, 2vmin, 1.5rem);
+  padding: clamp(0.35rem, 1.2vmin, 1rem);
   background: var(--clock-arena-bg);
   color: var(--clock-arena-fg);
+}
+
+.clock-arena--fill {
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .clock-arena:fullscreen,
 .clock-arena:-webkit-full-screen {
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* End-of-day / thank-you overlay (same stage clock) */
+.clock-end-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vmin, 2.5rem);
+  background: var(--clock-arena-bg);
+  color: var(--clock-arena-fg);
+  overflow-y: auto;
+}
+
+.clock-end-overlay-inner {
+  max-width: 42rem;
+  width: 100%;
+}
+
+.clock-end-overlay-kicker {
+  font-size: clamp(1rem, 2.2vmin, 1.05rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clock-arena-muted);
+  margin: 0 0 0.5rem;
+}
+
+.clock-end-overlay-title {
+  font-size: clamp(1.75rem, 5vmin, 2.75rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+  text-wrap: balance;
+}
+
+.clock-end-overlay-lead {
+  font-size: clamp(1.05rem, 2.8vmin, 1.25rem);
+  line-height: 1.45;
+  margin: 0 0 0.75rem;
+}
+
+.clock-end-overlay-lineup {
+  margin: 1.25rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--clock-arena-fg) 4%, transparent);
+}
+
+.clock-end-overlay-lineup-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--clock-arena-muted);
+  margin: 0 0 0.75rem;
+}
+
+.clock-end-overlay-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.clock-end-overlay-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: clamp(1rem, 2.5vmin, 1.15rem);
+}
+
+.clock-end-overlay-list li:last-child {
+  border-bottom: none;
+}
+
+.clock-end-overlay-band {
+  font-weight: 700;
+}
+
+.clock-end-overlay-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--clock-arena-muted);
+  flex-shrink: 0;
+}
+
+.clock-end-overlay-foot {
+  margin: 1.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--clock-arena-muted);
+}
+
+.clock-end-overlay-muted {
+  color: var(--clock-arena-muted);
+  margin: 0;
 }
 
 .clock-arena-inner {
@@ -493,13 +598,43 @@ textarea {
   width: 100%;
   max-width: 120rem;
   margin: 0 auto;
-  gap: clamp(0.5rem, 1.5vmin, 1rem);
+  gap: clamp(0.2rem, 1vmin, 0.65rem);
 }
 
-/* Top band: who’s on / changeover + countdown (keeps wall clock free to scale up) */
-.clock-arena-top {
+/* Top band: act / changeover (hero countdown fills .clock-arena-countdown-region) */
+.clock-arena-top-meta {
   flex-shrink: 0;
   text-align: center;
+}
+
+.clock-arena-countdown-region {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.2rem, 1vmin, 0.5rem);
+  padding: clamp(0.15rem, 0.8vmin, 0.5rem) 0;
+  width: 100%;
+}
+
+.clock-arena-countdown-label {
+  flex-shrink: 0;
+  font-size: clamp(0.85rem, 2.2vmin, 1.05rem);
+  font-weight: 600;
+  color: var(--clock-arena-muted);
+}
+
+.clock-arena-countdown-measurer {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .clock-arena-changeover-strip {
@@ -556,6 +691,12 @@ textarea {
   text-shadow: 0 3px 0 color-mix(in srgb, var(--clock-arena-fg) 10%, transparent);
 }
 
+/* Distance/fullscreen: size set by JS to fill .clock-arena-countdown-measurer */
+.clock-arena-countdown-top--fit {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .clock-arena-header {
   text-align: center;
   font-size: clamp(0.85rem, 2vmin, 1.1rem);
@@ -601,15 +742,14 @@ textarea {
   letter-spacing: -0.02em;
 }
 
-/* Local time — secondary size (countdown above is primary) */
+/* Local time — compact; hero countdown fills flex space above */
 .clock-arena-wall-mid {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: clamp(7rem, 16vh, 14rem);
-  padding: clamp(0.25rem, 1vmin, 0.75rem) 0;
+  padding: clamp(0.2rem, 0.8vmin, 0.5rem) 0;
 }
 
 .clock-arena-wall-caption {
@@ -622,7 +762,7 @@ textarea {
 }
 
 .clock-arena-wall--primary {
-  font-size: clamp(2rem, 7.5vmin, 5.5rem);
+  font-size: clamp(1.25rem, 4vmin, 2.75rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
