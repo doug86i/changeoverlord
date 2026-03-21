@@ -12,7 +12,7 @@ import {
 type TimeRes = { iso: string; unixMs: number };
 
 function isPlotAsset(f: FileAssetRow): boolean {
-  if (f.purpose !== "plot_pdf" && f.purpose !== "plot_from_rider") return false;
+  if (f.purpose !== "plot_pdf") return false;
   return f.mimeType === "application/pdf" || f.mimeType.startsWith("image/");
 }
 

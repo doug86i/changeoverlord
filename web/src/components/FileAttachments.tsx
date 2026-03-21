@@ -1,62 +1,63 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiSend, apiSendForm } from "../api/client";
 import type { FileAssetPurpose, FileAssetRow } from "../api/types";
 import { ConfirmDialog } from "./ConfirmDialog";
 
-const FILE_PURPOSE_OPTIONS: { value: FileAssetPurpose; label: string }[] = [
-  { value: "rider_pdf", label: "Rider / tech pack" },
-  { value: "plot_pdf", label: "Stage plot" },
-  { value: "plot_from_rider", label: "Plot from rider PDF" },
-  { value: "generic", label: "Other" },
-];
-
-function FilePurposeRadios({
-  name,
-  value,
-  onChange,
-  disabled,
-  legend,
-}: {
-  name: string;
-  value: FileAssetPurpose;
-  onChange: (v: FileAssetPurpose) => void;
-  disabled?: boolean;
-  legend: string;
-}) {
-  return (
-    <fieldset className="file-purpose-fieldset" disabled={disabled}>
-      <legend className="file-purpose-fieldset-legend">{legend}</legend>
-      <div className="file-purpose-radios">
-        {FILE_PURPOSE_OPTIONS.map((o) => (
-          <label key={o.value} className="file-purpose-radio-label">
-            <input
-              type="radio"
-              name={name}
-              value={o.value}
-              checked={value === o.value}
-              onChange={() => onChange(o.value)}
-            />
-            <span>{o.label}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-const PdfPageThumbnailGrid = lazy(async () => {
-  const m = await import("./PdfPageThumbnailGrid");
-  return { default: m.PdfPageThumbnailGrid };
-});
-
 const RIDER_FILE_ACCEPT =
   "image/*,application/pdf,text/*,.pdf,.doc,.docx,.odt,.rtf,.md,.csv,.txt,.tif,.tiff,.webp,.heic,.heif";
+
+const THUMB_MAX_WIDTH = 120;
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function FilePurposeToggle({
+  purpose,
+  disabled,
+  onPatch,
+}: {
+  purpose: FileAssetPurpose;
+  disabled: boolean;
+  onPatch: (next: FileAssetPurpose) => void;
+}) {
+  const isRider = purpose === "rider_pdf";
+  const isPlot = purpose === "plot_pdf";
+  return (
+    <div>
+      <span className="muted" style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.35rem" }}>
+        Use as
+      </span>
+      <div className="file-purpose-toggle">
+        <button
+          type="button"
+          className={`icon-btn${isRider ? " primary" : ""}`}
+          disabled={disabled}
+          title={isRider ? "Click to set as Other" : "Rider / tech pack"}
+          onClick={() => onPatch(isRider ? "generic" : "rider_pdf")}
+        >
+          Rider
+        </button>
+        <button
+          type="button"
+          className={`icon-btn${isPlot ? " primary" : ""}`}
+          disabled={disabled}
+          title={isPlot ? "Click to set as Other" : "Stage plot"}
+          onClick={() => onPatch(isPlot ? "generic" : "plot_pdf")}
+        >
+          Stage plot
+        </button>
+      </div>
+      {!isRider && !isPlot && (
+        <p className="muted" style={{ fontSize: "0.75rem", margin: "0.35rem 0 0" }}>
+          Other — choose Rider or Stage plot, or leave as general attachments.
+        </p>
+      )}
+    </div>
+  );
 }
 
 function InlinePdfViewer({ fileId, onClose }: { fileId: string; onClose: () => void }) {
@@ -86,9 +87,19 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
   const [purpose, setPurpose] = useState<FileAssetPurpose>(f.purpose);
   const [extractOpen, setExtractOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(1);
-  const [meta, setMeta] = useState<{ pageCount?: number } | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
+
+  const isPdf = f.mimeType === "application/pdf";
+
+  const previewsQ = useQuery({
+    queryKey: ["file-page-previews", f.id],
+    queryFn: () =>
+      apiGet<{ pageCount: number; thumbnails: string[] }>(
+        `/api/v1/files/${f.id}/page-previews`,
+      ),
+    enabled: extractOpen && isPdf,
+  });
 
   const del = useMutation({
     mutationFn: () => apiSend(`/api/v1/files/${f.id}`, "DELETE"),
@@ -118,19 +129,18 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
     setPurpose(f.purpose);
   }, [f.purpose]);
 
-  const loadMeta = async () => {
-    if (f.mimeType !== "application/pdf") return;
-    const r = await apiGet<{ file: FileAssetRow & { pageCount?: number } }>(`/api/v1/files/${f.id}`);
-    setMeta({ pageCount: r.file.pageCount });
-  };
-
   const openExtract = () => {
     setPageIndex(1);
     setExtractOpen(true);
     extract.reset();
-    void loadMeta();
   };
-  const isPdf = f.mimeType === "application/pdf";
+
+  const pageCount = previewsQ.data?.pageCount ?? 0;
+  const thumbs = previewsQ.data?.thumbnails ?? [];
+
+  useEffect(() => {
+    if (pageCount > 0 && pageIndex > pageCount) setPageIndex(pageCount);
+  }, [pageCount, pageIndex]);
 
   return (
     <>
@@ -142,18 +152,13 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
               {formatBytes(f.byteSize)}
               {f.pageCount ? ` · ${f.pageCount} pages` : ""}
             </div>
-            <div style={{ marginTop: "0.35rem",
-              maxWidth: "28rem",
-            }}
-            >
-              <FilePurposeRadios
-                name={`file-purpose-${f.id}`}
-                legend="Use as"
-                value={purpose}
+            <div style={{ marginTop: "0.35rem", maxWidth: "22rem" }}>
+              <FilePurposeToggle
+                purpose={purpose}
                 disabled={patchPurpose.isPending}
-                onChange={(v) => {
-                  setPurpose(v);
-                  patchPurpose.mutate(v);
+                onPatch={(next) => {
+                  setPurpose(next);
+                  patchPurpose.mutate(next);
                 }}
               />
             </div>
@@ -196,26 +201,93 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
               marginTop: "0.5rem",
             }}
           >
-            <div className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.35rem" }}>
-              {meta?.pageCount
-                ? `Select a page (1–${meta.pageCount}), then extract.`
-                : "Loading PDF…"}
-            </div>
-            {meta?.pageCount ? (
-              <Suspense fallback={<p className="muted" style={{ margin: "0.25rem 0" }}>Loading preview…</p>}>
-                <PdfPageThumbnailGrid
-                  fileId={f.id}
-                  pageCount={meta.pageCount}
-                  selectedOneBased={pageIndex}
-                  onSelect={setPageIndex}
-                />
-              </Suspense>
-            ) : null}
+            {previewsQ.isLoading && (
+              <p className="muted" style={{ margin: "0.25rem 0" }}>Loading page previews…</p>
+            )}
+            {previewsQ.isError && (
+              <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.85rem" }}>
+                {(previewsQ.error as Error).message}
+              </p>
+            )}
+            {previewsQ.isSuccess && pageCount > 0 && (
+              <>
+                <div className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.35rem" }}>
+                  Select a page (1–{pageCount}), then extract.
+                </div>
+                <div
+                  className="pdf-page-thumbnail-grid"
+                  role="radiogroup"
+                  aria-label="Choose a page to extract"
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "0.6rem",
+                    marginTop: "0.5rem",
+                    maxHeight: "min(42vh, 360px)",
+                    overflowY: "auto",
+                    padding: "2px",
+                  }}
+                >
+                  {thumbs.map((src, idx) => {
+                    const page = idx + 1;
+                    const selected = page === pageIndex;
+                    return (
+                      <button
+                        key={page}
+                        type="button"
+                        className="pdf-thumb-btn"
+                        role="radio"
+                        aria-checked={selected}
+                        title={`Page ${page}`}
+                        onClick={() => setPageIndex(page)}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "stretch",
+                          gap: "0.25rem",
+                          padding: "0.35rem",
+                          margin: 0,
+                          minHeight: 0,
+                          width: "auto",
+                          cursor: "pointer",
+                          borderRadius: "var(--radius-sm)",
+                          border: selected
+                            ? "2px solid var(--color-brand)"
+                            : "1px solid var(--color-border)",
+                          background: selected
+                            ? "color-mix(in srgb, var(--color-brand) 12%, var(--color-surface))"
+                            : "var(--color-surface)",
+                          boxShadow: selected
+                            ? "0 0 0 1px color-mix(in srgb, var(--color-brand) 35%, transparent)"
+                            : "none",
+                        }}
+                      >
+                        <img
+                          src={src}
+                          alt=""
+                          width={THUMB_MAX_WIDTH}
+                          height="auto"
+                          style={{
+                            display: "block",
+                            borderRadius: "calc(var(--radius-sm) - 2px)",
+                            maxWidth: THUMB_MAX_WIDTH,
+                            height: "auto",
+                          }}
+                        />
+                        <span className="muted" style={{ fontSize: "0.75rem", textAlign: "center" }}>
+                          Page {page}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.75rem" }}>
               <button
                 type="button"
                 className="primary"
-                disabled={extract.isPending || !meta?.pageCount}
+                disabled={extract.isPending || !pageCount}
                 onClick={() => extract.mutate()}
               >
                 Extract as new PDF
@@ -251,7 +323,6 @@ type Scope =
 export function FileAttachments({ scope, title }: { scope: Scope; title: string }) {
   const qc = useQueryClient();
   const [dragOver, setDragOver] = useState(false);
-  const [uploadPurpose, setUploadPurpose] = useState<FileAssetPurpose>("rider_pdf");
   const inputRef = useRef<HTMLInputElement>(null);
   const qk =
     scope.kind === "stage"
@@ -272,11 +343,10 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
     mutationFn: (file: File) => {
       const fd = new FormData();
       fd.append("file", file);
-      const purpose = encodeURIComponent(uploadPurpose);
       const url =
         scope.kind === "stage"
-          ? `/api/v1/files?stageId=${scope.stageId}&purpose=${purpose}`
-          : `/api/v1/files?performanceId=${scope.performanceId}&purpose=${purpose}`;
+          ? `/api/v1/files?stageId=${scope.stageId}`
+          : `/api/v1/files?performanceId=${scope.performanceId}`;
       return apiSendForm<{ file: FileAssetRow & { pageCount?: number } }>(url, "POST", fd);
     },
     onSuccess: () => { void qc.invalidateQueries({ queryKey: qk }); },
@@ -287,25 +357,16 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
       if (!files) return;
       for (let i = 0; i < files.length; i++) upload.mutate(files[i]);
     },
-    [upload, uploadPurpose],
+    [upload],
   );
 
   return (
     <div className="card" style={{ marginBottom: "1.5rem" }}>
       <div className="title-bar" style={{ marginBottom: "0.75rem" }}>{title}</div>
 
-      <div style={{ marginBottom: "0.65rem", maxWidth: "28rem" }}>
-        <FilePurposeRadios
-          name={
-            scope.kind === "stage"
-              ? `upload-purpose-stage-${scope.stageId}`
-              : `upload-purpose-perf-${scope.performanceId}`
-          }
-          legend="Upload new files as"
-          value={uploadPurpose}
-          onChange={setUploadPurpose}
-        />
-      </div>
+      <p className="muted" style={{ fontSize: "0.9rem", marginBottom: "0.65rem" }}>
+        New uploads start as <strong>Other</strong>. Use <strong>Rider</strong> or <strong>Stage plot</strong> on each row to classify.
+      </p>
 
       {/* Drop zone */}
       <div
@@ -348,8 +409,8 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
       {filesQ.isLoading && <p className="muted">Loading files…</p>}
       {filesQ.data && filesQ.data.files.length > 0 && (
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {filesQ.data.files.map((f) => (
-            <FileRow key={f.id} f={f} queryKey={[...qk]} />
+          {filesQ.data.files.map((file) => (
+            <FileRow key={file.id} f={file} queryKey={[...qk]} />
           ))}
         </ul>
       )}

@@ -53,11 +53,7 @@ export type PerformanceRow = {
   endTime: string | null;
 };
 
-export type FileAssetPurpose =
-  | "rider_pdf"
-  | "plot_pdf"
-  | "plot_from_rider"
-  | "generic";
+export type FileAssetPurpose = "rider_pdf" | "plot_pdf" | "generic";
 
 export type FileAssetRow = {
   id: string;

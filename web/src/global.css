@@ -133,52 +133,12 @@ button.pdf-thumb-btn {
   line-height: 1.2;
 }
 
-/* Files list — purpose as radios (rider vs stage plot, etc.) */
-.file-purpose-fieldset {
-  border: none;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-
-.file-purpose-fieldset-legend {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  padding: 0;
-  margin-bottom: 0.4rem;
-}
-
-.file-purpose-radios {
+/* Files list — Rider / Stage plot toggles (icon-btn + .primary when active) */
+.file-purpose-toggle {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-@media (min-width: 520px) {
-  .file-purpose-radios {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.35rem 1rem;
-  }
-}
-
-.file-purpose-radio-label {
-  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   align-items: center;
-  gap: 0.45rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.file-purpose-radio-label input {
-  margin: 0;
-  flex-shrink: 0;
-  accent-color: var(--color-brand);
-}
-
-.file-purpose-fieldset:disabled .file-purpose-radio-label {
-  cursor: not-allowed;
-  opacity: 0.65;
 }
 
 /* Nav-style links that match compact icon buttons (e.g. Patch / RF, Files on stage day) */
