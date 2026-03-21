@@ -8,7 +8,7 @@ import {
   formatDateShort,
   minutesBetween,
   formatDuration,
-  formatCountdown,
+  formatCountdownOrDays,
   addMinutesToHhmm,
 } from "../lib/dateFormat";
 import { useLastVisited } from "../lib/useLastVisited";
@@ -412,7 +412,7 @@ export function StageDayPage() {
         {secondsToNext !== null && (
           <span style={{ marginLeft: "1rem" }}>
             Next act in{" "}
-            <strong className="status-warn">{formatCountdown(secondsToNext)}</strong>
+            <strong className="status-warn">{formatCountdownOrDays(secondsToNext)}</strong>
           </span>
         )}
       </p>

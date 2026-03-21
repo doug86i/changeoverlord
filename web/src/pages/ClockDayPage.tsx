@@ -3,7 +3,14 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { apiGet } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatDateShort, minutesBetween, formatDuration, formatCountdown } from "../lib/dateFormat";
+import {
+  formatDateShort,
+  minutesBetween,
+  formatDuration,
+  formatCountdown,
+  formatCountdownOrDays,
+  formatClockHeroCountdown,
+} from "../lib/dateFormat";
 
 type TimeRes = { iso: string; unixMs: number };
 
@@ -405,11 +412,11 @@ export function ClockDayPage() {
                   className={`clock-arena-countdown-top ${heroClass}${heroFlashClass}`}
                   title={
                     heroSeconds !== null
-                      ? `${heroLabel}: ${formatCountdown(heroSeconds)}`
+                      ? `${heroLabel}: ${formatClockHeroCountdown(heroLabel, heroSeconds)}`
                       : undefined
                   }
                 >
-                  {heroSeconds !== null ? formatCountdown(heroSeconds) : "—"}
+                  {heroSeconds !== null ? formatClockHeroCountdown(heroLabel, heroSeconds) : "—"}
                 </div>
               </div>
             </div>
@@ -550,7 +557,7 @@ export function ClockDayPage() {
                 <div style={{ marginTop: "0.5rem", fontSize: "1rem" }}>
                   Next in{" "}
                   <strong className={warningClass(secondsToNext)}>
-                    {formatCountdown(secondsToNext)}
+                    {formatCountdownOrDays(secondsToNext)}
                   </strong>
                 </div>
               )}

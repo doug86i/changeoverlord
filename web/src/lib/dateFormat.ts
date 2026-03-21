@@ -59,3 +59,30 @@ export function formatCountdown(seconds: number): string {
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
+
+const SECONDS_PER_DAY = 24 * 60 * 60;
+
+/**
+ * Time until the next act (or similar long horizons): **M:SS** under 24 hours,
+ * otherwise whole **days** only (e.g. "3 days").
+ */
+export function formatCountdownOrDays(seconds: number): string {
+  if (seconds < 0) return "0:00";
+  if (seconds >= SECONDS_PER_DAY) {
+    const days = Math.floor(seconds / SECONDS_PER_DAY);
+    return days === 1 ? "1 day" : `${days} days`;
+  }
+  return formatCountdown(seconds);
+}
+
+/**
+ * Clock hero main countdown: **Time left** on stage uses {@link formatCountdown};
+ * **next act** labels use {@link formatCountdownOrDays}.
+ */
+export function formatClockHeroCountdown(heroLabel: string, seconds: number): string {
+  if (heroLabel === "Time left") return formatCountdown(seconds);
+  if (heroLabel === "Until next act" || heroLabel === "Next act in") {
+    return formatCountdownOrDays(seconds);
+  }
+  return formatCountdown(seconds);
+}
