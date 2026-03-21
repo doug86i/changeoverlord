@@ -66,6 +66,28 @@ UTF-8 encoding. A leading **UTF-8 BOM** is stripped before `JSON.parse`.
 
 **Sheet count:** at least **1**, at most **40** (constant `MAX_TEMPLATE_SHEETS`).
 
+## Native interchange (no second wire format)
+
+What you **import** is already **FortuneSheet-native**: an array of **sheet** objects (`@fortune-sheet/core` **`Sheet`** shape — Luckysheet lineage). The API does **not** convert that into a different internal schema before the grid sees it; it only runs **`normalizeSheetFromRaw`** (grid size, **`data`** / **`celldata`**, merge anchors, **`tb`** coercion, and the passthrough keys listed below).
+
+| Root shape | Meaning |
+|------------|--------|
+| `[ sheet, … ]` | Same as in-memory workbook sheets |
+| `{ "sheets": [ … ] }` | Common wrapper |
+| `{ "luckysheetfile": [ … ] }` | Luckysheet’s name for the **same** sheet array |
+| `{ "changeoverlordWorkbook": 1, "sheets": [ … ], … }` | Optional envelope for exports; **`sheets`** is still native |
+
+So there is **no** alternate “native” import path that skips this JSON — **`.xlsx`** is the one that goes through **Excel → FortuneSheet** conversion instead.
+
+### Formulas vs values (where “translation” still bites)
+
+Cell **`f`** is stored as-is on import, but the **browser** evaluates formulas with **formulajs** (Excel-like, not identical). Wrong or fragile functions are a **runtime** issue, not an import encoding issue — changing the outer JSON wrapper does not fix that.
+
+**Practical options when editing an export:**
+
+1. **Keep formulas** that are known to behave well in this stack (e.g. **`VLOOKUP(…, range, col, 0)`** for exact string keys; avoid relying on **`MATCH` type 0** for short codes that are prefixes of others, like **`B1`** vs **`B10`**).
+2. **Value-only cells** for static snapshots: set **`v`** / **`m`** to what operators should see and **remove** **`f`**. Import stays valid; those cells no longer recalculate until someone types a new formula.
+
 ## Per-sheet requirements (`@fortune-sheet/core` `Sheet`)
 
 Each array element must be a **plain object** (one FortuneSheet **sheet**).
@@ -147,7 +169,7 @@ If present on the **sheet object** (top level, not only inside `config`), these 
 ## Compatibility notes
 
 1. **FortuneSheet version** in this app defines what rule types actually run; JSON preserves **data**, not guarantees of Excel parity.
-2. **Formulas** must be in FortuneSheet’s formula dialect; Excel-only functions may not evaluate.
+2. **Formulas** use **formulajs** at runtime; see **[Native interchange](#native-interchange-no-second-wire-format)** — prefer safe function choices or **value-only** cells (`v`/`m`, no **`f`**) for fuss-free re-import.
 3. After upload, **Edit spreadsheet** remains the supported way to fix gaps.
 
 ## Related code
