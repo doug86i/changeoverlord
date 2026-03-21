@@ -25,7 +25,7 @@ If the change affects **what someone does in the browser** (new route, setting, 
 
 ## Patch template presets
 
-If you change the **blank** workbook layout or the bundled **DH Pick & Patch (example)** seed, update **`api/src/lib/patch-template-presets.ts`** (and **`seed-patch-templates.ts`** if the shipped name or `originalName` changes), **`docs/USER_GUIDE.md`** (templates), and **`docs/MAINTAINING_DOCS.md`** if the maintenance table needs a new row. **`web/src/lib/patchWorkbookCollab.ts`** must stay aligned with the **blank** grid used for **performance** and **template** editors when those defaults change.
+If you change how **stored** workbook seeds are decoded for `<Workbook data={…}>`, update **`web/src/lib/patchWorkbookSeed.ts`**, **`web/src/lib/patchWorkbookCollab.ts`** (re-export), **`docs/USER_GUIDE.md`** (templates), and **`docs/MAINTAINING_DOCS.md`** if the maintenance table needs a new row. Patch workbooks always come from **uploaded** library templates (e.g. from **`examples/`**); there is **no** client-generated default grid. Optional starter **`.xlsx`** files in **`examples/`** are documentation-only until uploaded in Settings.
 
 ## Process detail
 

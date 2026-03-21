@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
 import { apiGet, apiSend, apiSendForm } from "../api/client";
 import type {
@@ -151,19 +151,6 @@ export function PatchTemplateLibrarySettings() {
     },
   });
 
-  const createBlank = useMutation({
-    mutationFn: (name: string) =>
-      apiSend<{ patchTemplate: { id: string } }>(
-        "/api/v1/patch-templates/new",
-        "POST",
-        { name },
-      ),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
-      setNewName("");
-    },
-  });
-
   const renameTpl = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       apiSend(`/api/v1/patch-templates/${id}`, "PATCH", { name }),
@@ -213,9 +200,9 @@ export function PatchTemplateLibrarySettings() {
         Patch / RF spreadsheet templates
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        Create a blank workbook in the app, upload an Excel file, or duplicate
-        the bundled example from a fresh install. Every stage can pick a
-        template for new performances. Max 10&nbsp;MB per upload.
+        Add templates by <strong>uploading Excel</strong> (starter workbooks can come from{" "}
+        <code>examples/</code> in the repo). Each stage picks a <strong>stored</strong> template for
+        new performances — there is no client-generated empty grid. Max 10&nbsp;MB per upload.
       </p>
 
       <div
@@ -229,7 +216,7 @@ export function PatchTemplateLibrarySettings() {
       >
         <label>
           <span className="muted" style={{ display: "block", marginBottom: 4 }}>
-            Name for new template
+            Display name for next upload (optional)
           </span>
           <input
             type="text"
@@ -239,28 +226,14 @@ export function PatchTemplateLibrarySettings() {
             style={{ minWidth: 200 }}
           />
         </label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "flex-end" }}>
-          <button
-            type="button"
-            className="primary"
-            disabled={
-              createBlank.isPending ||
-              createTpl.isPending ||
-              !newName.trim()
-            }
-            onClick={() => createBlank.mutate(newName.trim())}
-          >
-            New blank
-          </button>
-        </div>
         <label>
           <span className="muted" style={{ display: "block", marginBottom: 4 }}>
-            Or upload Excel (.xlsx, .xltx, …)
+            Upload Excel (.xlsx, .xltx, …)
           </span>
           <input
             type="file"
             accept={EXCEL_TEMPLATE_ACCEPT}
-            disabled={createTpl.isPending || createBlank.isPending}
+            disabled={createTpl.isPending}
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) createTpl.mutate({ file: f, name: newName });
@@ -339,7 +312,7 @@ export function PatchTemplateLibrarySettings() {
                     onClick={() => {
                       if (
                         confirm(
-                          `Delete template “${t.name}”? Stages using it will fall back to no template.`,
+                          `Delete template “${t.name}”? Stages that used it will need to pick another template (their default is cleared).`,
                         )
                       ) {
                         deleteTpl.mutate(t.id);
@@ -425,14 +398,12 @@ export function PatchTemplateLibrarySettings() {
       )}
 
       {(createTpl.isError ||
-        createBlank.isError ||
         renameTpl.isError ||
         replaceTpl.isError ||
         deleteTpl.isError ||
         duplicateTpl.isError) && (
         <p style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
           {(createTpl.error ??
-            createBlank.error ??
             renameTpl.error ??
             replaceTpl.error ??
             deleteTpl.error ??
@@ -480,7 +451,7 @@ export function StagePatchTemplatePicker({
   });
 
   const patchStage = useMutation({
-    mutationFn: (templateId: string | null) =>
+    mutationFn: (templateId: string) =>
       apiSend(`/api/v1/stages/${stageId}`, "PATCH", {
         defaultPatchTemplateId: templateId,
       }),
@@ -545,15 +516,6 @@ export function StagePatchTemplatePicker({
     },
   });
 
-  const createBlank = useMutation({
-    mutationFn: (name: string) =>
-      apiSend("/api/v1/patch-templates/new", "POST", { name }),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
-      setStageNewName("");
-    },
-  });
-
   const rows = listQ.data?.patchTemplates ?? [];
   const selected = rows.find((t) => t.id === defaultPatchTemplateId);
 
@@ -563,30 +525,43 @@ export function StagePatchTemplatePicker({
         Default patch / RF template
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        Choose a <strong>global</strong> spreadsheet template for new performances
-        on this stage. Manage all templates in Settings.
+        Choose a <strong>stored</strong> spreadsheet template for new performances on this stage.
+        Upload templates in Settings (e.g. from <code>examples/</code>). Manage all templates in
+        Settings.
       </p>
 
       <div style={{ marginBottom: "0.75rem" }}>
         <label className="muted" style={{ display: "block", marginBottom: 4 }}>
           Template for new performances
         </label>
+        {rows.length === 0 ? (
+          <p className="muted" style={{ marginTop: 0 }}>
+            No templates yet — add one in <Link to="/settings">Settings</Link> before scheduling
+            patch workbooks.
+          </p>
+        ) : (
         <select
           value={defaultPatchTemplateId ?? ""}
           onChange={(e) => {
             const v = e.target.value;
-            patchStage.mutate(v === "" ? null : v);
+            if (v) patchStage.mutate(v);
           }}
           disabled={patchStage.isPending || listQ.isLoading}
           style={{ minWidth: 280, maxWidth: "100%", padding: "0.45rem 0.6rem" }}
+          required
         >
-          <option value="">— None (blank grid) —</option>
+          {defaultPatchTemplateId == null && (
+            <option value="" disabled>
+              Select a template…
+            </option>
+          )}
           {rows.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>
           ))}
         </select>
+        )}
       </div>
 
       {hasPatchTemplate && selected && (
@@ -641,7 +616,7 @@ export function StagePatchTemplatePicker({
             onClick={() => {
               if (
                 confirm(
-                  `Delete template “${selected.name}” from the system? Stages using it will be cleared.`,
+                  `Delete template “${selected.name}” from the system? Stages that used it must pick another template (their default is cleared).`,
                 )
               ) {
                 deleteTpl.mutate(selected.id);
@@ -656,7 +631,7 @@ export function StagePatchTemplatePicker({
 
       <div style={{ marginTop: "0.75rem" }}>
         <span className="muted" style={{ display: "block", marginBottom: 4 }}>
-          Add new template to library
+          Add template to library (upload Excel)
         </span>
         <div
           style={{
@@ -668,31 +643,19 @@ export function StagePatchTemplatePicker({
         >
           <input
             type="text"
-            placeholder="Name"
+            placeholder="Display name (optional)"
             value={stageNewName}
             onChange={(e) => setStageNewName(e.target.value)}
             style={{ maxWidth: 200 }}
           />
-          <button
-            type="button"
-            className="primary"
-            disabled={
-              createBlank.isPending ||
-              createTpl.isPending ||
-              !stageNewName.trim()
-            }
-            onClick={() => createBlank.mutate(stageNewName.trim())}
-          >
-            New blank
-          </button>
           <label style={{ margin: 0 }}>
             <span className="muted" style={{ marginRight: 6 }}>
-              Or upload Excel
+              Upload Excel
             </span>
             <input
               type="file"
               accept={EXCEL_TEMPLATE_ACCEPT}
-              disabled={createTpl.isPending || createBlank.isPending}
+              disabled={createTpl.isPending}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) createTpl.mutate({ file: f, name: stageNewName });
@@ -773,7 +736,6 @@ export function StagePatchTemplatePicker({
 
       {(patchStage.isError ||
         createTpl.isError ||
-        createBlank.isError ||
         renameTpl.isError ||
         replaceTpl.isError ||
         deleteTpl.isError ||
@@ -781,7 +743,6 @@ export function StagePatchTemplatePicker({
         <p style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
           {(patchStage.error ??
             createTpl.error ??
-            createBlank.error ??
             renameTpl.error ??
             replaceTpl.error ??
             deleteTpl.error ??

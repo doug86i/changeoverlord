@@ -63,7 +63,7 @@ export const stages = pgTable("stages", {
     .references(() => events.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
-  /** Which global template seeds new performances on this stage (null = blank grid). */
+  /** Which stored template seeds new performances on this stage (null until operator selects one). */
   defaultPatchTemplateId: uuid("default_patch_template_id").references(
     () => patchTemplates.id,
     { onDelete: "set null" },

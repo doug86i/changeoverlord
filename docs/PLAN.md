@@ -157,7 +157,7 @@ flowchart LR
 ## 6. Data model (core)
 
 - **Event** — name, dates; **one location per event** — all schedule times stored and shown as **local event time** (optional explicit **IANA timezone** label later if needed; v1 assumes local-only semantics).
-- **Stage** — belongs to event; **`default_patch_template`** (nullable = blank grid) — **cloned into each new performance** as that performance’s live workbook.
+- **Stage** — belongs to event; **`default_patch_template`** (nullable until operator picks a stored template) — **cloned into each new performance** as that performance’s live workbook.
 - **StageDay** — stage + calendar date (or day index); ordered **performances** and **changeover** blocks.
 - **Performance** — start/end times (**local**), band name, notes; **attachments**; **one collaborative spreadsheet per performance** (multi-sheet: **Input**, **RF**, etc.) — **live Yjs doc id** + optional snapshot/history.
 - **FileAsset** — local path under `uploads/` (or S3-compatible later); types e.g. `rider_pdf`, `plot_pdf`, `plot_image`, `extracted_page`.

@@ -8,15 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **API — patch templates:** **No** automatic database seed and **no** in-repo generation of example workbooks. Optional starter **`.xlsx`** files may be added under **`examples/`** (upload via Settings). **`POST /api/v1/patch-templates/new`** removed. Stages with **None (blank grid)** still use **no** `patch_templates` row (client empty shell in **`patchWorkbookCollab`**); operators can optionally **save** that shell to the library via **`POST /api/v1/patch-templates/blank`** (Settings **Create blank template**).
+- **Web + API — patch workbooks:** Removed the **client default** two-tab grid, **`POST /api/v1/patch-templates/blank`**, and **“None (blank grid)”** on stages. **`GET /api/v1/performances/:id`** includes **`initialSheets`** (decoded Yjs). **`sheetsFromApiSeed`** (`patchWorkbookSeed.ts`, re-exported from **`patchWorkbookCollab`**) feeds **PatchPage** and **PatchTemplateEditorPage** with **`usePatchWorkbookCollab`**. **`PATCH /stages/:id`** no longer accepts **`defaultPatchTemplateId: null`**.
+
+- **API — patch templates:** **No** automatic database seed and **no** in-repo generation of example workbooks. Optional starter **`.xlsx`** files may be added under **`examples/`** (upload via Settings). **`POST /api/v1/patch-templates/new`** removed.
 
 - **Web + API — patch templates:** **`usePatchWorkbookCollab`** (shared Yjs/WebSocket + **`usePatchWorkbookOpLogEffects`**) drives both **performance patch** and **template editor** pages.
 
 - **Web — stage day clock:** **Compact** (normal) view shows the same **Changeover** banner as fullscreen/distance when the day is between acts.
 
 ### Added
-
-- **Web + API — patch templates:** **Create blank template** on the **Settings** page (`POST /api/v1/patch-templates/blank`) adds a library workbook with two empty tabs matching the **None (blank grid)** shell; opens the template editor after creation.
 
 - **Docs / process:** **`AGENTS.md`**, **`docs/DEVELOPMENT.md`** (new § *Patches*), **`docs/README.md`**, **`README.md`**, **`docs/MAINTAINING_DOCS.md`**, **`docs/HANDOVER.md`**, and **`.cursor/rules/local-docker-deploy.mdc`** / **`agents-process.mdc`** updated for **`patches/`**, **`patch-package`**, Docker **runner** vs **builder**, and when to **`make dev`**.
 

@@ -68,7 +68,7 @@ export const stagesRoutes: FastifyPluginAsync = async (app) => {
   app.patch("/stages/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
     const body = patchStageBody.parse(req.body);
-    if (body.defaultPatchTemplateId !== undefined && body.defaultPatchTemplateId !== null) {
+    if (body.defaultPatchTemplateId !== undefined) {
       const [t] = await db
         .select({ id: patchTemplates.id })
         .from(patchTemplates)

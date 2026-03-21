@@ -6,7 +6,7 @@ import { Workbook } from "@fortune-sheet/react";
 import { apiGet } from "../api/client";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import {
-  createDefaultPatchWorkbookSheets,
+  sheetsFromApiSeed,
   usePatchWorkbookCollab,
 } from "../lib/patchWorkbookCollab";
 
@@ -26,7 +26,14 @@ export function PatchTemplateEditorPage() {
     enabled: Boolean(templateId),
   });
 
-  const workbookReady = Boolean(templateId && tplQ.isSuccess && tplQ.data);
+  const initialSheets = useMemo(
+    () => sheetsFromApiSeed(tplQ.data?.patchTemplate.initialSheets),
+    [templateId, tplQ.data?.patchTemplate.initialSheets],
+  );
+
+  const workbookReady = Boolean(
+    templateId && tplQ.isSuccess && tplQ.data && initialSheets !== null,
+  );
 
   const { wbRef, onOp, conn, synced } = usePatchWorkbookCollab({
     roomId: templateId,
@@ -34,16 +41,24 @@ export function PatchTemplateEditorPage() {
     workbookReady,
   });
 
-  const initialSheets = useMemo((): Sheet[] => {
-    const fromApi = tplQ.data?.patchTemplate.initialSheets;
-    if (fromApi && fromApi.length > 0) return fromApi;
-    return createDefaultPatchWorkbookSheets();
-  }, [templateId, tplQ.data?.patchTemplate.initialSheets]);
-
   if (!templateId) return null;
   if (tplQ.isLoading) return <p className="muted">Loading…</p>;
   if (tplQ.error || !tplQ.data) {
     return <p role="alert">Template not found.</p>;
+  }
+
+  if (initialSheets === null) {
+    return (
+      <div>
+        <p className="muted" style={{ marginTop: 0 }}>
+          <Link to="/settings">Settings</Link>
+        </p>
+        <p role="alert">
+          This template has no workbook data in storage. Use <strong>Replace</strong> in Settings to
+          upload an Excel file, or re-upload from <code>examples/</code>.
+        </p>
+      </div>
+    );
   }
 
   const tpl = tplQ.data.patchTemplate;

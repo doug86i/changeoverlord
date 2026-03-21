@@ -9,34 +9,15 @@ import {
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import type { WorkbookInstance } from "@fortune-sheet/react";
-import type { Op, Sheet } from "@fortune-sheet/core";
+import type { Op } from "@fortune-sheet/core";
 import { logDebug } from "./debug";
 import {
   PATCH_WORKBOOK_Y_ORIGIN,
   usePatchWorkbookOpLogEffects,
 } from "./patchWorkbookYjs";
 
-/** Default two-sheet grid used by performance patch and template editor (matches `PatchPage`). */
-export function createDefaultPatchWorkbookSheets(): Sheet[] {
-  return [
-    {
-      id: "patch-sheet-input",
-      name: "Input",
-      status: 1,
-      row: 36,
-      column: 18,
-      order: 0,
-    },
-    {
-      id: "patch-sheet-rf",
-      name: "RF",
-      status: 0,
-      row: 36,
-      column: 18,
-      order: 1,
-    },
-  ];
-}
+/** Re-export: API-decoded workbook seed for `<Workbook data={…}>` (no client default grid). */
+export { sheetsFromApiSeed } from "./patchWorkbookSeed";
 
 export type PatchWorkbookCollabMode = "performance" | "template";
 

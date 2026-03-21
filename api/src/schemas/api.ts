@@ -44,8 +44,8 @@ export const createStageBody = z.object({
 export const patchStageBody = z.object({
   name: z.string().min(1).max(500).optional(),
   sortOrder: z.number().int().optional(),
-  /** Global patch template for new performances; `null` clears selection. */
-  defaultPatchTemplateId: z.string().uuid().nullable().optional(),
+  /** Global patch template for new performances (stored library row only). */
+  defaultPatchTemplateId: z.string().uuid().optional(),
 });
 
 export const createStageDayBody = z.object({
