@@ -30,6 +30,7 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 | **Clock** | **Server time** + countdown to next performance/changeover; **fullscreen** clock for stage displays. |
 | **Branding** | **Client/event logo** configurable in-app; **fixed** “Powered by Doug Hunt Sound & Light” footer + bundled DHSL logo (offline-safe). |
 | **Source / ship** | **Public GitHub** + **`docker-compose.yml`**; **`docker compose pull`** of pre-built **`app`** from **GHCR** — typical install needs **no local image build** (clone repo for compose + static bind-mounts). |
+| **Prep off-site** | Events/stages/days can be **prepared on another machine** and moved to the **live** show server via a **downloadable package** and **upload** (no network between sites required). |
 
 ---
 
@@ -42,6 +43,7 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 | **Guest / kiosk / read-only URLs** | **Not MVP** — trusted LAN or optional password |
 | **Print / PDF export** | **Defer** post-MVP |
 | **Spreadsheet templates** | **Default “base”** for a stage can come from **Microsoft Excel** (`.xlsx`) and, for **Google Sheets**, by **exporting** to `.xlsx` or **CSV** and uploading (LAN/offline-safe). Optional **live Google Sheets** sync is a **post-MVP** track when internet + OAuth are acceptable. |
+| **Portable event packages** | **MVP**: **Export** → **download** an archive; **import** via **upload** on another Changeoverlord instance (e.g. prep laptop → **USB** → live rig). **Future**: **push/pull** via **SeaDrive**, **Dropbox**, **Google Drive** (or similar) when online. |
 
 ---
 
@@ -131,6 +133,7 @@ flowchart LR
 | Real-time | **WebSockets** + **Yjs** (or **Automerge**) for CRDT spreadsheet state |
 | Spreadsheet UI | **FortuneSheet** (or similar) for **modern** grid UX; **import** path from **ExcelJS**/SheetJS → seed **Yjs** / sheet state |
 | DB | **PostgreSQL** — events, stages, days, performances, metadata, template links, file refs |
+| Event packages | **Versioned zip** manifest + entity JSON/SQL dump + blob files + Yjs state; **import** validation |
 | PDF | **`pdf-lib` / `pdf.js` / `pdftoppm` (poppler)** — thumbnails + extract chosen page → PDF/PNG beside uploads |
 | Frontend | **Vite + React + TypeScript**, TanStack Query — SPA served fully from the LAN appliance |
 | Styling | CSS modules or Tailwind; **three layout profiles** (lg/md/sm) with shared components |
@@ -161,6 +164,30 @@ flowchart LR
 **Frontend**: a **modern** spreadsheet component (e.g. **[FortuneSheet](https://github.com/ruilisi/fortune-sheet)** MIT, with **Op**/collab hooks) aligned with **Yjs** — or equivalent that supports **import** of parsed workbooks into its document model.
 
 **Persistence**: imported content becomes the **initial Yjs snapshot** (and optional **Postgres** blob of source `.xlsx` for audit/re-import).
+
+### 6.2 Portable event packages (export / import between machines)
+
+**Need**: Prepare **events / stages / days** (and related templates, attachments, collaborative doc snapshots) on a **different machine** (office laptop, rehearsal) and **transfer** to the **live** festival server **without** requiring both hosts on the same network.
+
+#### MVP: download + upload
+
+| Flow | Behaviour |
+|------|-----------|
+| **Export** | User selects scope (**one event**, or **event + nested stages/days**, TBD) → server builds a **single archive** (e.g. **`.zip`**) containing: **structured manifest** (JSON or similar), **Postgres-oriented entity dump** (or normalised export format), **files** from `uploads/` referenced by that scope, **Yjs binary snapshots** / checkpoints for patch sheets where needed. User **downloads** the file through the browser. |
+| **Transfer** | Physical **USB**, **AirDrop**, **email**, shared disk — anything that moves a file. |
+| **Import** | On the **target** instance: **Upload** the same archive → server **validates** format/version → **imports** into DB + `uploads/` + restores Yjs seeds. **Conflict policy** (product decision): e.g. **“import as new event”** vs **“replace by stable ID”** — document clearly to avoid wiping live edits. |
+| **Versioning** | Export format carries **schema version** so older packages can be migrated or rejected with a clear error. |
+
+**Security (optional later)**: password-encrypted archive or detached checksum for tamper-evidence — not required for trusted crew LANs in v1.
+
+#### Future: cloud folder sync (post-MVP)
+
+| Direction | Idea |
+|-----------|------|
+| **SeaDrive / Seafile** | **Push** export to a team folder, or **pull** latest package on the live server when the host has **network** and credentials. Fits orgs already on **Seafile**. |
+| **Dropbox / Google Drive** | Similar: **OAuth** or **app folder**, **background job** or manual “sync from cloud” button — only when **internet** is available; **not** a substitute for offline LAN show operation. |
+
+These integrations are **additive**: the **file-based** export/import remains the **portable, offline-guaranteed** path.
 
 ---
 
@@ -237,6 +264,7 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 | **Contingency slots** | TBD acts without breaking the clock |
 | **Stage notes** | Weather / intercom / SM notes per day (not the spreadsheet) |
 | **Mic line / walk checklist** | Optional separate from patch grid |
+| **SeaDrive / Dropbox / Google Drive** | **Push/pull** event packages or sync — see **§6.2** (future) |
 
 ---
 
@@ -249,7 +277,8 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 5. **Collaborative grids**: **`.xlsx` import** as stage default template; clone per show, Yjs + WS, persistence
 6. **PDF**: thumbnails + page extract
 7. **Branding**: client logo + DHSL footer assets
-8. **Polish**: responsive layouts, touch; TLS/reverse-proxy doc for online hosting
+8. **Portable packages**: **export** (download archive) + **import** (upload) for moving prep between machines
+9. **Polish**: responsive layouts, touch; TLS/reverse-proxy doc for online hosting
 
 ---
 
@@ -265,6 +294,7 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 | responsive-ux | Desktop / tablet / mobile layouts; touch-first stage views | Pending |
 | settings-ui | Settings: auth, passwords, timezone, time/NTP guidance (no ops in Compose) | Pending |
 | branding-ui | Client logo; fixed “Powered by DHSL” footer + bundled logo | Pending |
+| event-pack | **Export** / **import** event packages (zip + manifest + uploads + Yjs snapshots); conflict/version rules | Pending |
 
 ---
 
