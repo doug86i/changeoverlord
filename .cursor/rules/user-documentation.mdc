@@ -25,7 +25,7 @@ If the change affects **what someone does in the browser** (new route, setting, 
 
 ## Patch template presets
 
-If you change how **stored** workbook seeds are decoded for `<Workbook data={…}>`, update **`web/src/lib/patchWorkbookSeed.ts`**, **`web/src/lib/patchWorkbookCollab.ts`** (re-export), **`docs/USER_GUIDE.md`** (templates), and **`docs/MAINTAINING_DOCS.md`** if the maintenance table needs a new row. Patch workbooks always come from **uploaded** library templates (e.g. from **`examples/`**); there is **no** client-generated default grid. Optional starter **`.xlsx`** files in **`examples/`** are documentation-only until uploaded in Settings.
+Patch workbooks come from **uploaded** library templates or **Create blank template** (Settings). `<Workbook>` mounts with a trivial placeholder; the Yjs opLog replay sets the real structure immediately. There is no client-side "seed" decoding — the WebSocket sync is the single path. If you change the template creation / Yjs snapshot flow, update **`web/src/lib/patchWorkbookCollab.ts`**, **`docs/USER_GUIDE.md`** (templates), and **`docs/MAINTAINING_DOCS.md`** if the maintenance table needs a new row.
 
 ## Process detail
 

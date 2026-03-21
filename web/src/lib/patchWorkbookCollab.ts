@@ -9,15 +9,17 @@ import {
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import type { WorkbookInstance } from "@fortune-sheet/react";
-import type { Op } from "@fortune-sheet/core";
+import type { Op, Sheet } from "@fortune-sheet/core";
 import { logDebug } from "./debug";
 import {
   PATCH_WORKBOOK_Y_ORIGIN,
   usePatchWorkbookOpLogEffects,
 } from "./patchWorkbookYjs";
 
-/** Re-export: API-decoded workbook seed for `<Workbook data={…}>` (no client default grid). */
-export { sheetsFromApiSeed } from "./patchWorkbookSeed";
+/** Minimal valid sheet so `<Workbook>` can mount. Yjs opLog replay overwrites immediately. */
+export const WORKBOOK_PLACEHOLDER: Sheet[] = [
+  { id: "placeholder", name: "Sheet1", status: 1, row: 36, column: 18, order: 0 },
+];
 
 export type PatchWorkbookCollabMode = "performance" | "template";
 

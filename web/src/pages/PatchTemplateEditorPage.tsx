@@ -1,12 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { useMemo } from "react";
-import type { Sheet } from "@fortune-sheet/core";
 import { Workbook } from "@fortune-sheet/react";
 import { apiGet } from "../api/client";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import {
-  sheetsFromApiSeed,
+  WORKBOOK_PLACEHOLDER,
   usePatchWorkbookCollab,
 } from "../lib/patchWorkbookCollab";
 
@@ -20,20 +18,12 @@ export function PatchTemplateEditorPage() {
         patchTemplate: {
           id: string;
           name: string;
-          initialSheets?: Sheet[];
         };
       }>(`/api/v1/patch-templates/${templateId}`),
     enabled: Boolean(templateId),
   });
 
-  const initialSheets = useMemo(
-    () => sheetsFromApiSeed(tplQ.data?.patchTemplate.initialSheets),
-    [templateId, tplQ.data?.patchTemplate.initialSheets],
-  );
-
-  const workbookReady = Boolean(
-    templateId && tplQ.isSuccess && tplQ.data && initialSheets !== null,
-  );
+  const workbookReady = Boolean(templateId && tplQ.isSuccess && tplQ.data);
 
   const { wbRef, onOp, conn, synced } = usePatchWorkbookCollab({
     roomId: templateId,
@@ -45,20 +35,6 @@ export function PatchTemplateEditorPage() {
   if (tplQ.isLoading) return <p className="muted">Loading…</p>;
   if (tplQ.error || !tplQ.data) {
     return <p role="alert">Template not found.</p>;
-  }
-
-  if (initialSheets === null) {
-    return (
-      <div>
-        <p className="muted" style={{ marginTop: 0 }}>
-          <Link to="/settings">Settings</Link>
-        </p>
-        <p role="alert">
-          This template has no workbook data in storage. Use <strong>Replace</strong> in Settings to
-          upload an Excel file, or re-upload from <code>examples/</code>.
-        </p>
-      </div>
-    );
   }
 
   const tpl = tplQ.data.patchTemplate;
@@ -107,7 +83,7 @@ export function PatchTemplateEditorPage() {
           <Workbook
             key={templateId}
             ref={wbRef}
-            data={initialSheets}
+            data={WORKBOOK_PLACEHOLDER}
             onOp={onOp}
             showToolbar
             showFormulaBar

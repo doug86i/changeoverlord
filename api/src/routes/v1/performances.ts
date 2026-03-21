@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
-import type { Sheet } from "@fortune-sheet/core";
-import { eq, asc, gte } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { decodeTemplateSnapshotToSheets } from "../../lib/yjs-template-snapshot.js";
 import { validatePerformanceSchedule, hhmmToMinutes } from "../../lib/performance-overlap.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import {
@@ -145,16 +143,7 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       .from(performances)
       .where(eq(performances.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
-    const [snap] = await db
-      .select({ snapshot: performanceYjsSnapshots.snapshot })
-      .from(performanceYjsSnapshots)
-      .where(eq(performanceYjsSnapshots.performanceId, id))
-      .limit(1);
-    let initialSheets: Sheet[] = [];
-    if (snap?.snapshot?.length) {
-      initialSheets = decodeTemplateSnapshotToSheets(Buffer.from(snap.snapshot));
-    }
-    return { performance: row, initialSheets };
+    return { performance: row };
   });
 
   app.patch("/performances/:id", async (req, reply) => {

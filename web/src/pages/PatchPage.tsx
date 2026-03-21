@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Sheet } from "@fortune-sheet/core";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Workbook } from "@fortune-sheet/react";
 import { apiGet } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
@@ -9,7 +8,7 @@ import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoun
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
 import { PatchPageSidebar } from "../components/PatchPageSidebar";
 import {
-  sheetsFromApiSeed,
+  WORKBOOK_PLACEHOLDER,
   usePatchWorkbookCollab,
 } from "../lib/patchWorkbookCollab";
 
@@ -39,7 +38,7 @@ export function PatchPage() {
   const perfQ = useQuery({
     queryKey: ["performance", performanceId],
     queryFn: () =>
-      apiGet<{ performance: PerformanceRow; initialSheets: Sheet[] }>(
+      apiGet<{ performance: PerformanceRow }>(
         `/api/v1/performances/${performanceId}`,
       ),
     enabled: Boolean(performanceId),
@@ -66,17 +65,7 @@ export function PatchPage() {
     dirtyRef.current = true;
   }, []);
 
-  const initialSheets = useMemo(
-    () => sheetsFromApiSeed(perfQ.data?.initialSheets),
-    [performanceId, perfQ.data?.initialSheets],
-  );
-
-  const workbookReady = Boolean(
-    performanceId &&
-      perfQ.isSuccess &&
-      perfQ.data &&
-      initialSheets !== null,
-  );
+  const workbookReady = Boolean(performanceId && perfQ.isSuccess && perfQ.data);
 
   const { wbRef, onOp, conn, synced } = usePatchWorkbookCollab({
     roomId: performanceId,
@@ -100,24 +89,6 @@ export function PatchPage() {
   if (perfQ.isLoading) return <p className="muted">Loading…</p>;
   if (perfQ.error || !perfQ.data) {
     return <p role="alert">Performance not found.</p>;
-  }
-
-  if (initialSheets === null) {
-    return (
-      <div>
-        <p className="muted" style={{ marginTop: 0 }}>
-          <Link to="/settings">Settings</Link>
-          {" · "}
-          Patch workbook
-        </p>
-        <p role="alert">
-          This performance has no patch workbook data (it was created before a default template
-          was chosen, or the stage had no template). Choose a{" "}
-          <strong>default patch template</strong> on the stage, then add new performances — or
-          duplicate this slot after assigning a template.
-        </p>
-      </div>
-    );
   }
 
   const perf = perfQ.data.performance;
@@ -217,7 +188,7 @@ export function PatchPage() {
           <Workbook
             key={performanceId}
             ref={wbRef}
-            data={initialSheets}
+            data={WORKBOOK_PLACEHOLDER}
             onOp={onOp}
             showToolbar
             showFormulaBar

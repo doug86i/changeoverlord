@@ -1,9 +1,6 @@
 import type { Sheet } from "@fortune-sheet/core";
 
-/**
- * Empty FortuneSheet shell (two blank tabs, no cell data).
- * Keep in sync with any client-side workbook seed expectations (see **`patchWorkbookSeed`**).
- */
+/** Empty FortuneSheet shell (two blank tabs, no cell data) for "Create blank template". */
 export function createDefaultPatchWorkbookSheets(): Sheet[] {
   return [
     {

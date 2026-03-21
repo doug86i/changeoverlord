@@ -100,21 +100,6 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       .from(stages)
       .where(eq(stages.defaultPatchTemplateId, id));
 
-    const uploadsRoot = getUploadsDir();
-    const abs = path.join(uploadsRoot, row.storageKey);
-    const fromYjs = decodeTemplateSnapshotToSheets(Buffer.from(row.snapshot));
-    let initialSheets: Sheet[];
-    if (fromYjs.length > 0) {
-      initialSheets = fromYjs;
-    } else {
-      try {
-        const buf = await fs.readFile(abs);
-        initialSheets = await excelBufferToSheets(buf);
-      } catch {
-        initialSheets = [];
-      }
-    }
-
     return {
       patchTemplate: {
         id: row.id,
@@ -124,8 +109,6 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
         usedByStageCount: Number(usage?.c ?? 0),
-        /** FortuneSheet `data` seed so remount + Yjs opLog replay match stored structure (avoids Immer path errors). */
-        initialSheets,
       },
     };
   });
