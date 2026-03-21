@@ -10,13 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Web + API — patch workbooks:** Removed the server-side `initialSheets` decode layer from API responses. The Yjs WebSocket sync is now the single path for delivering workbook state. `<Workbook>` mounts with a trivial placeholder; the opLog replay sets the real structure. Deleted `patchWorkbookSeed.ts` / `sheetsFromApiSeed`. Templates come from Excel upload or **Create blank template** (Settings). Stages pick a stored template; **`PATCH /stages/:id`** no longer accepts `defaultPatchTemplateId: null`.
 
-- **API — patch workbooks:** Removed the **client default** two-tab grid and **“None (blank grid)”** on stages. **`GET /api/v1/performances/:id`** includes **`initialSheets`** (decoded Yjs). **`sheetsFromApiSeed`** (`patchWorkbookSeed.ts`, re-exported from **`patchWorkbookCollab`**) feeds **PatchPage** and **PatchTemplateEditorPage** with **`usePatchWorkbookCollab`**. **`PATCH /stages/:id`** no longer accepts **`defaultPatchTemplateId: null`**. A reusable empty two-tab shell can still be added to the library via **`POST /api/v1/patch-templates/blank`** (Settings **Create blank template**).
-
 - **API — patch templates:** **No** automatic database seed and **no** in-repo generation of example workbooks. Optional starter **`.xlsx`** files may be added under **`examples/`** (upload via Settings). **`POST /api/v1/patch-templates/new`** removed.
 
 - **Web + API — patch templates:** **`usePatchWorkbookCollab`** (shared Yjs/WebSocket + **`usePatchWorkbookOpLogEffects`**) drives both **performance patch** and **template editor** pages.
 
-- **API — patch templates:** Excel import no longer maps **data validation** / **dropdown** rules into FortuneSheet **`dataVerification`** — prepare workbooks externally (or set up in the template editor after upload).
+- **API — patch templates:** Excel import switched from the hand-rolled **ExcelJS** parser (values and formulas only) to **`@zenmrp/fortune-sheet-excel`**, which preserves cell styles, fonts, borders, number formatting, merged cells, column widths, row heights, formulas (with cached results), and calc chains. The preview endpoint now also handles the library's sparse `celldata` format.
 
 - **Web — stage day clock:** **Compact** (normal) view shows the same **Changeover** banner as fullscreen/distance when the day is between acts.
 

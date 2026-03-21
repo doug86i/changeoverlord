@@ -18,6 +18,7 @@
     "@fortune-sheet/core": "^1.0.4",
     "@y/protocols": "1.0.6-1",
     "@y/websocket-server": "^0.1.5",
+    "@zenmrp/fortune-sheet-excel": "^1.0.3",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.38.3",
     "exceljs": "^4.4.0",

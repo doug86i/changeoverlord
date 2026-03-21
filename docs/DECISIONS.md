@@ -106,7 +106,7 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 | Validation | **Zod** |
 | Realtime | **WebSockets** + **Yjs** (patch workbook); **SSE** (`/api/v1/realtime`) for schedule / domain cache invalidation |
 | Frontend | **Vite** + **React** + **TypeScript** + **TanStack Query** |
-| Spreadsheet UI | **FortuneSheet** + **ExcelJS** (import) |
+| Spreadsheet UI | **FortuneSheet** + **`@zenmrp/fortune-sheet-excel`** (Excel import) + **ExcelJS** (blank template export) |
 | Tests (later) | **Vitest** (unit) + **Playwright** (e2e smoke) |
 
 *Rationale: one language end-to-end, strong typing, Fastify is fast and simple, Drizzle keeps migrations SQL-first.*

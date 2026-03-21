@@ -1,33 +1,47 @@
 import type { Cell, CellMatrix, Sheet } from "@fortune-sheet/core";
 
-function cellPreview(c: Cell | null | undefined): string | number | boolean | null {
+type CellValue = string | number | boolean | null;
+
+function cellPreview(c: Cell | null | undefined): CellValue {
   if (c == null) return null;
   if (typeof c.v === "number" || typeof c.v === "boolean") return c.v;
   if (typeof c.v === "string") return c.v;
   return null;
 }
 
-/** First `maxRows` × `maxCols` of a sheet for API preview JSON. */
-export function sampleSheetData(
-  data: CellMatrix | undefined,
+/** Build a preview grid from either dense `data` or sparse `celldata`. */
+function sampleGrid(
+  sheet: Sheet,
   maxRows: number,
   maxCols: number,
-): (string | number | boolean | null)[][] {
-  if (!data?.length) return [];
-  const out: (string | number | boolean | null)[][] = [];
-  for (let r = 0; r < Math.min(maxRows, data.length); r++) {
-    const row = data[r];
-    const line: (string | number | boolean | null)[] = [];
-    if (!row) {
+): CellValue[][] {
+  if (sheet.data?.length) {
+    const out: CellValue[][] = [];
+    for (let r = 0; r < Math.min(maxRows, sheet.data.length); r++) {
+      const row = sheet.data[r];
+      const line: CellValue[] = [];
+      if (!row) { out.push(line); continue; }
+      for (let c = 0; c < Math.min(maxCols, row.length); c++) {
+        line.push(cellPreview(row[c]));
+      }
       out.push(line);
-      continue;
     }
-    for (let c = 0; c < Math.min(maxCols, row.length); c++) {
-      line.push(cellPreview(row[c]));
-    }
-    out.push(line);
+    return out;
   }
-  return out;
+
+  if (sheet.celldata?.length) {
+    const grid: CellValue[][] = Array.from({ length: maxRows }, () =>
+      Array.from<CellValue>({ length: maxCols }).fill(null),
+    );
+    for (const entry of sheet.celldata as { r: number; c: number; v: Cell | null }[]) {
+      if (entry.r < maxRows && entry.c < maxCols) {
+        grid[entry.r][entry.c] = cellPreview(entry.v);
+      }
+    }
+    return grid;
+  }
+
+  return [];
 }
 
 export function sheetsToPreviewPayload(sheets: Sheet[]) {
@@ -36,7 +50,7 @@ export function sheetsToPreviewPayload(sheets: Sheet[]) {
       name: s.name,
       row: s.row,
       column: s.column,
-      sample: sampleSheetData(s.data, 8, 12),
+      sample: sampleGrid(s, 8, 12),
     })),
   };
 }
