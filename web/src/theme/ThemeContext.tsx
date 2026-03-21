@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -33,8 +34,12 @@ function readInitialTheme(): Theme {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => readInitialTheme());
 
-  useEffect(() => {
+  /* Set `data-theme` before paint so CSS (e.g. FortuneSheet selection) matches theme immediately. */
+  useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, theme);
     } catch {

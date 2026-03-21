@@ -29,6 +29,14 @@ function firstFileByPurpose(
   return files.find((f) => f.purpose === purpose) ?? null;
 }
 
+function PerfPatchLink({ perf }: { perf: PerformanceRow }) {
+  return (
+    <Link to={`/patch/${perf.id}`} className="patch-sidebar-perf-link">
+      {perf.bandName || "—"}
+    </Link>
+  );
+}
+
 export function PatchPageSidebar({
   performanceId,
   stageDayId,
@@ -177,6 +185,54 @@ export function PatchPageSidebar({
         </div>
       ) : null}
 
+      <div className="patch-sidebar-block">
+        <div className="patch-sidebar-label">Local time</div>
+        <div className="patch-sidebar-wall" title="Server-synced time">
+          {wallTime}
+        </div>
+      </div>
+
+      <div className="patch-sidebar-block">
+        <div className="patch-sidebar-label">Now</div>
+        {onStage ? (
+          <div className="patch-sidebar-slot">
+            <PerfPatchLink perf={onStage} />
+            <div className="muted" style={{ fontSize: "0.8rem" }}>
+              {onStage.startTime}
+              {onStage.endTime ? ` – ${onStage.endTime}` : ""}
+            </div>
+          </div>
+        ) : (
+          <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+            —
+          </p>
+        )}
+      </div>
+
+      <div className="patch-sidebar-block">
+        <div className="patch-sidebar-label">Countdown</div>
+        <div className={`patch-sidebar-countdown ${urgencyClass}`} title={heroLabel || undefined}>
+          {countdownText}
+        </div>
+        {heroLabel ? <div className="patch-sidebar-sublabel muted">{heroLabel}</div> : null}
+      </div>
+
+      <div className="patch-sidebar-block">
+        <div className="patch-sidebar-label">Next</div>
+        {nextAct ? (
+          <div className="patch-sidebar-slot">
+            <PerfPatchLink perf={nextAct} />
+            <div className="muted" style={{ fontSize: "0.8rem" }}>
+              Starts {nextAct.startTime}
+            </div>
+          </div>
+        ) : (
+          <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+            —
+          </p>
+        )}
+      </div>
+
       <div className="patch-sidebar-block patch-sidebar-block--this-act">
         <div className="patch-sidebar-label">This spreadsheet (your act)</div>
         <div className="patch-sidebar-slot">
@@ -193,50 +249,6 @@ export function PatchPageSidebar({
         </p>
       </div>
 
-      <div className="patch-sidebar-block">
-        <div className="patch-sidebar-label">Local time</div>
-        <div className="patch-sidebar-wall" title="Server-synced time">
-          {wallTime}
-        </div>
-      </div>
-      <div className="patch-sidebar-block">
-        <div className="patch-sidebar-label">Countdown</div>
-        <div className={`patch-sidebar-countdown ${urgencyClass}`} title={heroLabel || undefined}>
-          {countdownText}
-        </div>
-        {heroLabel ? <div className="patch-sidebar-sublabel muted">{heroLabel}</div> : null}
-      </div>
-      <div className="patch-sidebar-block">
-        <div className="patch-sidebar-label">On stage (now)</div>
-        {onStage ? (
-          <div className="patch-sidebar-slot">
-            <strong>{onStage.bandName || "—"}</strong>
-            <div className="muted" style={{ fontSize: "0.8rem" }}>
-              {onStage.startTime}
-              {onStage.endTime ? ` – ${onStage.endTime}` : ""}
-            </div>
-          </div>
-        ) : (
-          <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>
-            —
-          </p>
-        )}
-      </div>
-      <div className="patch-sidebar-block">
-        <div className="patch-sidebar-label">Next</div>
-        {nextAct ? (
-          <div className="patch-sidebar-slot">
-            <strong>{nextAct.bandName || "—"}</strong>
-            <div className="muted" style={{ fontSize: "0.8rem" }}>
-              Starts {nextAct.startTime}
-            </div>
-          </div>
-        ) : (
-          <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>
-            —
-          </p>
-        )}
-      </div>
       <div className="patch-sidebar-block">
         <div className="patch-sidebar-label">Quick links</div>
         <ul className="patch-sidebar-links">

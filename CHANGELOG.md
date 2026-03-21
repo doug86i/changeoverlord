@@ -22,7 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **Web — FortuneSheet selection:** Active cell fill no longer uses **`color-mix(brand, surface)`** (too dark in **dark theme**). It uses a **translucent brand tint** and a **1px** border again, similar to the default sheet overlay strength.
+- **Web — FortuneSheet selection (dark):** Selection fill uses **explicit `rgba`** per **`data-theme`** — **light:** translucent brand red; **dark:** translucent **white** (avoids muddy `color-mix` / transparent-black). **`ThemeProvider`** sets **`data-theme`** in **`useLayoutEffect`** so rules apply before first paint (Docker / hard refresh).
+
+- **Web — Patch sidebar:** Block order: **Local time** → **Now** → **Countdown** → **Next** → **This spreadsheet** (then quick links and plot). **Now** / **Next** band names **link to `/patch/:performanceId`**.
 
 - **Docker build:** The **API** builder step now removes **`api/dist`** and **`api/.cache/tsconfig.tsbuildinfo`** before **`tsc`**. Without clearing incremental metadata, **`tsc` could emit no files** while exiting successfully, yielding an **empty `api/dist`** in the image and a **crash loop** at runtime (`ERR_MODULE_NOT_FOUND` for `db/client.js`, etc.).
 

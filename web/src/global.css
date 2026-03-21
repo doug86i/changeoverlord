@@ -1237,6 +1237,17 @@ textarea {
   text-transform: uppercase;
 }
 
+a.patch-sidebar-perf-link {
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.patch-sidebar-perf-link:hover {
+  color: var(--color-brand);
+  text-decoration: underline;
+}
+
 @media (max-width: 960px) {
   .patch-sidebar-expand-btn {
     flex-direction: row;
@@ -1459,18 +1470,30 @@ textarea {
   border-color: var(--color-brand) !important;
 }
 
-/* Selection overlay: translucent brand tint (like default ~15% blue), not
-   color-mix(brand, surface) — that goes very dark/brown in dark theme. */
-.patch-workbook-host .luckysheet-cell-selected,
-.patch-workbook-host .luckysheet-cell-selected-focus {
+/* Selection overlay: explicit rgba per theme. `color-mix(brand, transparent)` uses
+   transparent black in sRGB and can read as a muddy dark fill in dark mode + Docker. */
+:root[data-theme="light"] .patch-workbook-host .luckysheet-cell-selected,
+:root[data-theme="light"] .patch-workbook-host .luckysheet-cell-selected-focus {
   border: 1px solid var(--color-brand) !important;
-  background: color-mix(in srgb, var(--color-brand) 14%, transparent) !important;
+  background: rgba(227, 6, 19, 0.14) !important;
   margin: -1px 0 0 -1px !important;
   box-shadow: none;
 }
 
-.patch-workbook-host .luckysheet-cell-selected-focus {
-  background: color-mix(in srgb, var(--color-brand) 18%, transparent) !important;
+:root[data-theme="light"] .patch-workbook-host .luckysheet-cell-selected-focus {
+  background: rgba(227, 6, 19, 0.2) !important;
+}
+
+:root[data-theme="dark"] .patch-workbook-host .luckysheet-cell-selected,
+:root[data-theme="dark"] .patch-workbook-host .luckysheet-cell-selected-focus {
+  border: 1px solid var(--color-brand) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  margin: -1px 0 0 -1px !important;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .patch-workbook-host .luckysheet-cell-selected-focus {
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
 .patch-workbook-host .luckysheet-cs-inner-border {

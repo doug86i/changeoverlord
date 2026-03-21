@@ -91,8 +91,8 @@ On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** k
 
 - **Hide »** / **« Context** — Collapse or expand the sidebar; preference is remembered on this device.
 - **Changeover** — Shown when the day is in a gap between acts (same condition as the stage clock).
+- **Local time** → **Now** → **Countdown** → **Next** — same timing rules as the stage day clock. **Now** and **Next** band names are **links** to that act’s patch page.
 - **This spreadsheet** — The act you’re editing; **Alt+←** / **Alt+→** switch acts on this day.
-- **Local time**, **Countdown**, **On stage**, **Next** — same timing rules as the stage day clock.
 - **Quick links** — **All files**, **Rider PDF** when uploaded, **Stage clock**, **Running order**.
 - **Stage plot** — Preview of the file uploaded as **Stage plot** (see **Files** below); performance files take priority over stage files.
 
