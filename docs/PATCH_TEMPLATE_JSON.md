@@ -46,6 +46,15 @@ The server normalizer (`normalizeSheetFromRaw` in `api/src/lib/excel-to-sheets.t
 - **`name`**: string; used as the tab name.
 - **`id`**: optional string (UUID generated if absent).
 
+### Merge cells (`mc`)
+
+- **`config.merge`** should use keys like `"0_0"` with `{ "r", "c", "rs", "cs" }` (FortuneSheet/Luckysheet shape).
+- The **master** cell in **`data`** (top-left of the merge) must have **`mc.r`** and **`mc.c`** set to that cell’s row/column indices, plus **`rs`** / **`cs`**. Exports that only include `{ "rs", "cs" }` under **`mc`** will **break** the grid in the browser until fixed. The API normalizer **fills in missing `mc.r` / `mc.c`** on master cells when **`rs` or `cs` is present**.
+
+### Text wrap (`tb`)
+
+- FortuneSheet compares **`tb`** to **strings** such as **`"1"`** and **`"2"`**. JSON that uses numeric **`tb`** (e.g. **`2`**) is **coerced to a string** on import.
+
 ### Always normalized `config` keys
 
 From **`sheet.config`**, these are copied into the stored sheet (Excel and JSON):

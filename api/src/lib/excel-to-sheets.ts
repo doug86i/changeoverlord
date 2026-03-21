@@ -37,6 +37,34 @@ function celldataToMatrix(
   return matrix;
 }
 
+/**
+ * FortuneSheet runtime compares `cell.tb` to string literals (`"1"`, `"2"`). Exports
+ * often use numbers — coerce so wrap/text layout matches the grid engine.
+ *
+ * Merge **master** cells must include `mc.r` / `mc.c`; many JSON exports only set
+ * `rs` / `cs`. Without anchors, core does `config.merge[undefined + "_" + undefined]`
+ * and the workbook can throw during render.
+ */
+function sanitizeFortuneSheetDataMatrix(data: CellMatrix): void {
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r];
+    for (let c = 0; c < row.length; c++) {
+      const cell = row[c];
+      if (cell == null) continue;
+      if (typeof cell.tb === "number") {
+        (cell as { tb?: string }).tb = String(cell.tb);
+      }
+      const mc = cell.mc;
+      if (mc != null && (mc.rs != null || mc.cs != null)) {
+        if (mc.r == null || mc.c == null) {
+          mc.r = r;
+          mc.c = c;
+        }
+      }
+    }
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RawFortuneSheet = Record<string, any>;
 
@@ -93,6 +121,7 @@ export function normalizeSheetFromRaw(
   // Convert sparse celldata → dense data matrix.
   const data: CellMatrix =
     raw.data ?? celldataToMatrix(celldata ?? [], rows, cols);
+  sanitizeFortuneSheetDataMatrix(data);
 
   const cfg = raw.config ?? {};
 
