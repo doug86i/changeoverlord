@@ -8,6 +8,8 @@ data/uploads/
 # Stray Redis volume if ever created locally — not part of the stack
 data/redis/
 node_modules/
+# tsc incremental (local + Docker BuildKit cache mount)
+api/.cache/
 dist/
 build/
 *.log

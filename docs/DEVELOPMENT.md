@@ -91,15 +91,22 @@ What usually costs time:
 | Step | Notes |
 |------|--------|
 | **`npm install`** | Cached by Docker **layer** when `package.json` / `package-lock.json` are unchanged. The **Dockerfile** also uses **BuildKit cache mounts** (`/root/.npm`) so repeated installs stay quicker when layers invalidate. Requires **BuildKit** (default in current Docker Desktop / Engine). |
-| **`vite build` + `tsc`** | Re-runs whenever **`api/`** or **`web/`** source changes — unavoidable for a faithful production build. |
+| **`vite build` + `tsc`** | Re-runs when **`api/`** or **`web/`** source changes. This repo’s **Dockerfile** splits them into **two `RUN` steps** (`build -w api` then `COPY web` + `build -w web`) so a change in **only one** workspace reuses the cached layer for the **other** — the biggest win for day-to-day work. |
+| **Tool caches (BuildKit)** | The builder mounts **Vite’s** cache (`node_modules/.vite`) and **tsc incremental** metadata (`api/.cache/`) so repeated builds of the same tree stay faster even when a layer re-runs. |
 | **`--no-cache`** | Only use **`make dev-fresh`** when the running app is clearly stale; it disables **all** layer cache and is much slower. |
 
 **Practical tips**
 
 - Prefer **`make dev`** over **`make dev-fresh`** unless you suspect bad cache.
 - Touch **`package-lock.json`** only when dependencies change — unnecessary lockfile churn busts the **`npm install`** layer.
-- For a **quick typecheck** without Docker: **`npm run build`** at the repo root (same as CI).
-- Rebuild **only** the app service: **`docker compose build app && docker compose up -d app`** (same as what **`make dev`** does for the app when Compose decides a rebuild is needed).
+- For a **quick compile** without Docker: **`npm run build`** at the repo root (same as CI) — no image rebuild; use this when you only need to verify TypeScript/Vite.
+- Rebuild **only** the app service: **`docker compose build app && docker compose up -d app`** (Compose still rebuilds when sources change; this is the same scope as **`make dev`** for the `app` image).
+- **BuildKit** must be on (Docker Desktop: **Settings → Docker Engine** or ensure `{"features":{"buildkit":true}}`; CLI: `export DOCKER_BUILDKIT=1` — usually the default).
+- **Docker Desktop (Mac / Windows):** give the VM **enough CPUs and RAM** (**Settings → Resources**) — slow builds are often under-resourced VMs. On **Mac**, enabling **VirtioFS** for file sharing (when available) can help I/O-heavy builds.
+
+**What this repo does *not* do**
+
+- No bind-mounted **`web/src`** / **`api/src`** in the production image path — that would diverge from what operators run. Fast iteration without Docker remains **`npm run build`** (or per-workspace dev servers if you add them locally — not part of the shipped Compose contract).
 
 ## AI / Cursor workflow
 

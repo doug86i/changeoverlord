@@ -1,6 +1,12 @@
 # syntax=docker/dockerfile:1
 # Build web (Vite) + API (TypeScript), run Fastify with static SPA + REST.
-# BuildKit cache mounts speed up npm when layers above change but the lockfile is stable.
+#
+# Speed (BuildKit):
+# - `npm install` uses a cache mount for ~/.npm when lockfiles are stable.
+# - API and WEB are built in separate RUN steps so a change in only one workspace
+#   reuses the cached layer for the other (big win vs one combined RUN).
+# - `npm run build -w api` uses a cache mount for tsc incremental metadata.
+# - `npm run build -w web` uses a cache mount for Vite's `node_modules/.vite` cache.
 FROM node:22-alpine AS builder
 WORKDIR /build
 
@@ -12,9 +18,12 @@ RUN --mount=type=cache,target=/root/.npm \
     npm install
 
 COPY api api
-COPY web web
+RUN --mount=type=cache,target=/build/api/.cache \
+    npm run build -w api
 
-RUN npm run build -w web && npm run build -w api
+COPY web web
+RUN --mount=type=cache,target=/build/node_modules/.vite \
+    npm run build -w web
 
 FROM node:22-alpine AS runner
 WORKDIR /app
