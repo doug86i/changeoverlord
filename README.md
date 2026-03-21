@@ -20,6 +20,20 @@ Open **http://\<server-ip\>** (port **80** by default — no port in the URL).
 - **Alternate host port** (e.g. 8080): see `compose.override.example.yml`.
 - **Offline after first pull**: images stay in Docker’s cache; no internet needed on show site.
 
+## Data directory (one place for DB, Redis, uploads)
+
+All persistent state uses a **single host directory** — default **`./data`** — so you can aim it at a **larger disk**, **sync**, or **back up** one tree.
+
+| Subfolder | Role |
+|-----------|------|
+| `data/db/` | PostgreSQL files |
+| `data/redis/` | Redis AOF |
+| `data/uploads/` | User uploads (riders, plots, logos) |
+
+Optional **`.env`**: set **`DATA_DIR`** to an absolute path (e.g. `/mnt/raid/changeoverlord`). See **`.env.example`**.
+
+Details and backup notes: **[data/README.md](data/README.md)**.
+
 ## Local development (live edits)
 
 Use the **dev** Compose override: it **bind-mounts** `docker/html/` and `docker/nginx/default.conf` into the `app` container so you can edit files on disk and **refresh the browser** — no image rebuild for HTML/CSS/JS in `docker/html/`.
@@ -46,6 +60,8 @@ Stop the stack: `make dev-down`.
 | `docker/nginx/default.conf` | Nginx site config (mounted live in dev) |
 | `Dockerfile` | App image (placeholder until UI/API land) |
 | `Makefile` | `make dev`, `make dev-watch`, `make dev-down` |
+| `data/` | Persistent data root (`DATA_DIR`); see `data/README.md` |
+| `.env.example` | Optional `DATA_DIR` for another disk |
 | `.github/workflows/` | Build and push `app` image to **GHCR** |
 
 ## Status

@@ -1,5 +1,8 @@
 # Default: pull pre-built app from GHCR (built by GitHub Actions from this repo).
 # Local dev: docker compose up --build
+#
+# All persistent data lives under DATA_DIR (default ./data) — one tree for backups / extra disk.
+# See data/README.md
 
 services:
   db:
@@ -10,7 +13,7 @@ services:
       POSTGRES_PASSWORD: stageops
       POSTGRES_DB: stageops
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${DATA_DIR:-./data}/db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U stageops -d stageops"]
       interval: 5s
@@ -20,8 +23,9 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command: redis-server --appendonly yes --appendfilename appendonly.aof
     volumes:
-      - redisdata:/data
+      - ${DATA_DIR:-./data}/redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -34,12 +38,10 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    volumes:
+      - ${DATA_DIR:-./data}/uploads:/var/changeoverlord/uploads
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-volumes:
-  pgdata:
-  redisdata:
