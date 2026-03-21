@@ -87,16 +87,14 @@ Each **performance** can have a **patch / RF workbook** — a multi-sheet grid (
 
 ### Patch page sidebar (stay on the sheet)
 
-On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** is built for **stage techs and FOH** who need schedule, plots, and files without leaving the spreadsheet (see **`docs/FEATURE_REQUIREMENTS.md`** — patch tech, FOH, RF coordinator).
+On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** keeps schedule, plot, and files next to the sheet (see **`docs/FEATURE_REQUIREMENTS.md`**).
 
-- **Hide »** — Collapses the sidebar so the **grid uses the full width**; your choice is remembered on this device. Use **« Context** on the slim rail to bring it back.
-- **Changeover** — When nobody is on stage but the **next act is coming**, a **banner** explains you’re in the gap between acts and shows **who just finished** (so you can compare their patch to the next).
-- **This spreadsheet (your act)** — The band and times for the performance you’re editing, plus a reminder of **Alt+← / Alt+→** to jump acts.
-- **Local time** — server-synced wall clock.
-- **Countdown** — same rules as the **stage day clock** (time left on the current act, time until the next act, or “finished” when the day is done).
-- **On stage (now)** and **Next** — who is playing now and who follows, for that day.
-- **Quick links** — **All files** (riders, plots, docs), **Rider PDF** when one is uploaded (opens in a new tab), **Stage clock** (fullscreen), and **Running order**.
-- **Stage plot** — if a file is uploaded with purpose **plot** (see **Files** below), a **preview** appears here (performance files are preferred over stage-level files).
+- **Hide »** / **« Context** — Collapse or expand the sidebar; preference is remembered on this device.
+- **Changeover** — Shown when the day is in a gap between acts (same condition as the stage clock).
+- **This spreadsheet** — The act you’re editing; **Alt+←** / **Alt+→** switch acts on this day.
+- **Local time**, **Countdown**, **On stage**, **Next** — same timing rules as the stage day clock.
+- **Quick links** — **All files**, **Rider PDF** when uploaded, **Stage clock**, **Running order**.
+- **Stage plot** — Preview of the file uploaded as **Stage plot** (see **Files** below); performance files take priority over stage files.
 
 The spreadsheet uses the same **sans-serif** font as the rest of the app, and the **active cell / editor** is outlined in the app **accent** colour so the cell you’re typing in stays obvious.
 
@@ -169,6 +167,8 @@ All uploaded files (patch templates, riders, plots) live on the **server's data 
 
 - **Stage** — On a **stage** screen, **Stage files** lets you upload **documents and images** (PDF, photos, text, Word/ODT, etc.). These are **stage-wide** (not tied to one band).
 - **Performance** — On a **stage day**, each performance row has a **Files** link. Upload files that belong to **that band only** (e.g. their rider).
+- **Upload as** — Before you upload, choose **Rider / tech pack**, **Stage plot**, **Plot from rider PDF**, or **Other**. **Stage plot** is what the patch page sidebar and stage views use for plot previews. **Plot from rider PDF** is also set automatically when you **extract a page** from a PDF.
+- **Type (per file)** — After upload, change the **Type** on each row if you picked the wrong category.
 - **Drag and drop** — Drop files directly onto the upload zone, or click to browse.
 - **PDF viewer** — Click the 👁 icon to view a PDF inline without leaving the page.
 - **Open** — View the file in a new browser tab.

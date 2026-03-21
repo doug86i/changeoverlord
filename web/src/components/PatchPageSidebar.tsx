@@ -101,8 +101,6 @@ export function PatchPageSidebar({
 
   const onStage = currentIdx >= 0 ? sorted[currentIdx] : null;
   const nextAct = nextIdx >= 0 ? sorted[nextIdx] : null;
-  const previousAct =
-    isChangeover && nextIdx > 0 ? sorted[nextIdx - 1] : null;
 
   const perfFilesQ = useQuery({
     queryKey: ["files", "performance", performanceId],
@@ -174,17 +172,8 @@ export function PatchPageSidebar({
       </div>
 
       {isChangeover ? (
-        <div className="patch-sidebar-changeover" role="status">
-          <strong>Changeover</strong>
-          <span className="patch-sidebar-changeover-sub">
-            Between acts — you’re preparing the next slot. Countdown is time until the next act starts.
-          </span>
-          {previousAct ? (
-            <span className="patch-sidebar-changeover-sub">
-              Previous: <strong>{previousAct.bandName || "—"}</strong>
-              {previousAct.endTime ? ` (ended ${previousAct.endTime})` : ""}
-            </span>
-          ) : null}
+        <div className="patch-sidebar-badge" role="status">
+          Changeover
         </div>
       ) : null}
 
@@ -198,8 +187,9 @@ export function PatchPageSidebar({
           </div>
         </div>
         <p className="patch-sidebar-hint muted">
-          <kbd className="patch-kbd">Alt</kbd>+<kbd className="patch-kbd">←</kbd> /{" "}
-          <kbd className="patch-kbd">→</kbd> other acts on this day
+          <kbd className="patch-kbd">Alt</kbd>
+          <kbd className="patch-kbd">←</kbd>
+          <kbd className="patch-kbd">→</kbd>
         </p>
       </div>
 
@@ -252,7 +242,6 @@ export function PatchPageSidebar({
         <ul className="patch-sidebar-links">
           <li>
             <Link to={`/performances/${performanceId}/files`}>All files</Link>
-            <span className="muted"> — rider, plots, docs</span>
           </li>
           {riderFile ? (
             <li>
@@ -263,12 +252,10 @@ export function PatchPageSidebar({
               >
                 Rider PDF
               </a>
-              <span className="muted"> — new tab</span>
             </li>
           ) : null}
           <li>
             <Link to={`/clock/day/${stageDayId}`}>Stage clock</Link>
-            <span className="muted"> — fullscreen</span>
           </li>
           <li>
             <Link to={`/stage-days/${stageDayId}`}>Running order</Link>
@@ -307,9 +294,10 @@ export function PatchPageSidebar({
           </>
         ) : (
           <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>
-            No plot uploaded yet. Use{" "}
+            No stage plot.{" "}
             <Link to={`/performances/${performanceId}/files`}>Files</Link>
-            <span className="muted"> (purpose: plot) or stage files.</span>
+            {" — "}
+            <span className="muted">Upload as “Stage plot”</span>
           </p>
         )}
       </div>

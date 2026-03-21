@@ -56,6 +56,10 @@ const extractBody = z.object({
   pageIndex: z.number().int().min(0),
 });
 
+const patchFileBody = z.object({
+  purpose: purposeEnum,
+});
+
 function safeFilename(name: string): string {
   return name.replace(/[^\w.\- ()]+/g, "_").slice(0, 200);
 }
@@ -262,6 +266,51 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         parentFileId: row.parentFileId,
         createdAt: row.createdAt.toISOString(),
         pageCount,
+      },
+    };
+  });
+
+  app.patch("/files/:id", async (req, reply) => {
+    const { id } = uuidParam.parse(req.params);
+    const body = patchFileBody.parse(req.body);
+
+    const [existing] = await db.select().from(fileAssets).where(eq(fileAssets.id, id));
+    if (!existing) return reply.code(404).send({ error: "NotFound" });
+
+    const [updated] = await db
+      .update(fileAssets)
+      .set({ purpose: body.purpose })
+      .where(eq(fileAssets.id, id))
+      .returning({
+        id: fileAssets.id,
+        originalName: fileAssets.originalName,
+        mimeType: fileAssets.mimeType,
+        byteSize: fileAssets.byteSize,
+        purpose: fileAssets.purpose,
+        stageId: fileAssets.stageId,
+        performanceId: fileAssets.performanceId,
+        parentFileId: fileAssets.parentFileId,
+        createdAt: fileAssets.createdAt,
+      });
+
+    const row = updated!;
+    if (row.stageId) {
+      invalidateFileQueries(row.stageId, row.performanceId);
+    }
+
+    req.log.debug({ fileId: id, purpose: row.purpose }, "file purpose updated");
+
+    return {
+      file: {
+        id: row.id,
+        originalName: row.originalName,
+        mimeType: row.mimeType,
+        byteSize: row.byteSize,
+        purpose: row.purpose,
+        stageId: row.stageId,
+        performanceId: row.performanceId,
+        parentFileId: row.parentFileId,
+        createdAt: row.createdAt.toISOString(),
       },
     };
   });

@@ -1150,27 +1150,18 @@ textarea {
   padding: 0.2rem 0.45rem !important;
 }
 
-.patch-sidebar-changeover {
-  padding: 0.55rem 0.65rem;
-  margin-bottom: 0.85rem;
+.patch-sidebar-badge {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-warning) 18%, var(--color-surface));
-  border: 1px solid color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
-  font-size: 0.82rem;
-  line-height: 1.35;
-}
-
-.patch-sidebar-changeover strong {
-  display: block;
-  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--color-warning) 22%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-warning) 50%, var(--color-border));
   color: var(--color-text);
-}
-
-.patch-sidebar-changeover-sub {
-  display: block;
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-  margin-top: 0.25rem;
 }
 
 .patch-sidebar-block--this-act {

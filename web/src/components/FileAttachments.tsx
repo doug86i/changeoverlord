@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiSend, apiSendForm } from "../api/client";
-import type { FileAssetRow } from "../api/types";
+import type { FileAssetPurpose, FileAssetRow } from "../api/types";
+
+const FILE_PURPOSE_OPTIONS: { value: FileAssetPurpose; label: string }[] = [
+  { value: "rider_pdf", label: "Rider / tech pack" },
+  { value: "plot_pdf", label: "Stage plot" },
+  { value: "plot_from_rider", label: "Plot from rider PDF" },
+  { value: "generic", label: "Other" },
+];
 import { ConfirmDialog } from "./ConfirmDialog";
 
 const RIDER_FILE_ACCEPT =
@@ -35,6 +42,7 @@ function InlinePdfViewer({ fileId, onClose }: { fileId: string; onClose: () => v
 
 function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
   const qc = useQueryClient();
+  const [purpose, setPurpose] = useState<FileAssetPurpose>(f.purpose);
   const [extractOpen, setExtractOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(1);
   const [meta, setMeta] = useState<{ pageCount?: number } | null>(null);
@@ -54,6 +62,21 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
     onSuccess: () => { void qc.invalidateQueries({ queryKey }); setExtractOpen(false); },
   });
 
+  const patchPurpose = useMutation({
+    mutationFn: (next: FileAssetPurpose) =>
+      apiSend<{ file: FileAssetRow }>(`/api/v1/files/${f.id}`, "PATCH", { purpose: next }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey });
+    },
+    onError: () => {
+      setPurpose(f.purpose);
+    },
+  });
+
+  useEffect(() => {
+    setPurpose(f.purpose);
+  }, [f.purpose]);
+
   const loadMeta = async () => {
     if (f.mimeType !== "application/pdf") return;
     const r = await apiGet<{ file: FileAssetRow & { pageCount?: number } }>(`/api/v1/files/${f.id}`);
@@ -67,15 +90,42 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
   return (
     <>
       <li className="card" style={{ marginBottom: "0.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-start" }}>
           <div>
             <strong>{f.originalName}</strong>
             <div className="muted" style={{ fontSize: "0.85rem" }}>
-              {f.purpose.replace(/_/g, " ")} · {formatBytes(f.byteSize)}
+              {formatBytes(f.byteSize)}
               {f.pageCount ? ` · ${f.pageCount} pages` : ""}
             </div>
+            <label
+              style={{
+                display: "flex",
+                gap: "0.35rem",
+                alignItems: "center",
+                marginTop: "0.35rem",
+                fontSize: "0.8rem",
+              }}
+            >
+              <span className="muted">Type</span>
+              <select
+                value={purpose}
+                onChange={(e) => {
+                  const v = e.target.value as FileAssetPurpose;
+                  setPurpose(v);
+                  patchPurpose.mutate(v);
+                }}
+                disabled={patchPurpose.isPending}
+                aria-label="Attachment type"
+              >
+                {FILE_PURPOSE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
             {isPdf && (
               <button type="button" className="icon-btn" onClick={() => setViewOpen(true)} title="View inline">
                 👁
@@ -133,6 +183,7 @@ type Scope =
 export function FileAttachments({ scope, title }: { scope: Scope; title: string }) {
   const qc = useQueryClient();
   const [dragOver, setDragOver] = useState(false);
+  const [uploadPurpose, setUploadPurpose] = useState<FileAssetPurpose>("rider_pdf");
   const inputRef = useRef<HTMLInputElement>(null);
   const qk =
     scope.kind === "stage"
@@ -153,10 +204,11 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
     mutationFn: (file: File) => {
       const fd = new FormData();
       fd.append("file", file);
+      const purpose = encodeURIComponent(uploadPurpose);
       const url =
         scope.kind === "stage"
-          ? `/api/v1/files?stageId=${scope.stageId}&purpose=rider_pdf`
-          : `/api/v1/files?performanceId=${scope.performanceId}&purpose=rider_pdf`;
+          ? `/api/v1/files?stageId=${scope.stageId}&purpose=${purpose}`
+          : `/api/v1/files?performanceId=${scope.performanceId}&purpose=${purpose}`;
       return apiSendForm<{ file: FileAssetRow & { pageCount?: number } }>(url, "POST", fd);
     },
     onSuccess: () => { void qc.invalidateQueries({ queryKey: qk }); },
@@ -167,12 +219,36 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
       if (!files) return;
       for (let i = 0; i < files.length; i++) upload.mutate(files[i]);
     },
-    [upload],
+    [upload, uploadPurpose],
   );
 
   return (
     <div className="card" style={{ marginBottom: "1.5rem" }}>
       <div className="title-bar" style={{ marginBottom: "0.75rem" }}>{title}</div>
+
+      <label
+        style={{
+          display: "flex",
+          gap: "0.5rem",
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginBottom: "0.65rem",
+          fontSize: "0.9rem",
+        }}
+      >
+        <span className="muted">Upload as</span>
+        <select
+          value={uploadPurpose}
+          onChange={(e) => setUploadPurpose(e.target.value as FileAssetPurpose)}
+          aria-label="Type for new uploads"
+        >
+          {FILE_PURPOSE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
 
       {/* Drop zone */}
       <div
