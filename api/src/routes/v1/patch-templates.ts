@@ -14,10 +14,7 @@ import {
   decodeTemplateSnapshotToSheets,
   encodeTemplateSnapshotFromSheets,
 } from "../../lib/yjs-template-snapshot.js";
-import {
-  buildBlankPatchTemplateSheets,
-  buildExamplePatchTemplateSheets,
-} from "../../lib/patch-template-presets.js";
+import { buildBlankPatchTemplateSheets } from "../../lib/patch-template-presets.js";
 import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import { patchTemplates, stages } from "../../db/schema.js";
 import { uuidParam } from "../../schemas/api.js";
@@ -37,9 +34,8 @@ const duplicateBody = z.object({
   name: z.string().min(1).max(200).optional(),
 });
 
-const newFromPresetBody = z.object({
+const newFromBlankBody = z.object({
   name: z.string().min(1).max(200),
-  preset: z.enum(["blank", "example"]),
 });
 
 function invalidateAll() {
@@ -48,11 +44,8 @@ function invalidateAll() {
 
 export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
   app.post("/patch-templates/new", async (req, reply) => {
-    const body = newFromPresetBody.parse(req.body);
-    const sheets =
-      body.preset === "blank"
-        ? buildBlankPatchTemplateSheets()
-        : buildExamplePatchTemplateSheets();
+    const body = newFromBlankBody.parse(req.body);
+    const sheets = buildBlankPatchTemplateSheets();
     const snapshot = encodeTemplateSnapshotFromSheets(sheets);
     const buf = await sheetsToExcelBuffer(sheets);
     if (buf.length > MAX_BYTES) {
@@ -63,13 +56,11 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     const abs = path.join(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, buf);
-    const original =
-      body.preset === "blank" ? "new-blank.xlsx" : "new-example.xlsx";
     const [inserted] = await db
       .insert(patchTemplates)
       .values({
         name: body.name.trim(),
-        originalName: original,
+        originalName: "new-blank.xlsx",
         storageKey,
         mimeType:
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -79,8 +70,8 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       .returning({ id: patchTemplates.id });
     invalidateAll();
     req.log.info(
-      { templateId: inserted?.id, preset: body.preset },
-      "patch template created from preset",
+      { templateId: inserted?.id },
+      "patch template created from blank preset",
     );
     return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
   });

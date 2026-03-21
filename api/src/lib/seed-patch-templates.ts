@@ -12,7 +12,7 @@ import { getUploadsDir } from "./uploads-dir.js";
 const BUNDLED_ORIGINAL_NAME = "bundled-dh-example.xlsx";
 const BUNDLED_DISPLAY_NAME = "DH Pick & Patch (example)";
 
-/** Inserts the shipped example template once per database (same workbook as the “example” preset). */
+/** Inserts the shipped example template once per database (DH-style layout from presets). */
 export async function seedBundledExamplePatchTemplateIfMissing(): Promise<void> {
   const [existing] = await db
     .select({ id: patchTemplates.id })

@@ -151,18 +151,13 @@ export function PatchTemplateLibrarySettings() {
     },
   });
 
-  const createFromPreset = useMutation({
-    mutationFn: ({
-      name,
-      preset,
-    }: {
-      name: string;
-      preset: "blank" | "example";
-    }) =>
-      apiSend<{ patchTemplate: { id: string } }>("/api/v1/patch-templates/new", "POST", {
-        name,
-        preset,
-      }),
+  const createBlank = useMutation({
+    mutationFn: (name: string) =>
+      apiSend<{ patchTemplate: { id: string } }>(
+        "/api/v1/patch-templates/new",
+        "POST",
+        { name },
+      ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
       setNewName("");
@@ -218,9 +213,9 @@ export function PatchTemplateLibrarySettings() {
         Patch / RF spreadsheet templates
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        Build a new workbook in the app, upload an Excel file, or use the DH
-        example. Every stage can pick a template for new performances. Max
-        10&nbsp;MB per upload.
+        Create a blank workbook in the app, upload an Excel file, or duplicate
+        the bundled example from a fresh install. Every stage can pick a
+        template for new performances. Max 10&nbsp;MB per upload.
       </p>
 
       <div
@@ -249,34 +244,13 @@ export function PatchTemplateLibrarySettings() {
             type="button"
             className="primary"
             disabled={
-              createFromPreset.isPending ||
+              createBlank.isPending ||
               createTpl.isPending ||
               !newName.trim()
             }
-            onClick={() =>
-              createFromPreset.mutate({
-                name: newName.trim(),
-                preset: "blank",
-              })
-            }
+            onClick={() => createBlank.mutate(newName.trim())}
           >
             New blank
-          </button>
-          <button
-            type="button"
-            disabled={
-              createFromPreset.isPending ||
-              createTpl.isPending ||
-              !newName.trim()
-            }
-            onClick={() =>
-              createFromPreset.mutate({
-                name: newName.trim(),
-                preset: "example",
-              })
-            }
-          >
-            New from example
           </button>
         </div>
         <label>
@@ -286,7 +260,7 @@ export function PatchTemplateLibrarySettings() {
           <input
             type="file"
             accept={EXCEL_TEMPLATE_ACCEPT}
-            disabled={createTpl.isPending || createFromPreset.isPending}
+            disabled={createTpl.isPending || createBlank.isPending}
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) createTpl.mutate({ file: f, name: newName });
@@ -451,14 +425,14 @@ export function PatchTemplateLibrarySettings() {
       )}
 
       {(createTpl.isError ||
-        createFromPreset.isError ||
+        createBlank.isError ||
         renameTpl.isError ||
         replaceTpl.isError ||
         deleteTpl.isError ||
         duplicateTpl.isError) && (
         <p style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
           {(createTpl.error ??
-            createFromPreset.error ??
+            createBlank.error ??
             renameTpl.error ??
             replaceTpl.error ??
             deleteTpl.error ??
@@ -571,18 +545,9 @@ export function StagePatchTemplatePicker({
     },
   });
 
-  const createFromPreset = useMutation({
-    mutationFn: ({
-      name,
-      preset,
-    }: {
-      name: string;
-      preset: "blank" | "example";
-    }) =>
-      apiSend("/api/v1/patch-templates/new", "POST", {
-        name,
-        preset,
-      }),
+  const createBlank = useMutation({
+    mutationFn: (name: string) =>
+      apiSend("/api/v1/patch-templates/new", "POST", { name }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
       setStageNewName("");
@@ -712,34 +677,13 @@ export function StagePatchTemplatePicker({
             type="button"
             className="primary"
             disabled={
-              createFromPreset.isPending ||
+              createBlank.isPending ||
               createTpl.isPending ||
               !stageNewName.trim()
             }
-            onClick={() =>
-              createFromPreset.mutate({
-                name: stageNewName.trim(),
-                preset: "blank",
-              })
-            }
+            onClick={() => createBlank.mutate(stageNewName.trim())}
           >
             New blank
-          </button>
-          <button
-            type="button"
-            disabled={
-              createFromPreset.isPending ||
-              createTpl.isPending ||
-              !stageNewName.trim()
-            }
-            onClick={() =>
-              createFromPreset.mutate({
-                name: stageNewName.trim(),
-                preset: "example",
-              })
-            }
-          >
-            New from example
           </button>
           <label style={{ margin: 0 }}>
             <span className="muted" style={{ marginRight: 6 }}>
@@ -748,7 +692,7 @@ export function StagePatchTemplatePicker({
             <input
               type="file"
               accept={EXCEL_TEMPLATE_ACCEPT}
-              disabled={createTpl.isPending || createFromPreset.isPending}
+              disabled={createTpl.isPending || createBlank.isPending}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) createTpl.mutate({ file: f, name: stageNewName });
@@ -829,7 +773,7 @@ export function StagePatchTemplatePicker({
 
       {(patchStage.isError ||
         createTpl.isError ||
-        createFromPreset.isError ||
+        createBlank.isError ||
         renameTpl.isError ||
         replaceTpl.isError ||
         deleteTpl.isError ||
@@ -837,7 +781,7 @@ export function StagePatchTemplatePicker({
         <p style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
           {(patchStage.error ??
             createTpl.error ??
-            createFromPreset.error ??
+            createBlank.error ??
             renameTpl.error ??
             replaceTpl.error ??
             deleteTpl.error ??

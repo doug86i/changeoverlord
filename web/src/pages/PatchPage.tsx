@@ -1,51 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import * as Y from "yjs";
-import { WebsocketProvider } from "y-websocket";
-import { Workbook, type WorkbookInstance } from "@fortune-sheet/react";
-import type { Op, Sheet } from "@fortune-sheet/core";
+import { Workbook } from "@fortune-sheet/react";
 import { apiGet } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
-import { logDebug } from "../lib/debug";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
 import { PatchPageSidebar } from "../components/PatchPageSidebar";
 import {
-  PATCH_WORKBOOK_Y_ORIGIN,
-  usePatchWorkbookOpLogEffects,
-} from "../lib/patchWorkbookYjs";
+  createDefaultPatchWorkbookSheets,
+  usePatchWorkbookCollab,
+} from "../lib/patchWorkbookCollab";
 
 const PATCH_SIDEBAR_COLLAPSED_KEY = "patch-sidebar-collapsed";
 
-function createEmptyPatchSheets(): Sheet[] {
-  return [
-    {
-      id: "patch-sheet-input",
-      name: "Input",
-      status: 1,
-      row: 36,
-      column: 18,
-      order: 0,
-    },
-    {
-      id: "patch-sheet-rf",
-      name: "RF",
-      status: 0,
-      row: 36,
-      column: 18,
-      order: 1,
-    },
-  ];
-}
-
 export function PatchPage() {
   const { performanceId } = useParams<{ performanceId: string }>();
-  const wbRef = useRef<WorkbookInstance>(null);
-  const [conn, setConn] = useState<"connecting" | "connected" | "error">(
-    "connecting",
-  );
-  const [synced, setSynced] = useState(false);
   const dirtyRef = useRef(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -91,22 +61,24 @@ export function PatchPage() {
     enabled: Boolean(stageId),
   });
 
-  const ydoc = useMemo(() => new Y.Doc(), [performanceId]);
-  const yops = useMemo(() => ydoc.getArray<string>("opLog"), [ydoc]);
+  const markDirty = useCallback(() => {
+    dirtyRef.current = true;
+  }, []);
 
-  const initialSheets = useMemo(
-    () => createEmptyPatchSheets(),
-    [performanceId],
+  const workbookReady = Boolean(
+    performanceId && perfQ.isSuccess && perfQ.data,
   );
 
-  const onOp = useCallback(
-    (ops: Op[]) => {
-      dirtyRef.current = true;
-      ydoc.transact(() => {
-        yops.push([JSON.stringify(ops)]);
-      }, PATCH_WORKBOOK_Y_ORIGIN);
-    },
-    [ydoc, yops],
+  const { wbRef, onOp, conn, synced } = usePatchWorkbookCollab({
+    roomId: performanceId,
+    mode: "performance",
+    workbookReady,
+    onLocalOp: markDirty,
+  });
+
+  const initialSheets = useMemo(
+    () => createDefaultPatchWorkbookSheets(),
+    [performanceId],
   );
 
   // beforeunload warning when workbook has unsaved changes
@@ -119,56 +91,6 @@ export function PatchPage() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [conn]);
-
-  useEffect(() => {
-    if (!performanceId) return;
-
-    setSynced(false);
-
-    logDebug("patch-workbook", "PatchPage Yjs provider starting", {
-      performanceId,
-    });
-
-    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const base = `${proto}//${window.location.host}/ws/v1/collab`;
-    const provider = new WebsocketProvider(base, performanceId, ydoc, {
-      connect: true,
-    });
-
-    const onStatus = (ev: { status: string }) => {
-      logDebug("patch-workbook", "y-websocket status", ev.status);
-      if (ev.status === "connected") setConn("connected");
-      if (ev.status === "disconnected") setConn("connecting");
-    };
-    const onSync = (isSynced: boolean) => {
-      logDebug("patch-workbook", "y-websocket synced", isSynced);
-      setSynced(isSynced);
-    };
-    const onErr = () => {
-      logDebug("patch-workbook", "y-websocket connection-error");
-      setConn("error");
-    };
-
-    provider.on("status", onStatus);
-    provider.on("sync", onSync);
-    provider.on("connection-error", onErr);
-
-    return () => {
-      provider.destroy();
-      ydoc.destroy();
-    };
-  }, [performanceId, ydoc]);
-
-  const workbookReady = Boolean(
-    performanceId && perfQ.isSuccess && perfQ.data,
-  );
-  usePatchWorkbookOpLogEffects(
-    performanceId,
-    yops,
-    wbRef,
-    synced,
-    workbookReady,
-  );
 
   if (!performanceId) return null;
   if (perfQ.isLoading) return <p className="muted">Loading…</p>;
