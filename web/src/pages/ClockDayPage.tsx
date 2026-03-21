@@ -644,6 +644,12 @@ export function ClockDayPage() {
               </h1>
             )}
 
+            {isChangeover && (
+              <div className="clock-compact-changeover" role="status">
+                <div className="clock-arena-changeover-strip">Changeover</div>
+              </div>
+            )}
+
             <div
               style={{
                 display: "flex",

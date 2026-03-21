@@ -506,6 +506,11 @@ textarea {
   margin: 0 auto;
 }
 
+/* Normal (compact) stage clock — same Changeover strip as distance/fullscreen */
+.clock-compact-changeover {
+  margin-bottom: 0.75rem;
+}
+
 .clock-arena {
   box-sizing: border-box;
   min-height: 100%;
@@ -1509,7 +1514,7 @@ a.patch-sidebar-perf-link:hover {
   border-color: var(--color-brand);
 }
 
-/* In-cell editor: FortuneSheet copies cell font colour onto inner nodes (inline styles beat a single parent colour). */
+/* In-cell editor: FortuneSheet copies cell font colour onto inner nodes (inline styles beat a single parent colour). Default box stays library white; we only force black text in both themes. */
 :root[data-theme="light"] .patch-workbook-host .luckysheet-input-box-inner,
 :root[data-theme="light"] .patch-workbook-host .luckysheet-input-box-inner *,
 :root[data-theme="light"] .patch-workbook-host .luckysheet-cell-input,
@@ -1522,9 +1527,9 @@ a.patch-sidebar-perf-link:hover {
 :root[data-theme="dark"] .patch-workbook-host .luckysheet-input-box-inner *,
 :root[data-theme="dark"] .patch-workbook-host .luckysheet-cell-input,
 :root[data-theme="dark"] .patch-workbook-host .luckysheet-cell-input * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  caret-color: #ffffff;
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+  caret-color: #000;
 }
 
 /* ── Print ─────────────────────────────────────────────────── */
