@@ -40,6 +40,8 @@ export function usePatchWorkbookCollab(opts: {
 } {
   const { roomId, mode, workbookReady, onLocalOp } = opts;
   const wbRef = useRef<WorkbookInstance>(null);
+  /** True while running post-hydration `calculateFormula` — those patches must not become Yjs ops. */
+  const suppressYjsOpsForFormulaRecalcRef = useRef(false);
   const [conn, setConn] = useState<"connecting" | "connected" | "error">(
     "connecting",
   );
@@ -50,6 +52,7 @@ export function usePatchWorkbookCollab(opts: {
 
   const onOp = useCallback(
     (ops: Op[]) => {
+      if (suppressYjsOpsForFormulaRecalcRef.current) return;
       onLocalOp?.();
       ydoc.transact(() => {
         yops.push([JSON.stringify(ops)]);
@@ -105,7 +108,14 @@ export function usePatchWorkbookCollab(opts: {
     };
   }, [roomId, ydoc, mode]);
 
-  usePatchWorkbookOpLogEffects(roomId, yops, wbRef, synced, workbookReady);
+  usePatchWorkbookOpLogEffects(
+    roomId,
+    yops,
+    wbRef,
+    synced,
+    workbookReady,
+    suppressYjsOpsForFormulaRecalcRef,
+  );
 
   return { wbRef, onOp, conn, synced };
 }

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import type { RefObject } from "react";
+import type { MutableRefObject, RefObject } from "react";
+import { flushSync } from "react-dom";
 import type { Op } from "@fortune-sheet/core";
 import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Transaction, YArrayEvent } from "yjs";
@@ -23,6 +24,8 @@ export function usePatchWorkbookOpLogEffects(
   wbRef: RefObject<WorkbookInstance | null>,
   synced: boolean,
   canShowWorkbook: boolean,
+  /** While true, `onOp` must not push to Yjs — `calculateFormula` would otherwise append huge batches after hydrate. */
+  suppressYjsOpsRef?: MutableRefObject<boolean>,
 ): void {
   const hydratedRef = useRef(false);
 
@@ -93,7 +96,31 @@ export function usePatchWorkbookOpLogEffects(
           requestAnimationFrame(() => resolve());
         });
       }
-      if (!cancelled) hydratedRef.current = true;
+      if (!cancelled) {
+        hydratedRef.current = true;
+        // Cross-sheet formulas often stay stale until the engine runs; replay only applies ops.
+        // FortuneSheet emits `onOp` for formula value patches — suppress Yjs so we do not append recalc ops.
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          const wb = wbRef.current;
+          if (!wb) return;
+          if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
+          try {
+            flushSync(() => {
+              wb.calculateFormula();
+            });
+            flushSync(() => {
+              wb.calculateFormula();
+            });
+          } finally {
+            if (suppressYjsOpsRef) {
+              setTimeout(() => {
+                suppressYjsOpsRef.current = false;
+              }, 0);
+            }
+          }
+        });
+      }
     };
 
     void run();
