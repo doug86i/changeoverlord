@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API — patch workbooks:** **`GET …/sheets-export`** (templates and performances) now rebuilds **`Sheet[]`** by **replaying the full persisted Yjs `opLog`** through FortuneSheet’s **`opToPatch`** and **Immer `applyPatches`** (same idea as the browser **`Workbook.applyOp`**). Previously the server only read the last **`replace luckysheetfile`** batch, so **Export JSON** matched the **upload**, not edits saved in the template editor or patch page.
+
 - **Web — patch / template workbook:** After the initial **Yjs opLog** replay, the grid runs **`calculateFormula`** twice (covers cross-sheet dependency order). **Imported** or **synced** workbooks with cross-sheet formulas (e.g. **SatBox** labels reading **Channel List**) now show evaluated values instead of staying stale. **`onOp`** is ignored during that pass so formula value patches are **not** appended to **Yjs**.
 
 - **API — patch templates:** **Replace** (multipart) now accepts **FortuneSheet JSON** when the browser sends **`text/plain`** or omits a **`.json`** filename — content sniffing plus storing **`.json`** on disk when the body looks like workbook JSON (avoids saving JSON under a **`.xlsx`** key). **Replace** also persists via **`workbookSnapshotBufferForPersist`** so an open **template editor** collab session picks up the new sheets.
@@ -17,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **API — patch templates:** Normalizing imported sheets now **fills `mc.r` / `mc.c`** on merge-master cells when only **`rs`/`cs`** were present (common in JSON exports), and **coerces numeric `tb` to string** so FortuneSheet’s text-wrap checks match. Fixes template **Edit spreadsheet** crashes / errors for those workbooks; **re-upload or Replace** an affected template to refresh the stored snapshot.
 
 ### Changed
+
+- **Web — FortuneSheet (patch + template editors):** **`.patch-workbook-host`** pins **light-theme** CSS variables (`--color-bg`, `--color-surface`, `--color-text`, …) so toolbar icons and sheet chrome stay readable when the app is in **dark** mode.
 
 - **Web + API — patch workbooks:** Removed the server-side `initialSheets` decode layer from API responses. The Yjs WebSocket sync is now the single path for delivering workbook state. `<Workbook>` mounts with a trivial placeholder; the opLog replay sets the real structure. Deleted `patchWorkbookSeed.ts` / `sheetsFromApiSeed`. Templates come from Excel upload or **Create blank template** (Settings). Stages pick a stored template; **`PATCH /stages/:id`** no longer accepts `defaultPatchTemplateId: null`.
 

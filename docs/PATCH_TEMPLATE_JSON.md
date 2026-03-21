@@ -38,7 +38,7 @@ Exports use **`api/src/lib/workbook-json-envelope.ts`**:
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/api/v1/patch-templates/:id/sheets-export` | Download workbook as JSON (**attachment**) |
+| `GET` | `/api/v1/patch-templates/:id/sheets-export` | Download workbook as JSON (**attachment**); decodes the **Postgres `snapshot`** by replaying the full **Yjs `opLog`**, so the file matches edits made in the template editor, not only the uploaded **`.xlsx`** / **`.json`** on disk. |
 | `PUT` | `/api/v1/patch-templates/:id/sheets-import` | Replace template workbook from JSON body (updates disk file, DB snapshot, live template collab room if open) |
 | `POST` | `/api/v1/patch-templates/sheets-import?name=` | Create a **new** library template from JSON body (optional **`name`** query) |
 
@@ -46,7 +46,7 @@ Exports use **`api/src/lib/workbook-json-envelope.ts`**:
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/api/v1/performances/:id/sheets-export` | Download this band’s workbook (**404** if no snapshot yet) |
+| `GET` | `/api/v1/performances/:id/sheets-export` | Download this band’s workbook (**404** if no snapshot yet); same **opLog** replay as template export. |
 | `PUT` | `/api/v1/performances/:id/sheets-import` | Replace workbook from JSON body (persists snapshot; updates live performance collab room if open) |
 
 **UI:** **Settings** and **stage** template cards expose **Export JSON** / **Import JSON** / **Import workbook JSON**; the **Patch & RF** page exposes **Export JSON** / **Import JSON** for the current performance. After a performance import, the page **reloads** so the grid reconnects with the new state.

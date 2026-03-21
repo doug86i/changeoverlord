@@ -134,7 +134,7 @@ On **Settings** and on the **stage** template picker you can:
 - **Edit name** — Change the **display name** of a template in the library.
 - **Duplicate** — Copy a template to a new library entry (name becomes **"… (copy)"**; rename if you like).
 - **Replace (Excel/JSON)** — Upload a new Excel-compatible workbook **or** FortuneSheet **`.json`** for an existing template (updates the stored file and snapshot). If the browser labels the file as plain text, the server still detects workbook JSON by content.
-- **Export JSON** / **Import JSON** — Download or replace the **stored** template workbook as JSON (same envelope as performance exports; good for tooling and copying templates between systems).
+- **Export JSON** / **Import JSON** — Download or replace the template workbook as JSON. **Export** reflects the **current collaborative snapshot** (edits from **Edit spreadsheet**), not only the original upload file. Same envelope as performance exports; good for tooling and copying templates between systems.
 - **Import workbook JSON** — Create a **new** library template from a JSON file only (optional display name field applies, like Excel upload).
 - **Delete** — Remove a template from the library (stages using it may need a new assignment).
 

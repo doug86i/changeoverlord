@@ -1,5 +1,6 @@
 import * as Y from "yjs";
 import type { Op, Sheet } from "@fortune-sheet/core";
+import { replayYjsSnapshotToSheets } from "./yjs-oplog-replay.js";
 
 /**
  * Encode a FortuneSheet workbook as a Yjs update matching the web client’s
@@ -17,8 +18,8 @@ export function encodeTemplateSnapshotFromSheets(sheets: Sheet[]): Buffer {
   return Buffer.from(Y.encodeStateAsUpdate(doc));
 }
 
-/** Decode a stored template snapshot back to `Sheet[]` (for preview / tooling). */
-export function decodeTemplateSnapshotToSheets(buf: Buffer): Sheet[] {
+/** Last full `replace luckysheetfile` only (legacy; misses edits after upload). */
+function sheetsFromLastFullReplace(buf: Buffer): Sheet[] {
   const doc = new Y.Doc();
   Y.applyUpdate(doc, new Uint8Array(buf));
   const opLog = doc.getArray<string>("opLog");
@@ -41,4 +42,19 @@ export function decodeTemplateSnapshotToSheets(buf: Buffer): Sheet[] {
     }
   }
   return last ?? [];
+}
+
+/**
+ * Decode a stored Yjs workbook snapshot to `Sheet[]` (export, preview, clone).
+ * Replays the full `opLog` so exports match edits made in the template editor
+ * or patch page; falls back to the last full replace if replay yields nothing.
+ */
+export function decodeTemplateSnapshotToSheets(buf: Buffer): Sheet[] {
+  try {
+    const replayed = replayYjsSnapshotToSheets(new Uint8Array(buf));
+    if (replayed.length > 0) return replayed;
+  } catch {
+    /* fall through */
+  }
+  return sheetsFromLastFullReplace(buf);
 }
