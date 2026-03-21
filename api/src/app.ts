@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
@@ -7,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
 import { v1Routes } from "./routes/v1/index.js";
 import { registerAuth } from "./plugins/auth-guard.js";
+import { collabWsPlugin } from "./plugins/collab-ws.js";
 import { log } from "./lib/log.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,15 +20,23 @@ function resolvePublicDir(): string {
 }
 
 export async function buildApp() {
+  const debug = process.env.LOG_LEVEL === "debug" || process.env.LOG_LEVEL === "trace";
   const app = Fastify({
     loggerInstance: log,
     requestIdHeader: "x-request-id",
-    disableRequestLogging: process.env.NODE_ENV === "production",
+    // Per-request timing + method/url when troubleshooting; enable with LOG_LEVEL=debug even in production NODE_ENV.
+    disableRequestLogging: process.env.NODE_ENV === "production" && !debug,
   });
 
   await app.register(cors, { origin: true, credentials: true });
 
   await registerAuth(app);
+
+  await app.register(multipart, {
+    limits: { fileSize: 100 * 1024 * 1024 },
+  });
+
+  await app.register(collabWsPlugin);
 
   await app.register(v1Routes, { prefix: "/api/v1" });
 

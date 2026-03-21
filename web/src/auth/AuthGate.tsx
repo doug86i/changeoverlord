@@ -16,10 +16,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
     retry: false,
   });
 
-  if (location.pathname === "/login") {
-    return children;
-  }
-
   if (isLoading) {
     return (
       <div style={{ padding: "2rem", textAlign: "center" }} className="muted">

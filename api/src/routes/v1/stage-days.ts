@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { eq, asc } from "drizzle-orm";
 import { db } from "../../db/client.js";
+import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { stages, stageDays } from "../../db/schema.js";
 import {
   createStageDayBody,
@@ -36,10 +37,17 @@ export const stageDaysRoutes: FastifyPluginAsync = async (app) => {
           sortOrder: body.sortOrder ?? 0,
         })
         .returning();
+      broadcastInvalidate([
+        ["stageDays", stageId],
+        ["stage", stageId],
+        ["stageDay", row.id],
+      ]);
+      req.log.debug({ stageDayId: row.id, stageId }, "stage day created");
       return reply.code(201).send({ stageDay: row });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("unique") || msg.includes("duplicate")) {
+        req.log.debug({ stageId }, "stage day create conflict");
         return reply.code(409).send({
           error: "Conflict",
           message: "A day with this date already exists for this stage",
@@ -69,10 +77,18 @@ export const stageDaysRoutes: FastifyPluginAsync = async (app) => {
         .where(eq(stageDays.id, id))
         .returning();
       if (!row) return reply.code(404).send({ error: "NotFound" });
+      broadcastInvalidate([
+        ["stageDay", id],
+        ["stageDays", row.stageId],
+        ["stage", row.stageId],
+        ["performances", id],
+      ]);
+      req.log.debug({ stageDayId: id }, "stage day updated");
       return { stageDay: row };
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("unique") || msg.includes("duplicate")) {
+        req.log.debug({ stageDayId: id }, "stage day update conflict");
         return reply.code(409).send({
           error: "Conflict",
           message: "A day with this date already exists for this stage",
@@ -84,11 +100,18 @@ export const stageDaysRoutes: FastifyPluginAsync = async (app) => {
 
   app.delete("/stage-days/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
-    const deleted = await db
-      .delete(stageDays)
-      .where(eq(stageDays.id, id))
-      .returning();
-    if (deleted.length === 0) return reply.code(404).send({ error: "NotFound" });
+    const [existing] = await db.select().from(stageDays).where(eq(stageDays.id, id));
+    if (!existing) return reply.code(404).send({ error: "NotFound" });
+
+    await db.delete(stageDays).where(eq(stageDays.id, id));
+
+    broadcastInvalidate([
+      ["stageDay", id],
+      ["stageDays", existing.stageId],
+      ["stage", existing.stageId],
+      ["performances", id],
+    ]);
+    req.log.debug({ stageDayId: id }, "stage day deleted");
     return reply.code(204).send();
   });
 };

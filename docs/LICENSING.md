@@ -1,5 +1,7 @@
 # Licensing strategy
 
+**Documentation index:** [`README.md`](README.md) (all `docs/` files).
+
 Discussion of **repo licence** and **dependency** choices for Changeoverlord.
 
 ---
@@ -37,6 +39,7 @@ Discussion of **repo licence** and **dependency** choices for Changeoverlord.
 - **Yjs** — **Apache-2.0**  
 - **FortuneSheet** — **MIT**  
 - **ExcelJS** — **MIT** (good default for server-side xlsx)  
+- **pdf-lib** — **MIT** (PDF page count and single-page extract)  
 - **Fastify / Drizzle / React** — permissive  
 
 **Recommendation:** default pipeline = **ExcelJS + FortuneSheet + Yjs**; add **HyperFormula** only if you need **full** spreadsheet formulas and accept **GPL** implications, or evaluate **non-GPL** formula subsets.

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "../../db/client.js";
+import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { settings } from "../../db/schema.js";
 
 const setInitialBody = z.object({
@@ -45,12 +46,15 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
         .update(settings)
         .set({ passwordHash: hash, updatedAt: new Date() })
         .where(eq(settings.id, 1));
+      broadcastInvalidate([["settings"], ["authSession"]]);
+      req.log.info({ settings: "password", action: "initial_set" }, "settings");
       return reply.code(201).send({ ok: true });
     }
 
     const body = changeBody.parse(req.body);
     const ok = await bcrypt.compare(body.currentPassword, existing);
     if (!ok) {
+      req.log.warn({ settings: "password", action: "change", result: "denied" }, "settings");
       return reply.code(401).send({ error: "Unauthorized" });
     }
     const hash = await bcrypt.hash(body.newPassword, 10);
@@ -58,6 +62,8 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
       .update(settings)
       .set({ passwordHash: hash, updatedAt: new Date() })
       .where(eq(settings.id, 1));
+    broadcastInvalidate([["settings"], ["authSession"]]);
+    req.log.info({ settings: "password", action: "change", result: "ok" }, "settings");
     return { ok: true };
   });
 
@@ -76,12 +82,15 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     const body = clearBody.parse(req.body);
     const ok = await bcrypt.compare(body.currentPassword, row.passwordHash);
     if (!ok) {
+      req.log.warn({ settings: "password", action: "clear", result: "denied" }, "settings");
       return reply.code(401).send({ error: "Unauthorized" });
     }
     await db
       .update(settings)
       .set({ passwordHash: null, updatedAt: new Date() })
       .where(eq(settings.id, 1));
+    broadcastInvalidate([["settings"], ["authSession"]]);
+    req.log.info({ settings: "password", action: "clear", result: "ok" }, "settings");
     return reply.code(204).send();
   });
 };

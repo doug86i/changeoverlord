@@ -1,27 +1,14 @@
 # Changeoverlord
 
-Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, **riders** / **stage plots**, collaborative **input patch** and **RF** grids, and **stage clocks**. Designed for **LAN / offline** deployment with optional cloud hosting.
+Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, **riders** / **stage plots**, collaborative **input patch** and **RF** grids, and **stage clocks**. Built for **LAN / offline** use at shows; the same stack can be hosted online later.
 
 **Powered by [Doug Hunt Sound & Light](https://www.doughunt.co.uk/).**
 
-## Stack (implemented)
-
-| Part | Tech |
-|------|------|
-| API | **Fastify** + **TypeScript**, **Drizzle ORM**, **PostgreSQL**, **Zod** |
-| Web | **Vite** + **React** + **TypeScript**, **TanStack Query**, **React Router** |
-| Realtime / grid | **WebSockets + Yjs + FortuneSheet** — planned (see [`docs/PLAN.md`](docs/PLAN.md)) |
-| Deploy | **Docker Compose**: Postgres, Redis (for future sessions/pub-sub), single **Node** container serving **REST** + **static SPA** |
-
-The API is mounted at **`/api/v1`**. The same origin serves the SPA for offline-friendly LAN use.
-
-## Development process (local testing)
-
-**Default:** after changes, deploy with **`make dev`** — same as **`docker compose up -d --build`** — so the **Compose file and image stay the source of truth**. No extra manual deploy steps. Full detail: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** (includes Cursor/AI workflow).
+---
 
 ## Quick start (Docker)
 
-Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2 on **Linux**, **macOS**, or **Windows** (Docker Desktop).
+**Requirements:** [Docker](https://docs.docker.com/get-docker/) with Compose v2 (Linux, macOS, or Windows with Docker Desktop).
 
 ```bash
 git clone https://github.com/doug86i/changeoverlord.git
@@ -30,78 +17,98 @@ make dev
 # same as: docker compose up -d --build
 ```
 
-Open **http://\<server-ip\>** (default **port 80** — no `:port` in the URL).
+Open **http://\<this-machine\>/** — default **port 80** (no `:port` in the URL). If port 80 is busy, set **`HOST_PORT`** in **`.env`** (copy from **`.env.example`**) and use that port instead.
 
-- **`.env`**: optional — copy **`.env.example`**. Infrastructure only (`DATA_DIR`, `HOST_PORT`, `LOG_LEVEL`, …). Product settings (auth, branding, …) will live in the **app UI** as features land.
-- **Offline after first image build**: no registry pull required once images are local.
+- **`.env`** is optional and **infrastructure-only** (paths, port, log level, secrets for Compose). Product behaviour (password, schedules, etc.) lives in the **app**.
+- After the first image build, runtime can be **offline** — no registry pull needed for already-local images.
 
-### Fresh database
+**Fresh database during development:** if migrations get out of sync, stop Compose and remove **`data/db/`** (only on throwaway data), then run **`make dev`** again. **Back up `DATA_DIR`** before wiping on a machine with real prep data.
 
-If you change schema during development, wipe the Postgres volume (or delete `data/db/`) before `docker compose up` so migrations apply cleanly. **Back up** `DATA_DIR` before doing this on a machine with real prep data.
+More detail (aliases, stopping the stack): **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
 
-## Local development (without rebuilding the image every time)
+---
 
-From the repo root (requires **Node.js 22+** and `npm`):
+## What’s in the box
 
-```bash
-npm install
-# Terminal 1 — API (default http://127.0.0.1:3000)
-export DATABASE_URL=postgresql://stageops:stageops@127.0.0.1:5432/stageops
-npm run dev -w api
-# Terminal 2 — Vite dev server (proxies /api → :3000)
-npm run dev -w web
-```
+| Layer | Technology |
+|-------|----------------|
+| API | **Fastify**, **TypeScript**, **Drizzle ORM**, **PostgreSQL**, **Zod** |
+| Web | **Vite**, **React**, **TypeScript**, **TanStack Query**, **React Router** |
+| Live schedule / lists | **SSE** `GET /api/v1/realtime` + TanStack cache invalidation |
+| Patch / RF workbook | **WebSockets**, **Yjs**, **FortuneSheet** |
+| Deploy | **Docker Compose**: Postgres + one **Node** container serving **REST** + **static SPA** |
 
-Run Postgres locally or `docker compose up -d db redis` and point `DATABASE_URL` at `db`.
+The API lives at **`/api/v1`**. The browser loads the SPA from the **same origin** (good for cookies and LAN use).
 
-Production build:
+---
 
-```bash
-npm run build
-```
+## Documentation
 
-## What lives in Compose vs the UI
+| Doc | Audience |
+|-----|----------|
+| **This file** | Overview and **how to run** the stack |
+| **[`docs/README.md`](docs/README.md)** | **Index** of all docs (humans vs agents) |
+| **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** | **Operators** — using events, patch/RF, templates, clocks |
+| **[`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md)** | **Contributors** — when and how to update docs |
+| **[`docs/PLAN.md`](docs/PLAN.md)** | Product vision and roadmap |
+| **[`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md)** | User-journey analysis, competitive research, feature requirements |
+| **[`docs/DECISIONS.md`](docs/DECISIONS.md)** | Engineering decisions |
+| **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | Docker workflow and dev tips |
+| **[`docs/REALTIME.md`](docs/REALTIME.md)** | Live updates (SSE) vs collaborative grid (Yjs) |
+| **[`docs/LOGGING.md`](docs/LOGGING.md)** | Structured logging (`LOG_LEVEL`, `req.log`, web `logDebug`) |
+| **[`docs/DESIGN.md`](docs/DESIGN.md)** | UI themes and tokens |
+| **[`docs/LICENSING.md`](docs/LICENSING.md)** | Licences |
+| **[`docs/HANDOVER.md`](docs/HANDOVER.md)** | **New machine or teammate** — clone, env, data move |
 
-| In **Compose** / `.env` | In the **app UI** |
-|-------------------------|-------------------|
-| Data directory (`DATA_DIR`), host **port**, **`LOG_LEVEL`** | Passwords, branding, clocks copy, … |
-| **`DATABASE_URL`**, **`SESSION_SECRET`** (Compose defaults; override in production) | — |
-| Optional **shared password** (Settings UI) | — |
+**AI assistants and architecture rules:** **[`AGENTS.md`](AGENTS.md)** (not required for deploy-only readers).
 
-## Data directory (one place for DB, Redis, uploads)
+---
 
-All persistent state uses a **single host directory** — default **`./data`**.
+## Build only (CI / sanity check)
 
-| Subfolder | Role |
-|-----------|------|
-| `data/db/` | PostgreSQL files |
-| `data/redis/` | Redis AOF (reserved for WS / sessions) |
-| `data/uploads/` | User uploads (riders, plots, logos) — wired for future file APIs |
+The interactive app is always tested via **Docker** above. To compile **`web/`** + **`api/`** without Compose (e.g. CI), from the repo root: **`npm install`** then **`npm run build`**. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
 
-Set **`DATA_DIR`** in **`.env`** if needed. Details: **[data/README.md](data/README.md)**.
+---
+
+## Compose vs app settings
+
+| In **Compose** / **`.env`** | In the **app UI** |
+|-----------------------------|-------------------|
+| `DATA_DIR`, host **port**, `LOG_LEVEL`, DB URL, `SESSION_SECRET` | Shared password, schedules, clocks content, … |
+
+---
+
+## Data directory
+
+Persistent data defaults to **`./data`** on the host (`data/db/`, `data/uploads/`). Override with **`DATA_DIR`**. See **[`data/README.md`](data/README.md)**.
+
+---
 
 ## Repository layout
 
-| Path | Purpose |
-|------|---------|
-| `docker-compose.yml` | Postgres, Redis, app (Node + built SPA) |
-| `Dockerfile` | Multi-stage: build `web/` + `api/`, run Fastify |
-| `api/` | REST API, Drizzle schema & SQL migrations |
+| Path | Role |
+|------|------|
+| `docker-compose.yml` | Postgres + app |
+| `Dockerfile` | Build `web/` + `api/`, run Fastify |
+| `api/` | REST API, Drizzle schema, migrations |
 | `web/` | Vite React SPA |
-| `package.json` | npm workspaces (root) |
-| `data/` | Persistent data root (`DATA_DIR`); see `data/README.md` |
-| `.env.example` | Optional infrastructure env |
-| `docs/PLAN.md` | Product vision, architecture, roadmap |
-| `docs/DECISIONS.md` | Engineering decisions |
-| `docs/DESIGN.md` | UI themes & tokens |
-| `docs/DEVELOPMENT.md` | Local Docker workflow (`make dev`), AI deploy expectations |
-| `docs/LICENSING.md` | Licences |
-| `.cursor/rules/` | Cursor rules (e.g. auto-deploy to local Compose) |
+| `docs/` | Documentation — start at **[`docs/README.md`](docs/README.md)** |
+| `AGENTS.md` | Rules for AI assistants and core architecture work |
+| `.cursor/rules/` | Cursor automation rules |
+| `.env.example` | Example infrastructure env |
 
-## Status
+---
 
-Core **CRUD** for **events → stages → stage-days → performances**, **health** / **time** / **settings** stubs, **light/dark** UI shell, and **Docker** deployment are in place. **Collaborative spreadsheet (FortuneSheet + Yjs)**, **PDF plots**, **export/import packages**, and **optional auth** are next — see **[`docs/PLAN.md`](docs/PLAN.md)**.
+## Current status
 
-## License
+**Shipped in this repo:** Full **events → stages → stage-days → performances** CRUD with **inline editing**, **swap/shift** scheduling helpers, **SSE** live updates, **global search**, **export/import** event packages, **stage clocks** (distance/fullscreen layout, changeover mode), header **My stage today**, **collaborative patch/RF** workbook (Yjs + FortuneSheet), **template library**, **PDF** attachments with **inline viewer** and **page extract**, **responsive** shell (hamburger nav, breakpoints), **connection status**, keyboard shortcuts, optional **shared password**, **Docker** deployment.
 
-MIT — see [LICENSE](LICENSE).
+**Handover to another machine:** **[`docs/HANDOVER.md`](docs/HANDOVER.md)**.
+
+**Roadmap / backlog:** **[`docs/PLAN.md`](docs/PLAN.md)** and **[`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md)** (e.g. configurable client logo, further polish).
+
+---
+
+## Licence
+
+MIT — see **[LICENSE](LICENSE)**.

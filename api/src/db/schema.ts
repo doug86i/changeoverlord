@@ -39,6 +39,23 @@ export const events = pgTable("events", {
     .notNull(),
 });
 
+/** Global patch/RF workbook templates (upload once; stages reference by id). */
+export const patchTemplates = pgTable("patch_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  originalName: text("original_name").notNull(),
+  storageKey: text("storage_key").notNull().unique(),
+  mimeType: text("mime_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  snapshot: bytea("snapshot").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const stages = pgTable("stages", {
   id: uuid("id").defaultRandom().primaryKey(),
   eventId: uuid("event_id")
@@ -46,8 +63,11 @@ export const stages = pgTable("stages", {
     .references(() => events.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
-  /** Optional Yjs snapshot for the stage default patch workbook (cloned to new performances). */
-  defaultTemplateSnapshot: bytea("default_template_snapshot"),
+  /** Which global template seeds new performances on this stage (null = blank grid). */
+  defaultPatchTemplateId: uuid("default_patch_template_id").references(
+    () => patchTemplates.id,
+    { onDelete: "set null" },
+  ),
 });
 
 export const stageDays = pgTable("stage_days", {
@@ -70,6 +90,27 @@ export const performances = pgTable("performances", {
   /** Local event time as HH:mm (24h). */
   startTime: text("start_time").notNull(),
   endTime: text("end_time"),
+});
+
+/** Uploaded files (riders, plots, PDFs, etc.). */
+export const fileAssets = pgTable("file_assets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  originalName: text("original_name").notNull(),
+  /** Path relative to uploads root, e.g. files/<uuid>.pdf */
+  storageKey: text("storage_key").notNull().unique(),
+  mimeType: text("mime_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  /** rider_pdf (any rider attachment type), plot_pdf, plot_from_rider, generic */
+  purpose: text("purpose").notNull(),
+  stageId: uuid("stage_id").references(() => stages.id, { onDelete: "set null" }),
+  performanceId: uuid("performance_id").references(() => performances.id, {
+    onDelete: "set null",
+  }),
+  /** Set when this file was extracted from another PDF (single-page derivative). */
+  parentFileId: uuid("parent_file_id"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 /** Latest Yjs snapshot per performance (FortuneSheet doc). */

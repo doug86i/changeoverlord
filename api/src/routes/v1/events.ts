@@ -1,7 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
 import { eq, desc } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { events } from "../../db/schema.js";
+import { broadcastInvalidate } from "../../lib/realtime-bus.js";
+import { events, stageDays, stages } from "../../db/schema.js";
 import {
   createEventBody,
   patchEventBody,
@@ -33,6 +34,8 @@ export const eventsRoutes: FastifyPluginAsync = async (app) => {
         endDate: body.endDate,
       })
       .returning();
+    broadcastInvalidate([["events"]]);
+    req.log.debug({ eventId: row.id }, "event created");
     return reply.code(201).send({ event: row });
   });
 
@@ -65,13 +68,40 @@ export const eventsRoutes: FastifyPluginAsync = async (app) => {
       })
       .where(eq(events.id, id))
       .returning();
+    broadcastInvalidate([["events"], ["event", id]]);
+    req.log.debug({ eventId: id }, "event updated");
     return { event: row };
   });
 
   app.delete("/events/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
-    const deleted = await db.delete(events).where(eq(events.id, id)).returning();
-    if (deleted.length === 0) return reply.code(404).send({ error: "NotFound" });
+    const [ev] = await db.select().from(events).where(eq(events.id, id));
+    if (!ev) return reply.code(404).send({ error: "NotFound" });
+
+    const stRows = await db
+      .select({ id: stages.id })
+      .from(stages)
+      .where(eq(stages.eventId, id));
+    const dayIds: string[] = [];
+    for (const s of stRows) {
+      const ds = await db
+        .select({ id: stageDays.id })
+        .from(stageDays)
+        .where(eq(stageDays.stageId, s.id));
+      for (const d of ds) dayIds.push(d.id);
+    }
+
+    await db.delete(events).where(eq(events.id, id));
+
+    const keys: (string | null)[][] = [["events"], ["event", id], ["stages", id]];
+    for (const s of stRows) {
+      keys.push(["stage", s.id], ["stageDays", s.id]);
+    }
+    for (const did of dayIds) {
+      keys.push(["stageDay", did], ["performances", did]);
+    }
+    broadcastInvalidate(keys);
+    req.log.debug({ eventId: id }, "event deleted");
     return reply.code(204).send();
   });
 };

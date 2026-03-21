@@ -1,4 +1,6 @@
+# syntax=docker/dockerfile:1
 # Build web (Vite) + API (TypeScript), run Fastify with static SPA + REST.
+# BuildKit cache mounts speed up npm when layers above change but the lockfile is stable.
 FROM node:22-alpine AS builder
 WORKDIR /build
 
@@ -6,7 +8,8 @@ COPY package.json package-lock.json* ./
 COPY api/package.json api/
 COPY web/package.json web/
 
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm install
 
 COPY api api
 COPY web web
@@ -28,7 +31,11 @@ COPY package.json package-lock.json* ./
 COPY api/package.json api/
 COPY web/package.json web/
 
-RUN npm install --omit=dev --workspace=@changeoverlord/api
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --omit=dev --workspace=@changeoverlord/api && \
+    chown -R node:node /app
+
+USER node
 
 EXPOSE 80
 

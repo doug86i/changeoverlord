@@ -4,8 +4,9 @@
 !.env.example
 # Runtime data (structure documented in data/README.md)
 data/db/
-data/redis/
 data/uploads/
+# Stray Redis volume if ever created locally — not part of the stack
+data/redis/
 node_modules/
 dist/
 build/

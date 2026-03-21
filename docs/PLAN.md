@@ -2,6 +2,8 @@
 
 This document captures the agreed **vision**, **architecture**, and **roadmap** for *Changeoverlord*: a web app for festival **sound crew** — schedules, **changeovers**, **riders** / **stage plots**, collaborative **input patch** and **RF**, and **stage clocks**. It is the canonical planning reference in-repo; keep it updated as decisions change.
 
+**Documentation index:** [`README.md`](README.md) (all `docs/` files). **Operators:** [`USER_GUIDE.md`](USER_GUIDE.md). **Deploy:** [`README.md`](../README.md) in the repo root. **Feature requirements & competitive research:** [`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md).
+
 **Powered by [Doug Hunt Sound & Light](https://www.doughunt.co.uk/).**
 
 ---
@@ -49,7 +51,7 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 | **Threat model** | If **no password**: assume **trusted environment**; still follow baseline web hygiene. Stricter defaults when password is on or host is **internet-facing** — see **[`DECISIONS.md`](DECISIONS.md)**. |
 | **Limits** | **Generous** server maxima + clear user messages — avoid **“computer says no”** on stage; numbers in **[`DECISIONS.md`](DECISIONS.md)**. |
 | **Browsers** | Current ±1 major **Chrome, Firefox, Safari, Edge**; no bleeding-edge-only APIs; see **[`DECISIONS.md`](DECISIONS.md)**. |
-| **Logging** | **`LOG_LEVEL`** via **`.env` / Compose** for API debug (default `info`) — see **[`DECISIONS.md`](DECISIONS.md)**. |
+| **Logging** | **`LOG_LEVEL`** via **`.env` / Compose**; structured Pino + web `logDebug` — see **[`LOGGING.md`](LOGGING.md)** / **[`DECISIONS.md`](DECISIONS.md)**. |
 | **Locale** | **English** only for MVP. |
 | **Time** | Each **event = one location** — all **times are local event time** unless explicitly labelled otherwise (no multi-timezone complexity in v1). |
 | **Accountability** | **Not required** for v1 (no per-user audit trail). |
@@ -76,7 +78,7 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 
 - **One [`docker-compose.yml`](../docker-compose.yml)** for **Linux, macOS, and Windows** (Docker Desktop).
 - Header documents **defaults** for: **`DATA_DIR`**, **`HOST_PORT`**, **`APP_IMAGE_TAG`**.
-- **Bind-mounts** for `docker/html/` and `docker/nginx/default.conf` so static edits are **live** without rebuild; **`develop.watch`** rebuilds when **`Dockerfile`** changes.
+- The **`app`** image is a self-contained Node container serving the compiled SPA (`web/dist`) via **`@fastify/static`** and the API (`api/dist`) — no nginx or bind-mounts. Source changes require rebuilding the image (`make dev`).
 - Deeper host-specific overrides only if needed: **`compose.override.example.yml`** pattern; prefer **`.env`** first.
 
 ### 4.3 Data on one host tree (`DATA_DIR`)
@@ -86,8 +88,7 @@ All durable state under one root (default **`./data`**) for **backup, browsing, 
 | Path | Role |
 |------|------|
 | `data/db/` | PostgreSQL |
-| `data/redis/` | Redis (AOF) |
-| `data/uploads/` | User uploads (riders, plots, logos) |
+| `data/uploads/` | User uploads (template files, future riders/plots) |
 
 See **[`data/README.md`](../data/README.md)**. Set **`DATA_DIR`** in **`.env`** (see **[`.env.example`](../.env.example)**) — use forward slashes; Windows examples included.
 
@@ -124,21 +125,17 @@ flowchart LR
     Proxy[Reverse_proxy_TLS]
   end
   subgraph stack [Docker_Compose]
-    Web[Web_SPA]
-    API[API_WebSocket]
+    App[Fastify_SPA_API_WS]
     DB[(PostgreSQL)]
-    Cache[(Redis)]
     Files[Uploads_volume]
   end
   clients --> edge
-  edge --> Web
-  edge --> API
-  API --> DB
-  API --> Cache
-  API --> Files
+  edge --> App
+  App --> DB
+  App --> Files
 ```
 
-**Redis**: WebSocket adapter / pub-sub (per stage/performance), optional session store, optional job queue for PDF work.
+**Redis** is not in the stack for v1; an in-process `EventEmitter` handles SSE pub/sub for the single-instance LAN deployment. Add **Redis pub/sub** (or Postgres `LISTEN/NOTIFY`) when multi-replica scaling or background job queues (e.g. PDF) are needed.
 
 ### Suggested stack (implementation)
 
@@ -265,7 +262,7 @@ Not requirements — useful patterns and UX references.
 
 ## 12. Post-MVP backlog (non-binding)
 
-Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
+Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**. Detailed requirements with user-journey analysis and competitive research: **[`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md)**.
 
 | Idea | Notes |
 |------|--------|
@@ -300,13 +297,13 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 | ID | Track | Status |
 |----|-------|--------|
 | — | Compose + GHCR + `DATA_DIR` layout + single `docker-compose.yml` | **Done** |
-| domain-api | Event → Stage → Day → Performance CRUD + file metadata API | **In progress** (CRUD done; file metadata pending) |
-| clock-ui | Server time API + countdown + fullscreen + band navigation | **In progress** (day clock + countdown + nav + fullscreen; polish pending) |
-| collab-grids | Stage default templates (**Excel/Google-via-export** as base); clone per performance; **import `.xlsx`**; Yjs + WebSocket + persistence | Pending |
-| pdf-plots | PDF upload, thumbnails, extract page as plot asset | Pending |
+| domain-api | Event → Stage → Day → Performance CRUD + file metadata API | **Done** (CRUD complete; `file_assets` table ready for future rider/plot uploads) |
+| clock-ui | Server time API + countdown + fullscreen + band navigation | **Done** |
+| collab-grids | Global template library, **import `.xlsx`**, create from presets, in-app editing, clone per performance, Yjs + WebSocket + persistence | **Done** |
+| pdf-plots | PDF upload, extract page as derivative PDF, stage + performance attach | **Partial** (no raster thumbnails; page picker + **pdf-lib** extract) |
 | responsive-ux | Desktop / tablet / mobile layouts; touch-first stage views | Pending |
-| settings-ui | Settings: auth, passwords, local event time / clock, time+NTP guidance (no ops in Compose) | **In progress** (shared password + session cookie; NTP copy still light) |
-| branding-ui | Client logo; fixed “Powered by DHSL” footer + bundled logo | Pending |
+| settings-ui | Settings: auth, passwords, template library management | **Done** (shared password + session cookie + template CRUD) |
+| branding-ui | Client logo; fixed “Powered by DHSL” footer + bundled logo | **Partial** (DHSL footer done; client logo pending) |
 | event-pack | **Export** / **import** event packages (zip + manifest + uploads + Yjs snapshots); conflict/version rules | Pending |
 
 ---

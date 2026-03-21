@@ -39,6 +39,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
     const ok = await bcrypt.compare(body.password, row.passwordHash);
     if (!ok) {
+      req.log.warn({ auth: "login", result: "failure" }, "auth");
       return reply.code(401).send({ error: "Unauthorized" });
     }
     const token = createSessionToken();
@@ -48,11 +49,13 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       sameSite: "lax",
       maxAge: 604800,
     });
+    req.log.info({ auth: "login", result: "success" }, "auth");
     return { ok: true };
   });
 
-  app.post("/auth/logout", async (_req, reply) => {
+  app.post("/auth/logout", async (req, reply) => {
     reply.clearCookie(sessionCookieName, { path: "/" });
+    req.log.info({ auth: "logout" }, "auth");
     return { ok: true };
   });
 

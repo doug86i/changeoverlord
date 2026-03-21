@@ -1,0 +1,99 @@
+---
+description: Concrete code patterns to copy — new routes, pages, queries, styling
+alwaysApply: true
+---
+
+# Code patterns (copy these)
+
+## Adding a new API route
+
+File: `api/src/routes/v1/<resource>.ts`. Register it in `api/src/routes/v1/index.ts`.
+
+```typescript
+import type { FastifyPluginAsync } from "fastify";
+import { eq } from "drizzle-orm";
+import { db } from "../../db/client.js";
+import { broadcastInvalidate } from "../../lib/realtime-bus.js";
+import { myTable } from "../../db/schema.js";
+import { uuidParam, createMyBody } from "../../schemas/api.js";
+
+export const myRoutes: FastifyPluginAsync = async (app) => {
+  app.get("/my-things", async () => {
+    const rows = await db.select().from(myTable);
+    return { myThings: rows };
+  });
+
+  app.post("/my-things", async (req, reply) => {
+    const body = createMyBody.parse(req.body);
+    const [row] = await db.insert(myTable).values(body).returning();
+    broadcastInvalidate([["myThings"]]);        // <-- REQUIRED for SSE
+    req.log.debug({ id: row.id }, "thing created"); // <-- REQUIRED logging
+    return reply.code(201).send({ myThing: row });
+  });
+};
+```
+
+Key rules:
+- Parse params/body with **Zod** (`schemas/api.ts` or local).
+- Call **`broadcastInvalidate`** after every successful mutation.
+- Log with **`req.log.debug`** (never `console.log`).
+- Return `{ resourceName: row }` (match existing responses).
+
+## Adding Zod schemas
+
+File: `api/src/schemas/api.ts` for shared schemas. Local schemas are fine for route-specific validation.
+
+## Adding a new frontend page
+
+1. Create `web/src/pages/MyPage.tsx`.
+2. Add a `<Route>` in `web/src/App.tsx` inside the `<AuthGate>` wrapper.
+3. Use `useQuery` with a **`queryKey`** that matches what the API's `broadcastInvalidate` sends.
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "../api/client";
+
+export function MyPage() {
+  const q = useQuery({
+    queryKey: ["myThings"],       // must match broadcastInvalidate key
+    queryFn: () => apiGet<{ myThings: MyThing[] }>("/api/v1/my-things"),
+  });
+
+  if (q.isLoading) return <p className="muted">Loading…</p>;
+  if (q.error || !q.data) return <p role="alert">Failed to load.</p>;
+  // render q.data.myThings
+}
+```
+
+## Adding a frontend mutation
+
+```tsx
+const mut = useMutation({
+  mutationFn: (body: CreateBody) =>
+    apiSend("/api/v1/my-things", "POST", body),
+  onSuccess: () => qc.invalidateQueries({ queryKey: ["myThings"] }),
+});
+```
+
+Use `apiSend` (JSON) or `apiSendForm` (multipart) from `web/src/api/client.ts`.
+
+## CSS and styling
+
+- **All tokens** live in `web/src/global.css` (`:root[data-theme]` selectors).
+- Use `var(--color-*)`, `var(--radius-*)` — never hardcode `#hex` colors or `8px` radii.
+- Available tokens: `--color-bg`, `--color-surface`, `--color-border`, `--color-text`, `--color-text-muted`, `--color-brand`, `--color-on-brand`, `--color-overlay`.
+- Use `.card`, `.muted`, `.title-bar`, `button.primary` classes — don't recreate them.
+- No CSS modules — everything is in `global.css`.
+- FortuneSheet CSS is imported in `main.tsx` before `global.css`.
+
+## File types
+
+- Add shared frontend types to `web/src/api/types.ts`.
+- API response shapes should match: `{ resourceName: Row }` for single, `{ resourceNames: Row[] }` for lists.
+
+## File attachments (`/api/v1/files`)
+
+- **List:** `GET /api/v1/files?stageId=` (stage-only files) or `?performanceId=` (per-band files).
+- **Upload:** `POST /api/v1/files?stageId=` **or** `?performanceId=` — multipart field `file`, query `purpose=rider_pdf` (default). Allowed types: see `api/src/lib/upload-allowlists.ts` (PDF, images, text, common docs).
+- **Extract:** `POST /api/v1/files/:id/extract-page` JSON `{ "pageIndex": 0 }` (0-based) — **PDF sources only**.
+- **TanStack keys:** `["files", stageId]` and `["files", "performance", performanceId]` — must be invalidated after upload/delete/extract (see `api/src/routes/v1/files.ts`).

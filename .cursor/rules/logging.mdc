@@ -1,0 +1,26 @@
+---
+description: Structured debug logging — Pino req.log, createLogger, no secrets
+alwaysApply: true
+---
+
+# Logging (mandatory consistency)
+
+Canonical detail: **[`docs/LOGGING.md`](../docs/LOGGING.md)** and **[`docs/DECISIONS.md`](../docs/DECISIONS.md)** (logging section).
+
+## API
+
+- Use **`req.log`** in Fastify route handlers (structured object + short message).
+- Use **`createLogger("component")`** from **`api/src/lib/log.ts`** for WebSockets, Yjs persistence, realtime bus, migrations — not raw `console.*`.
+- **Levels:** **`debug`** for routine mutations (include entity ids), **`info`** / **`warn`** for auth and settings outcomes, **`error`** for failures.
+- **Never** log passwords, session tokens, or full `Cookie` / `Authorization` headers.
+- **New REST mutations:** add a **`req.log.debug({ ...ids }, "…")`** line after success (match existing routes).
+- **Drizzle SQL** appears automatically when **`LOG_LEVEL=debug`** — do not duplicate as manual logs unless clarifying business logic.
+
+## Web
+
+- Use **`logDebug()`** from **`web/src/lib/debug.ts`** for browser troubleshooting — not `console.log` in feature code unless wrapping in `logDebug` patterns.
+- **Never** log credentials or full API responses with sensitive data.
+
+## Docs
+
+- If you introduce a **new logging pattern** or destination, update **`docs/LOGGING.md`**.

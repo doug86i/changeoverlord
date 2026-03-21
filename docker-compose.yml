@@ -6,10 +6,10 @@
 #
 # Variable          Default     Purpose
 # ----------------  ----------  -----------------------------------------------
-# DATA_DIR          ./data      Host root for db/, redis/, uploads/ (one backup tree).
+# DATA_DIR          ./data      Host root for db/, uploads/ (one backup tree).
 # HOST_PORT         80          Published HTTP port (e.g. 8080 if 80 is busy or restricted).
 # APP_IMAGE_TAG     latest      Local/GHCR image tag for the app.
-# LOG_LEVEL         info        API logging: error|warn|info|debug
+# LOG_LEVEL         debug       Default for local `make dev`; set `info` in `.env` for quiet LAN deploys — docs/LOGGING.md
 # SESSION_SECRET    (generate)  HMAC for session cookie — set in production
 #
 # Paths: use forward slashes. Relative paths are relative to this file. On Windows,
@@ -32,28 +32,17 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes --appendfilename appendonly.aof
-    volumes:
-      - ${DATA_DIR:-./data}/redis:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   app:
     image: ghcr.io/doug86i/changeoverlord/app:${APP_IMAGE_TAG:-latest}
     build: .
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://stageops:stageops@db:5432/stageops
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
       SESSION_SECRET: ${SESSION_SECRET:-change-me-generate-a-long-random-string}
       PORT: "80"
       WEB_PUBLIC_DIR: /app/public
+      UPLOADS_DIR: /var/changeoverlord/uploads
       NODE_ENV: production
     ports:
       - "${HOST_PORT:-80}:80"
@@ -61,8 +50,6 @@ services:
       - ${DATA_DIR:-./data}/uploads:/var/changeoverlord/uploads
     depends_on:
       db:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     healthcheck:
       test:

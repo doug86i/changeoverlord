@@ -6,6 +6,9 @@
     <title>Changeoverlord</title>
   </head>
   <body>
+    <script>
+      (function(){try{var t=localStorage.getItem("changeoverlord-theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t}else{document.documentElement.dataset.theme=window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"}}catch(e){document.documentElement.dataset.theme="light"}})();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

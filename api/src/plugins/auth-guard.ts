@@ -35,16 +35,30 @@ export async function registerAuth(
     "onRequest",
     async (req: FastifyRequest, reply: FastifyReply) => {
       const path = req.url.split("?")[0];
-      if (!path.startsWith("/api/v1")) return;
 
-      if (isPublicPath(path, req.method)) return;
+      if (path.startsWith("/api/v1")) {
+        if (isPublicPath(path, req.method)) return;
 
-      const passwordOn = await hasPassword();
-      if (!passwordOn) return;
+        const passwordOn = await hasPassword();
+        if (!passwordOn) return;
 
-      const token = req.cookies[sessionCookieName];
-      if (!verifySessionToken(token)) {
-        return reply.code(401).send({ error: "Unauthorized" });
+        const token = req.cookies[sessionCookieName];
+        if (!verifySessionToken(token)) {
+          req.log.debug({ path }, "auth: unauthorized api");
+          return reply.code(401).send({ error: "Unauthorized" });
+        }
+        return;
+      }
+
+      if (path.startsWith("/ws/")) {
+        const passwordOn = await hasPassword();
+        if (!passwordOn) return;
+
+        const token = req.cookies[sessionCookieName];
+        if (!verifySessionToken(token)) {
+          req.log.debug({ path }, "auth: unauthorized ws");
+          return reply.code(401).send({ error: "Unauthorized" });
+        }
       }
     },
   );

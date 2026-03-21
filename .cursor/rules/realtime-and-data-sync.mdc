@@ -1,0 +1,24 @@
+---
+description: Mandatory split — SSE for REST cache invalidation; WebSockets+Yjs for patch workbook only
+alwaysApply: true
+---
+
+# Realtime & data sync (non-negotiable)
+
+## Two channels
+
+1. **Domain / schedule / settings** — **REST** is truth. Live UI updates use **SSE** `GET /api/v1/realtime` + **`broadcastInvalidate()`** after mutations (`api/src/lib/realtime-bus.ts`). The web **`RealtimeSync`** component maps payloads to **TanStack Query** `queryKey`s. Never use this for spreadsheet cell bytes.
+
+2. **FortuneSheet patch workbook** — **WebSocket** `/ws/v1/collab/:performanceId` (performances) and `/ws/v1/collab-template/:templateId` (template editor) + **Yjs** only. Persisted in **`performance_yjs_snapshots`** and **`patch_templates.snapshot`** respectively. Do not push workbook state through SSE.
+
+## When editing API routes
+
+- Any **successful** `POST` / `PATCH` / `DELETE` that should refresh other users’ screens **must** call **`broadcastInvalidate`** with **`queryKey` tuples** matching **`web/src/`** (see **`docs/REALTIME.md`**).
+
+## When editing the web app
+
+- New **`useQuery` `queryKey`s** must be covered by server invalidations for relevant mutations, or users will need a manual refresh.
+
+## Docs
+
+Canonical detail: **`docs/REALTIME.md`**. Human doc index: **`docs/README.md`**. Agent entry: **`AGENTS.md`**.

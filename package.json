@@ -8,5 +8,13 @@
   "scripts": {
     "build": "npm run build -w web && npm run build -w api",
     "dev": "npm run dev -w api & npm run dev -w web"
+  },
+  "overrides": {
+    "yjs": "13.6.30",
+    "@y/protocols": "1.0.6-1",
+    "@y/websocket-server": {
+      "yjs": "13.6.30",
+      "@y/protocols": "1.0.6-1"
+    }
   }
 }

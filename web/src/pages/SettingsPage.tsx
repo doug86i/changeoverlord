@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiGet, apiSend } from "../api/client";
+import { PatchTemplateLibrarySettings } from "../components/PatchTemplateTools";
 
 type SettingsRes = { hasPassword: boolean };
 
@@ -74,6 +75,8 @@ export function SettingsPage() {
           lasts about a week.
         </p>
       </div>
+
+      <PatchTemplateLibrarySettings />
 
       {!settings?.hasPassword && (
         <div className="card" style={{ marginBottom: "1rem" }}>

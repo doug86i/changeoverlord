@@ -1,0 +1,32 @@
+---
+description: Keep operator-facing docs in sync when UX or product behaviour changes
+alwaysApply: true
+---
+
+# User documentation
+
+## Canonical file
+
+- **`docs/USER_GUIDE.md`** — how operators use the app (not Docker or API internals).
+
+## When to update
+
+If the change affects **what someone does in the browser** (new route, setting, clock behaviour, template workflow, renamed nav label, or a removed feature), update **`docs/USER_GUIDE.md`** in the **same change** when practical.
+
+## Also touch
+
+- **`docs/README.md`** — add or adjust the index row if you add a **new** top-level doc under `docs/`.
+- Root **`README.md`** — add a pointer under **Documentation** if operators need to find the new doc.
+
+## Do not duplicate
+
+- Install / Compose / ports → link **`README.md`** / **`docs/DEVELOPMENT.md`** from the user guide instead of copying.
+- Deep engineering → **`docs/REALTIME.md`**, **`docs/DECISIONS.md`**, **`AGENTS.md`**.
+
+## Patch template presets
+
+If you change **blank** / **example** workbook layouts or the bundled **DH Pick & Patch (example)** seed, update **`api/src/lib/patch-template-presets.ts`** (and **`seed-patch-templates.ts`** if the shipped name or `originalName` changes), **`docs/USER_GUIDE.md`** (templates), and **`docs/MAINTAINING_DOCS.md`** if the maintenance table needs a new row.
+
+## Process detail
+
+See **`docs/MAINTAINING_DOCS.md`** for the full split of audiences and review habits.

@@ -16,7 +16,14 @@ export async function apiGet<T>(path: string): Promise<T> {
   if (!r.ok) {
     redirectToLoginIfNeeded(path, r.status);
     const text = await r.text();
-    throw new Error(text || r.statusText);
+    let msg = text || r.statusText;
+    try {
+      const j = JSON.parse(text) as { message?: string };
+      if (typeof j.message === "string" && j.message) msg = j.message;
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(msg);
   }
   return r.json() as Promise<T>;
 }
@@ -31,9 +38,37 @@ export async function apiSend<T>(
     credentials: "include",
     headers: {
       Accept: "application/json",
-      "Content-Type": "application/json",
+      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (r.status === 204) return undefined as T;
+  if (!r.ok) {
+    redirectToLoginIfNeeded(path, r.status);
+    const text = await r.text();
+    let msg = text || r.statusText;
+    try {
+      const j = JSON.parse(text) as { message?: string };
+      if (typeof j.message === "string" && j.message) msg = j.message;
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(msg);
+  }
+  return r.json() as Promise<T>;
+}
+
+/** Multipart upload; do not set Content-Type — browser sets multipart boundary. */
+export async function apiSendForm<T>(
+  path: string,
+  method: string,
+  form: FormData,
+): Promise<T> {
+  const r = await fetch(`${base}${path}`, {
+    method,
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    body: form,
   });
   if (r.status === 204) return undefined as T;
   if (!r.ok) {

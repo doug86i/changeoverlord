@@ -1,0 +1,45 @@
+---
+description: Explicit list of things that will break the app — read before making changes
+alwaysApply: true
+---
+
+# Pitfalls (do NOT do these)
+
+## Yjs and FortuneSheet
+
+- **Do NOT upgrade** `yjs`, `@y/protocols`, `@y/websocket-server`, or `y-websocket` without reading `docs/DECISIONS.md` § "Yjs / WebSocket npm compatibility." The versions are pinned to avoid a Yjs 13 vs 14 conflict that breaks WebSocket connections silently.
+- **Do NOT attempt to reconstruct sheet state from the Yjs opLog on the server.** The opLog contains serialized FortuneSheet ops that only FortuneSheet's `applyOp` can replay. The Yjs snapshot in the DB is the source of truth. The `.xlsx` file on disk is only the original upload.
+- **Do NOT modify the FortuneSheet collaboration bridge** (the `onOp` → `yops.push` → `observe` → `applyOp` flow in `PatchPage.tsx` / `PatchTemplateEditorPage.tsx`) unless you deeply understand both FortuneSheet ops and Yjs transactions.
+- **Do NOT forget `ydoc.destroy()`** in cleanup effects when creating `Y.Doc` instances.
+
+## Redis
+
+- **Redis is NOT in the stack.** Do not import or configure Redis clients. If you need Redis, add the service to `docker-compose.yml` first and update `AGENTS.md`.
+
+## Realtime sync
+
+- **Every** successful `POST` / `PATCH` / `DELETE` route **must** call `broadcastInvalidate` with the relevant TanStack Query keys. Missing this means other browsers won't see the change until manual refresh.
+- **Every** new `useQuery` key on the frontend must be covered by `broadcastInvalidate` calls in the relevant API mutations.
+- Domain data uses **SSE**. Workbook data uses **Yjs/WebSocket**. Never mix them.
+
+## Docker and testing
+
+- **Changes are NOT live** until you run `make dev`. There is no bind-mount — the running app is compiled code inside the Docker image.
+- **Do NOT use `npm run dev`** or run the API/web outside Docker for integration testing. Compose is the only supported path.
+- **Do NOT open saved HTML files** (`file://`) to test — they can't reach the API.
+
+## Styling
+
+- **Do NOT use hardcoded colors** (`#fff`, `rgba(...)`) — use CSS variables (`var(--color-on-brand)`, `var(--color-overlay)`).
+- **Do NOT create new CSS files** — put styles in `web/src/global.css` or use existing classes.
+- **Do NOT use `console.log`** — use `req.log` (API routes), `createLogger` (API off-request), or `logDebug` (web).
+
+## Schema and migrations
+
+- **Do NOT edit existing migration files.** Create a new `api/drizzle/NNNN_<name>.sql` and update `meta/_journal.json`.
+- **Do NOT manually run SQL** against the database. All schema changes go through Drizzle migrations.
+
+## Dependencies
+
+- **Do NOT add dependencies** without checking they are MIT/compatible (see `docs/LICENSING.md`).
+- **Do NOT modify `package-lock.json` manually** — only `npm install` should touch it.

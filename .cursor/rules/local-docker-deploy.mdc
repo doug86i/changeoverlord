@@ -7,6 +7,10 @@ alwaysApply: true
 
 When you **finish implementing or fixing** something that affects the running app, **deploy it to the local test environment yourself** — do not ask the user to run commands unless Docker is unavailable or the command fails after a retry.
 
+## Why “changes aren’t live”
+
+The **running app is the built image** (`web/dist` + `api/dist` copied into the container). There is **no bind-mount** of `api/src` or `web/src`. Edits on disk do nothing until you **rebuild** that image and restart the `app` container.
+
 ## Command (repo root)
 
 Run:
@@ -16,6 +20,14 @@ make dev
 ```
 
 Equivalent: `docker compose up -d --build` using the project **`docker-compose.yml`**.
+
+If the stack was already up and you still see **stale UI or API** after `make dev`, Docker may have reused cached build layers. Run:
+
+```bash
+make dev-fresh
+```
+
+(`docker compose build --no-cache app && docker compose up -d app`)
 
 Use the **same working directory** as the repo root (path may contain spaces — quote or `cd` correctly).
 
@@ -37,4 +49,22 @@ Skip only for **docs-only** or **comment-only** edits with zero effect on build/
 ## Principles
 
 - **Compose is the source of truth** for local integration testing — avoid ad-hoc `docker run` unless debugging an image issue the user requested.
-- **Goal**: zero manual steps for the human to see changes on **http://localhost/** (or `HOST_PORT`).
+- **Goal**: zero manual steps for the human to see changes on a **live local URL** after your work.
+
+## Logging while testing
+
+- Follow **[`docs/LOGGING.md`](../docs/LOGGING.md)** for any new/changed logs (`req.log`, `createLogger`, levels, no secrets).
+- To inspect the running API: **`docker compose logs -f app`**. Set **`LOG_LEVEL=debug`** in **`.env`** for verbose structured logs (see **DEVELOPMENT.md**).
+
+## End-of-task checklist (same as [`AGENTS.md`](../../AGENTS.md) “Local testing”)
+
+1. **`make dev`** from repo root (skip only for docs-only / comment-only with no build effect).
+2. **Verify** the stack: e.g. **`curl -sS http://127.0.0.1/api/v1/health`** → `200` with `{"ok":true,...}`, or **`docker compose ps`** → `app` running.
+3. **Tell the user the exact base URL** (below). If UI/API still looks stale, **`make dev-fresh`**.
+
+## Tell the user where to click
+
+After **`make dev`**, state the **exact** base URL:
+
+- Default: **`http://localhost/`** (port **80** — no `:port` in the address bar).
+- If **`.env`** sets **`HOST_PORT`** (e.g. `8080`): **`http://localhost:8080/`**.

@@ -1,5 +1,7 @@
 # Visual design — Changeoverlord
 
+**Documentation index:** [`README.md`](README.md) (all `docs/` files).
+
 Goals: **clean**, **modern**, and **consistent** across the app — readable in **bright daylight** (office, festival compound, outdoor prep) and **dark venues** (FOH, stage wings, dim backstage).
 
 ---

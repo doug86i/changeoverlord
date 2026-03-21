@@ -1,6 +1,8 @@
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema.js";
+import { drizzleDebugLogger } from "../lib/drizzle-logger.js";
+import { isDebugLevel } from "../lib/log.js";
 
 const connectionString =
   process.env.DATABASE_URL ??
@@ -11,4 +13,7 @@ export const pool = new pg.Pool({
   max: 20,
 });
 
-export const db = drizzle(pool, { schema });
+export const db = drizzle(pool, {
+  schema,
+  ...(isDebugLevel() ? { logger: drizzleDebugLogger } : {}),
+});

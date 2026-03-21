@@ -104,7 +104,7 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 | API | **Fastify** + **TypeScript** |
 | DB access | **Drizzle ORM** + **PostgreSQL** (migrations in repo) |
 | Validation | **Zod** |
-| Realtime | **WebSockets** + **Yjs** |
+| Realtime | **WebSockets** + **Yjs** (patch workbook); **SSE** (`/api/v1/realtime`) for schedule / domain cache invalidation |
 | Frontend | **Vite** + **React** + **TypeScript** + **TanStack Query** |
 | Spreadsheet UI | **FortuneSheet** + **ExcelJS** (import) |
 | Tests (later) | **Vitest** (unit) + **Playwright** (e2e smoke) |
@@ -115,9 +115,17 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 
 ## API shape
 
-- **REST** under **`/api/v1/...`** (resources: events, stages, stage-days, performances, files, settings).
+- **REST** under **`/api/v1/...`** (resources: events, stages, stage-days, performances, **files** (PDF upload/list/extract/raw), patch-templates, settings).
 - **WebSocket** for collaboration: e.g. **`/ws/v1/collab`** (or nested under `/api` — pick one and keep it consistent); **subprotocol** or **query token** for auth when password enabled.
+- **Live updates (schedule / lists)** — **`GET /api/v1/realtime`** (SSE): after mutations, server broadcasts **TanStack Query** `queryKey` tuples to invalidate; clients refetch without refresh. See **[`REALTIME.md`](REALTIME.md)**. (Not used for Yjs spreadsheet bytes.)
 - **Server time**: **`GET /api/v1/time`** (or `/api/v1/health` including skew info later).
+
+---
+
+## Yjs / WebSocket npm compatibility
+
+- **`@y/websocket-server`** pulls **`@y/protocols`**. Do **not** let npm resolve **`@y/protocols@1.0.6-rc.x`**: that line peers **`@y/y`** (Yjs 14) while the app uses **`yjs@13`**. Two different Yjs runtimes break **`setupWSConnection`** with **`Cannot read properties of undefined (reading 'clients')`** and the FortuneSheet grid never syncs.
+- **Pin** **`@y/protocols` to `1.0.6-1`** in **`api/package.json`** and keep root **`package.json` `overrides`** aligned — see comments there.
 
 ---
 
@@ -150,14 +158,20 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 
 ## Logging & debug
 
-- **`LOG_LEVEL`** env: `error` \| `warn` \| `info` \| `debug` — default **`info`** in production images; set **`debug`** in `.env` on a **dev** machine for troubleshooting (**never** default `debug` on shared show laptops without need).
-- Passed via **`docker-compose.yml`** into the **`app`** service once the Node API image replaces the nginx placeholder.
-- Structured JSON logs in API (one line per event) for grep/journald.
+- **`LOG_LEVEL`** env: `error` \| `warn` \| `info` \| `debug` \| `trace` — **`docker-compose.yml`** defaults **`debug`** for local **`make dev`** (verbose structured logs); set **`LOG_LEVEL=info`** in **`.env`** for quieter operation on a **show LAN** (**never** leave **`trace`** on shared laptops without need).
+- Passed via **`docker-compose.yml`** into the **`app`** service (`LOG_LEVEL`).
+- **API:** Pino JSON logs (one line per event); use **`req.log`** in routes, **`createLogger(component)`** elsewhere; redact password/cookie paths — see **[`LOGGING.md`](LOGGING.md)**.
+- **Web:** optional **`logDebug()`** in **`web/src/lib/debug.ts`**; enable in prod builds only with **`VITE_LOG_DEBUG=true`** (see **`LOGGING.md`**).
 
 ---
 
 ## Related docs
 
+- **[`README.md`](README.md)** — index of all `docs/` files (humans vs agents)  
+- **[`../README.md`](../README.md)** — project overview and Docker deploy  
+- **[`../AGENTS.md`](../AGENTS.md)** — AI assistants and architecture obligations  
 - **[`PLAN.md`](PLAN.md)** — product vision and roadmap  
 - **[`DESIGN.md`](DESIGN.md)** — visual design (themes, tokens)  
+- **[`DEVELOPMENT.md`](DEVELOPMENT.md)** — local Docker workflow  
+- **[`REALTIME.md`](REALTIME.md)** — SSE live invalidation vs Yjs collaboration (canonical detail)  
 - **[`LICENSING.md`](LICENSING.md)** — repo + dependency licences  
