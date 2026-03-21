@@ -2,6 +2,117 @@ import ExcelJS from "exceljs";
 import { randomUUID } from "node:crypto";
 import type { Cell, CellMatrix, Sheet } from "@fortune-sheet/core";
 
+/** Matches FortuneSheet’s in-sheet data verification shape (see `dataVerification.d.ts` / react toolbar defaults). */
+type FortuneDataVerificationItem = {
+  type: "dropdown";
+  type2: string;
+  value1: string;
+  value2: string;
+  validity: string;
+  remote: boolean;
+  prohibitInput: boolean;
+  hintShow: boolean;
+  hintValue: string;
+};
+
+function columnLettersToIndex(letters: string): number {
+  let col = 0;
+  const L = letters.toUpperCase();
+  for (let i = 0; i < L.length; i++) {
+    col = col * 26 + (L.charCodeAt(i) - 64);
+  }
+  return col - 1;
+}
+
+function parseExcelCellRef(ref: string): { r: number; c: number } | null {
+  const clean = ref.replace(/\$/g, "").trim();
+  const m = clean.match(/^([A-Za-z]+)(\d+)$/);
+  if (!m) return null;
+  return {
+    r: parseInt(m[2], 10) - 1,
+    c: columnLettersToIndex(m[1]),
+  };
+}
+
+/** Expand Excel model keys such as `B1` or `B2:B10` to 0-based cell coordinates. */
+function expandExcelRangeKey(key: string): { r: number; c: number }[] {
+  const k = key.trim();
+  if (!k) return [];
+  if (k.includes(":")) {
+    const [a, b] = k.split(":", 2);
+    const start = parseExcelCellRef(a);
+    const end = parseExcelCellRef(b);
+    if (!start || !end) return [];
+    const out: { r: number; c: number }[] = [];
+    for (let r = start.r; r <= end.r; r++) {
+      for (let c = start.c; c <= end.c; c++) {
+        out.push({ r, c });
+      }
+    }
+    return out;
+  }
+  const one = parseExcelCellRef(k);
+  return one ? [one] : [];
+}
+
+/**
+ * Excel “list” validation → FortuneSheet `dropdown` + `value1` range or comma list.
+ * Cross-sheet refs (e.g. `AllActsPatch!$A$1:$L$1`) are passed through for `getcellrange` / `getDropdownList`.
+ */
+function normalizeExcelListFormula(formula: string): string {
+  let s = String(formula).trim();
+  if (s.startsWith("=")) s = s.slice(1);
+  if (
+    !s.includes("!") &&
+    ((s.startsWith('"') && s.endsWith('"')) ||
+      (s.startsWith("'") && s.endsWith("'")))
+  ) {
+    s = s.slice(1, -1).replace(/""/g, '"');
+  }
+  return s;
+}
+
+function excelDataValidationsToFortune(
+  ws: ExcelJS.Worksheet,
+): Record<string, FortuneDataVerificationItem> | undefined {
+  /* ExcelJS exposes `dataValidations` at runtime when reading .xlsx; typings omit it on Worksheet. */
+  const model = (
+    ws as ExcelJS.Worksheet & {
+      dataValidations?: { model?: Record<string, ExcelJS.DataValidation> };
+    }
+  ).dataValidations?.model;
+  if (!model || typeof model !== "object") return undefined;
+
+  const out: Record<string, FortuneDataVerificationItem> = {};
+
+  for (const [rangeKey, rule] of Object.entries(model)) {
+    if (!rule || rule.type !== "list") continue;
+    const raw = rule.formulae?.[0];
+    if (raw == null || String(raw).trim() === "") continue;
+
+    const value1 = normalizeExcelListFormula(String(raw));
+    if (!value1) continue;
+
+    const item: FortuneDataVerificationItem = {
+      type: "dropdown",
+      type2: "",
+      value1,
+      value2: "",
+      validity: "",
+      remote: false,
+      prohibitInput: false,
+      hintShow: Boolean(rule.showInputMessage && rule.prompt),
+      hintValue: rule.prompt != null ? String(rule.prompt) : "",
+    };
+
+    for (const { r, c } of expandExcelRangeKey(rangeKey)) {
+      out[`${r}_${c}`] = item;
+    }
+  }
+
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function cellToFortune(cell: ExcelJS.Cell): Cell | null {
   const v = cell.value;
   if (v == null || v === "") return null;
@@ -53,6 +164,7 @@ export async function excelBufferToSheets(buffer: Buffer): Promise<Sheet[]> {
       }
       data.push(row);
     }
+    const dataVerification = excelDataValidationsToFortune(ws);
     sheets.push({
       id: randomUUID(),
       name: ws.name || `Sheet${order + 1}`,
@@ -60,6 +172,7 @@ export async function excelBufferToSheets(buffer: Buffer): Promise<Sheet[]> {
       row: nRows,
       column: nCols,
       data,
+      ...(dataVerification ? { dataVerification } : {}),
       order: order++,
     });
   });

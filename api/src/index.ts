@@ -4,8 +4,6 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { db } from "./db/client.js";
 import { buildApp } from "./app.js";
 import { createLogger, log } from "./lib/log.js";
-import { seedBundledExamplePatchTemplateIfMissing } from "./lib/seed-patch-templates.js";
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function runMigrations() {
@@ -21,11 +19,6 @@ const host = process.env.HOST ?? "0.0.0.0";
 
 async function main() {
   await runMigrations();
-  try {
-    await seedBundledExamplePatchTemplateIfMissing();
-  } catch (err) {
-    log.warn({ err }, "seed bundled patch template skipped or failed");
-  }
   const app = await buildApp();
   await app.listen({ port, host });
   log.info({ port, host }, "server listening");

@@ -7,8 +7,10 @@ import { count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
+import { createDefaultPatchWorkbookSheets } from "../../lib/default-patch-sheets.js";
 import { excelBufferToSheets } from "../../lib/excel-to-sheets.js";
 import { getUploadsDir } from "../../lib/uploads-dir.js";
+import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import { sheetsToPreviewPayload } from "../../lib/sheet-preview.js";
 import {
   decodeTemplateSnapshotToSheets,
@@ -32,6 +34,10 @@ const duplicateBody = z.object({
   name: z.string().min(1).max(200).optional(),
 });
 
+const blankTemplateBody = z.object({
+  name: z.string().min(1).max(200).optional(),
+});
+
 function invalidateAll() {
   broadcastInvalidate([["patchTemplates"], ["patchTemplate"], ["events"]]);
 }
@@ -50,6 +56,36 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       .from(patchTemplates)
       .orderBy(desc(patchTemplates.createdAt));
     return { patchTemplates: rows };
+  });
+
+  app.post("/patch-templates/blank", async (req, reply) => {
+    const body = blankTemplateBody.parse(req.body ?? {});
+    const displayName = body.name?.trim() || "New template";
+    const sheets = createDefaultPatchWorkbookSheets();
+    const snapshot = encodeTemplateSnapshotFromSheets(sheets);
+    const xlsxBuf = await sheetsToExcelBuffer(sheets);
+    const uploadsRoot = getUploadsDir();
+    const storageKey = `patch-templates/${randomUUID()}.xlsx`;
+    const abs = path.join(uploadsRoot, storageKey);
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+    await fs.writeFile(abs, xlsxBuf);
+
+    const [inserted] = await db
+      .insert(patchTemplates)
+      .values({
+        name: displayName.slice(0, 200),
+        originalName: "blank-template.xlsx",
+        storageKey,
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        byteSize: xlsxBuf.length,
+        snapshot,
+      })
+      .returning({ id: patchTemplates.id });
+
+    invalidateAll();
+    req.log.debug({ templateId: inserted?.id }, "patch template created from blank");
+    return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
   });
 
   app.get("/patch-templates/:id", async (req, reply) => {

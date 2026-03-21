@@ -121,7 +121,9 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 
 - **Upload Excel** — Import from **Excel** (`.xlsx`, `.xltx`, macro-enabled `.xlsm` / `.xltm`, etc.) or **Google Sheets** (export to Excel-compatible format first). **Dropdown lists** (data validation → list) are carried into the in-app sheet; **Replace** a template after changing the Excel file so the library snapshot matches. Starter workbooks may ship under **`examples/`** (see **`examples/README.md`**) — upload them in **Settings** to add them to your library.
 
-**Stages and performances** — Each stage must choose a **stored** template for new performances (upload at least one template first). There is no client-generated empty grid; patch workbooks always come from the library snapshot seeded into each performance.
+- **Create blank template** — In **Settings**, add a new library entry with two empty tabs (**Input**, **RF**), then use **Edit spreadsheet** to build it. Optional **display name** applies when you use **Create blank template** (defaults to **New template** if you leave the name blank).
+
+**Stages and performances** — Each stage must choose a **stored** template for new performances (upload at least one template first, or use **Create blank template**). Patch workbooks always come from the library snapshot seeded into each performance.
 
 On **Settings** and on the **stage** template picker you can:
 

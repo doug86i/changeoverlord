@@ -151,6 +151,20 @@ export function PatchTemplateLibrarySettings() {
     },
   });
 
+  const createBlankTpl = useMutation({
+    mutationFn: (name: string) =>
+      apiSend<{ patchTemplate: { id: string } }>(
+        "/api/v1/patch-templates/blank",
+        "POST",
+        name.trim() ? { name: name.trim() } : {},
+      ),
+    onSuccess: (data) => {
+      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
+      setNewName("");
+      navigate(`/patch-templates/${data.patchTemplate.id}/edit`);
+    },
+  });
+
   const renameTpl = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       apiSend(`/api/v1/patch-templates/${id}`, "PATCH", { name }),
@@ -200,9 +214,10 @@ export function PatchTemplateLibrarySettings() {
         Patch / RF spreadsheet templates
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        Add templates by <strong>uploading Excel</strong> (starter workbooks can come from{" "}
-        <code>examples/</code> in the repo). Each stage picks a <strong>stored</strong> template for
-        new performances — there is no client-generated empty grid. Max 10&nbsp;MB per upload.
+        Add templates by <strong>uploading Excel</strong> or <strong>create a blank template</strong>{" "}
+        (two empty tabs — <strong>Input</strong> and <strong>RF</strong>) and edit in the browser.
+        Starter workbooks can come from <code>examples/</code> in the repo. Each stage picks a{" "}
+        <strong>stored</strong> template for new performances. Max 10&nbsp;MB per upload.
       </p>
 
       <div
@@ -233,7 +248,7 @@ export function PatchTemplateLibrarySettings() {
           <input
             type="file"
             accept={EXCEL_TEMPLATE_ACCEPT}
-            disabled={createTpl.isPending}
+            disabled={createTpl.isPending || createBlankTpl.isPending}
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) createTpl.mutate({ file: f, name: newName });
@@ -241,6 +256,14 @@ export function PatchTemplateLibrarySettings() {
             }}
           />
         </label>
+        <button
+          type="button"
+          className="primary"
+          disabled={createBlankTpl.isPending || createTpl.isPending}
+          onClick={() => createBlankTpl.mutate(newName)}
+        >
+          Create blank template
+        </button>
       </div>
 
       {listQ.isLoading && <p className="muted">Loading templates…</p>}
@@ -398,12 +421,14 @@ export function PatchTemplateLibrarySettings() {
       )}
 
       {(createTpl.isError ||
+        createBlankTpl.isError ||
         renameTpl.isError ||
         replaceTpl.isError ||
         deleteTpl.isError ||
         duplicateTpl.isError) && (
         <p style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
           {(createTpl.error ??
+            createBlankTpl.error ??
             renameTpl.error ??
             replaceTpl.error ??
             deleteTpl.error ??

@@ -101,7 +101,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | Auth (optional shared password) | **Done** | Session cookie, `@fastify/cookie` |
 | Stage clocks | **Done** | Day clock, distance layout (fullscreen or `?kiosk=1`), band nav, auto-advance, message overlay, warning colours |
 | Collaborative patch/RF workbook (Yjs + FortuneSheet) | **Done** | WebSocket sync, Yjs persistence, template cloning, band-to-band nav, patch **sidebar** (changeover, clock, now/next, rider/plot, collapsible), theme-aligned **toolbar / sheet chrome**; **cell selection / editor** use **FortuneSheet defaults** |
-| Global patch template library | **Done** | Upload OOXML Excel (`.xlsx`, `.xltx`, `.xlsm`, `.xltm`, …), presets, in-app edit, preview, rename, replace, delete |
+| Global patch template library | **Done** | Upload OOXML Excel (`.xlsx`, `.xltx`, `.xlsm`, `.xltm`, …); **blank** patch = no stored template (stage **None**); optional **`examples/`** starters; in-app edit, preview, rename, replace, duplicate, delete |
 | DHSL footer branding | **Done** | Fixed "Powered by" footer |
 | Rider / plot attachments (stage + performance) | **Done** | Upload (Other by default), **Rider** / **Stage plot** toggles, drag-drop, inline PDF viewer, **convert to PDF** (ImageMagick / LibreOffice / pdf-lib), extract page via **pdf-lib** with **server-side** Poppler thumbnails, delete with confirmation |
 | Responsive layouts | **Done** | Hamburger nav, stacked forms, 768/1024 breakpoints, print styles, reduced motion, skip-to-content |
@@ -130,7 +130,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 ```
 api/
   src/
-    index.ts              # entry point — migrations, seed, start server
+    index.ts              # entry point — migrations, start server
     app.ts                # Fastify setup — plugins, routes, error handler, static SPA
     db/
       client.ts           # Drizzle client
@@ -143,7 +143,7 @@ api/
       stages.ts           # Stage CRUD
       stage-days.ts       # StageDay CRUD
       performances.ts     # Performance CRUD + template cloning
-      patch-templates.ts  # Template library CRUD + upload + presets
+      patch-templates.ts  # Template library CRUD + Excel upload + POST …/blank (empty two-tab shell)
       files.ts            # Attachments upload, list, raw download, PDF extract page, delete
       search.ts           # GET /search?q= — band/event/stage ILIKE search
       export-import.ts    # GET /events/:id/export, POST /import — JSON event packages
@@ -161,12 +161,11 @@ api/
       pdf.ts              # PDF page count + single-page extract (pdf-lib)
       upload-allowlists.ts # allowed MIME/extensions for files + patch templates
       excel-to-sheets.ts  # OOXML Excel → FortuneSheet Sheet[]
+      default-patch-sheets.ts  # two-tab empty shell for POST …/patch-templates/blank
       sheets-to-excel.ts  # Sheet[] → .xlsx buffer
       sheet-preview.ts    # Sheet[] → preview JSON
       yjs-persistence.ts  # Yjs doc save/load (Postgres snapshots)
       yjs-template-snapshot.ts  # encode/decode template Yjs snapshots
-      patch-template-presets.ts # blank + bundled example sheet layouts
-      seed-patch-templates.ts   # auto-seed example template on startup
       performance-overlap.ts    # schedule validation helpers (same-day intervals)
       session-token.ts    # HMAC session cookie
   drizzle/
