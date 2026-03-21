@@ -31,7 +31,7 @@ This project splits docs by **audience** so nothing important lives only in chat
 | **Feature completed or priorities shift** | **`FEATURE_REQUIREMENTS.md`** (update tier/status), **`PLAN.md`** §14 (roadmap checklist). |
 | **Stack or licence** change | **`DECISIONS.md`**, **`LICENSING.md`**. |
 | **Built-in patch template presets** (blank/example layouts, bundled seed template) | **`api/src/lib/patch-template-presets.ts`**, **`api/src/lib/seed-patch-templates.ts`**, **`USER_GUIDE.md`** (templates section), and **`POST /patch-templates/new`** in **`api/src/routes/v1/patch-templates.ts`**. |
-| **File attachments** (riders/plots: upload, list, extract PDF page, delete) | **`api/src/routes/v1/files.ts`**, **`api/src/lib/pdf.ts`**, **`api/src/lib/upload-allowlists.ts`**, **`web/src/components/FileAttachments.tsx`**, **`USER_GUIDE.md`** (Files section), **`docs/REALTIME.md`** (`broadcastInvalidate` keys `files` / `files`+`performance`), **`docs/LICENSING.md`** (**pdf-lib**). |
+| **File attachments** (riders/plots: upload, list, extract PDF page, delete) | **`api/src/routes/v1/files.ts`**, **`api/src/lib/pdf.ts`**, **`api/src/lib/upload-allowlists.ts`**, **`web/src/components/FileAttachments.tsx`**, **`web/src/components/PdfPageThumbnailGrid.tsx`** (client thumbnails via **pdf.js**), **`USER_GUIDE.md`** (Files section), **`docs/REALTIME.md`** (`broadcastInvalidate` keys `files` / `files`+`performance`), **`docs/LICENSING.md`** (**pdf-lib**). |
 
 ---
 

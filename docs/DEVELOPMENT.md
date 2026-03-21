@@ -109,6 +109,17 @@ What usually costs time:
 
 - No bind-mounted **`web/src`** / **`api/src`** in the production image path — that would diverge from what operators run. Fast iteration without Docker remains **`npm run build`** (or per-workspace dev servers if you add them locally — not part of the shipped Compose contract).
 
+## UI: compact action buttons
+
+**Reference:** **`StageDayPage`** running-order row actions (**Patch / RF**, **Files**, **Notes**, **Swap**).
+
+- Use **`button.icon-btn`** or **`a.icon-btn`** with a **short text label**.
+- **Do not** mix **emoji-only** buttons, **unstyled text links**, and **`icon-btn`** in the same action row — pick one system (`icon-btn` + label).
+- **`global.css`** defines **`button.icon-btn`** / **`a.icon-btn`** (padding, **36px** min touch target, **`0.8rem`** text on both).
+- **Primary** actions on the same row may use **`button.primary`**; **destructive** text actions use **`button.icon-btn.danger-text`** (e.g. **Delete**).
+
+**PDF page extract:** thumbnails are rendered client-side with **`pdfjs-dist`** (`PdfPageThumbnailGrid`); the file is fetched with **`credentials: "include"`** so auth matches the API.
+
 ## AI / Cursor workflow
 
 **Agent development process** (commits, testing, deployment, changelog, logging): **[`../AGENTS.md`](../AGENTS.md)** → *Development process (agents)*. Rules: **`.cursor/rules/git-commits.mdc`**, **`.cursor/rules/local-docker-deploy.mdc`**, **`.cursor/rules/changelog.mdc`**, **`.cursor/rules/logging.mdc`**. After implementation, **`make dev`** keeps the local stack aligned with production.

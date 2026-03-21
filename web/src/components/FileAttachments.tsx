@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiSend, apiSendForm } from "../api/client";
 import type { FileAssetPurpose, FileAssetRow } from "../api/types";
 
@@ -10,6 +10,11 @@ const FILE_PURPOSE_OPTIONS: { value: FileAssetPurpose; label: string }[] = [
   { value: "generic", label: "Other" },
 ];
 import { ConfirmDialog } from "./ConfirmDialog";
+
+const PdfPageThumbnailGrid = lazy(async () => {
+  const m = await import("./PdfPageThumbnailGrid");
+  return { default: m.PdfPageThumbnailGrid };
+});
 
 const RIDER_FILE_ACCEPT =
   "image/*,application/pdf,text/*,.pdf,.doc,.docx,.odt,.rtf,.md,.csv,.txt,.tif,.tiff,.webp,.heic,.heif";
@@ -28,7 +33,9 @@ function InlinePdfViewer({ fileId, onClose }: { fileId: string; onClose: () => v
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
-          <button type="button" onClick={onClose}>Close</button>
+          <button type="button" className="icon-btn" onClick={onClose}>
+            Close
+          </button>
         </div>
         <iframe
           src={`/api/v1/files/${fileId}/raw`}
@@ -83,8 +90,11 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
     setMeta({ pageCount: r.file.pageCount });
   };
 
-  const openExtract = () => { setExtractOpen(true); void loadMeta(); };
-  const maxPage = meta?.pageCount ?? 1;
+  const openExtract = () => {
+    setPageIndex(1);
+    setExtractOpen(true);
+    void loadMeta();
+  };
   const isPdf = f.mimeType === "application/pdf";
 
   return (
@@ -127,40 +137,70 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
           </div>
           <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
             {isPdf && (
-              <button type="button" className="icon-btn" onClick={() => setViewOpen(true)} title="View inline">
-                👁
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => setViewOpen(true)}
+                title="View in the app"
+              >
+                View
               </button>
             )}
-            <a href={`/api/v1/files/${f.id}/raw`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center" }}>
+            <a
+              href={`/api/v1/files/${f.id}/raw`}
+              className="icon-btn"
+              target="_blank"
+              rel="noreferrer"
+              title="Open in a new tab"
+            >
               Open
             </a>
             {isPdf && (
-              <button type="button" className="icon-btn" onClick={openExtract} title="Extract page">
-                📄
+              <button type="button" className="icon-btn" onClick={openExtract} title="Extract one page as a new PDF">
+                Extract
               </button>
             )}
-            <button type="button" className="icon-btn danger-text" onClick={() => setDeleteOpen(true)} title="Delete">
-              ✕
+            <button type="button" className="icon-btn danger-text" onClick={() => setDeleteOpen(true)} title="Delete file">
+              Delete
             </button>
           </div>
         </div>
         {extractOpen && isPdf && (
-          <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "0.75rem", marginTop: "0.5rem", display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-            <label className="muted" style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              Page (1–{meta?.pageCount ?? "…"})
-              <input
-                type="number"
-                min={1}
-                max={Math.max(1, maxPage)}
-                value={pageIndex}
-                onChange={(e) => setPageIndex(Number(e.target.value) || 1)}
-                style={{ width: "5rem" }}
-              />
-            </label>
-            <button type="button" className="primary" disabled={extract.isPending || !meta?.pageCount} onClick={() => extract.mutate()}>
-              Extract as new PDF
-            </button>
-            <button type="button" onClick={() => setExtractOpen(false)}>Cancel</button>
+          <div
+            style={{
+              borderTop: "1px solid var(--color-border)",
+              paddingTop: "0.75rem",
+              marginTop: "0.5rem",
+            }}
+          >
+            <div className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.35rem" }}>
+              {meta?.pageCount
+                ? `Select a page (1–${meta.pageCount}), then extract.`
+                : "Loading PDF…"}
+            </div>
+            {meta?.pageCount ? (
+              <Suspense fallback={<p className="muted" style={{ margin: "0.25rem 0" }}>Loading preview…</p>}>
+                <PdfPageThumbnailGrid
+                  fileId={f.id}
+                  pageCount={meta.pageCount}
+                  selectedOneBased={pageIndex}
+                  onSelect={setPageIndex}
+                />
+              </Suspense>
+            ) : null}
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.75rem" }}>
+              <button
+                type="button"
+                className="primary"
+                disabled={extract.isPending || !meta?.pageCount}
+                onClick={() => extract.mutate()}
+              >
+                Extract as new PDF
+              </button>
+              <button type="button" className="icon-btn" onClick={() => setExtractOpen(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </li>

@@ -96,7 +96,7 @@ On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** k
 - **Quick links** — **All files**, **Rider PDF** when uploaded, **Stage clock**, **Running order**.
 - **Stage plot** — Preview of the file uploaded as **Stage plot** (see **Files** below); performance files take priority over stage files.
 
-The spreadsheet uses the same **sans-serif** font as the rest of the app, and the **active cell / editor** is outlined in the app **accent** colour so the cell you’re typing in stays obvious.
+The spreadsheet **toolbar, formula bar, and sheet tabs** use the app’s **sans-serif** font and theme colours; **cell selection and the in-cell editor** use **FortuneSheet’s default** styling.
 
 ### Band-to-band navigation
 
@@ -170,9 +170,9 @@ All uploaded files (patch templates, riders, plots) live on the **server's data 
 - **Upload as** — Before you upload, choose **Rider / tech pack**, **Stage plot**, **Plot from rider PDF**, or **Other**. **Stage plot** is what the patch page sidebar and stage views use for plot previews. **Plot from rider PDF** is also set automatically when you **extract a page** from a PDF.
 - **Type (per file)** — After upload, change the **Type** on each row if you picked the wrong category.
 - **Drag and drop** — Drop files directly onto the upload zone, or click to browse.
-- **PDF viewer** — Click the 👁 icon to view a PDF inline without leaving the page.
-- **Open** — View the file in a new browser tab.
-- **Extract page…** — For **PDFs** only: pick a **page number** (1 = first page) and **Extract as new PDF** to save a **single-page** copy. The original PDF is unchanged; the extract is tagged as derived from the source.
+- **View** — Open a **PDF** in an inline viewer without leaving the page.
+- **Open** — Open the file in a **new browser tab** (same control style as **View** — compact **button-shaped** actions).
+- **Extract** — For **PDFs** only: click **Extract**, then **choose a page** from the **thumbnail previews**, and **Extract as new PDF** to save a **single-page** copy. The original PDF is unchanged; the extract is tagged as derived from the source.
 - **Delete** — Remove files with confirmation.
 
 Maximum upload size is **100 MB** per file (see **[`DECISIONS.md`](DECISIONS.md)** for limits).

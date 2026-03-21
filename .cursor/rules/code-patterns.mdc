@@ -86,6 +86,16 @@ Use `apiSend` (JSON) or `apiSendForm` (multipart) from `web/src/api/client.ts`.
 - No CSS modules — everything is in `global.css`.
 - FortuneSheet CSS is imported in `main.tsx` before `global.css`.
 
+## Compact action buttons (match stage day)
+
+Use the same pattern as **`StageDayPage`** performance rows (**Patch / RF**, **Files**, **Notes**, **Swap**):
+
+- **`button.icon-btn`** or **`a.icon-btn`** with a **short text label** (not emoji-only controls mixed with plain text links).
+- Default **`font-size: 0.8rem`** for `button.icon-btn` is in **`global.css`**; **`a.icon-btn`** already sets **`0.8rem`**.
+- **Danger** actions: `button.icon-btn.danger-text` with a text label (e.g. **Delete**).
+
+Do **not** use a raw `<a>` without **`icon-btn`** next to **`icon-btn`** buttons — it breaks visual alignment. See **`docs/DEVELOPMENT.md`** → *UI: compact action buttons*.
+
 ## File types
 
 - Add shared frontend types to `web/src/api/types.ts`.
