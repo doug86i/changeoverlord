@@ -7,7 +7,11 @@
   ],
   "scripts": {
     "build": "npm run build -w web && npm run build -w api",
-    "dev": "npm run dev -w api & npm run dev -w web"
+    "dev": "npm run dev -w api & npm run dev -w web",
+    "postinstall": "patch-package"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.0"
   },
   "overrides": {
     "yjs": "13.6.30",

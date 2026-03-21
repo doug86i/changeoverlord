@@ -24,7 +24,7 @@ Open **http://\<this-machine\>/** — default **port 80** (no `:port` in the URL
 
 **Fresh database during development:** if migrations get out of sync, stop Compose and remove **`data/db/`** (only on throwaway data), then run **`make dev`** again. **Back up `DATA_DIR`** before wiping on a machine with real prep data.
 
-More detail (aliases, stopping the stack): **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
+More detail (aliases, stopping the stack, **`patches/`**, speeding up image builds): **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
 
 ---
 
@@ -53,7 +53,7 @@ The API lives at **`/api/v1`**. The browser loads the SPA from the **same origin
 | **[`docs/PLAN.md`](docs/PLAN.md)** | Product vision and roadmap |
 | **[`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md)** | User-journey analysis, competitive research, feature requirements |
 | **[`docs/DECISIONS.md`](docs/DECISIONS.md)** | Engineering decisions |
-| **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | Docker workflow and dev tips |
+| **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | Docker workflow, **`patches/`**, faster rebuilds, dev tips |
 | **[`docs/REALTIME.md`](docs/REALTIME.md)** | Live updates (SSE) vs collaborative grid (Yjs) |
 | **[`docs/LOGGING.md`](docs/LOGGING.md)** | Structured logging (`LOG_LEVEL`, `req.log`, web `logDebug`) |
 | **[`docs/DESIGN.md`](docs/DESIGN.md)** | UI themes and tokens |

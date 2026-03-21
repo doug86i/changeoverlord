@@ -54,7 +54,7 @@ Use **Export event** in the app (event detail) to download a JSON package, then 
 
 ## Development habits (same on any machine)
 
-- After changing **`api/`**, **`web/`**, **`Dockerfile`**, or **`docker-compose.yml`**, run **`make dev`** so the **image** rebuilds (no bind-mount of source). See **[`AGENTS.md`](../AGENTS.md)** and **[`DEVELOPMENT.md`](DEVELOPMENT.md)**.
+- After changing **`api/`**, **`web/`**, **`Dockerfile`**, **`docker-compose.yml`**, **`patches/`**, or root **`package.json`** / **`package-lock.json`**, run **`make dev`** so the **image** rebuilds (no bind-mount of source). See **[`AGENTS.md`](../AGENTS.md)** and **[`DEVELOPMENT.md`](DEVELOPMENT.md)**.
 - **Do not** commit **`.env`** (secrets). **`.env.example`** is the template.
 
 ---

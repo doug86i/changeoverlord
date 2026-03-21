@@ -13,6 +13,7 @@ WORKDIR /build
 COPY package.json package-lock.json* ./
 COPY api/package.json api/
 COPY web/package.json web/
+COPY patches patches
 
 RUN --mount=type=cache,target=/root/.npm \
     npm install
@@ -33,9 +34,17 @@ RUN --mount=type=cache,target=/build/node_modules/.vite \
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-# Poppler `pdftoppm` — PDF page thumbnails; ImageMagick — images → PDF; LibreOffice — Word/ODT/RTF → PDF.
+# Runtime CLI tools — split from LibreOffice so smaller layers cache independently.
+# BuildKit cache mount: reuses Alpine package downloads across builds when this step re-runs.
+# Poppler `pdftoppm` — PDF page thumbnails; ImageMagick — images → PDF.
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache poppler-utils imagemagick
+
+# LibreOffice + fonts — large dependency tree (most of the image size). Separate layer + cache mount
+# keeps `make dev` faster when only app code changes above this line.
 # `ttf-dejavu` gives LibreOffice usable fonts when embedding PDFs (otherwise many glyphs can be missing).
-RUN apk add --no-cache poppler-utils imagemagick libreoffice ttf-dejavu
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache libreoffice ttf-dejavu
 
 ENV NODE_ENV=production
 ENV PORT=80
@@ -50,7 +59,7 @@ COPY api/package.json api/
 COPY web/package.json web/
 
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --omit=dev --workspace=@changeoverlord/api && \
+    npm install --omit=dev --ignore-scripts --workspace=@changeoverlord/api && \
     chown -R node:node /app
 
 USER node

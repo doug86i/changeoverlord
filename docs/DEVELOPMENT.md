@@ -42,7 +42,7 @@ From the **repository root** (where `docker-compose.yml` lives):
 make dev
 ```
 
-This runs **`docker compose up -d --build`** — rebuilds the app image when `Dockerfile`, `api/`, `web/`, or workspace deps change, recreates the container if needed, and starts dependencies. Use this **after each meaningful code change** so what you see in the browser matches production.
+This runs **`docker compose up -d --build`** — rebuilds the app image when **`Dockerfile`**, **`api/`**, **`web/`**, **`patches/`**, or workspace **`package.json`** / **`package-lock.json`** change, recreates the container if needed, and starts dependencies. Use this **after each meaningful code change** so what you see in the browser matches production.
 
 The container serves **compiled** assets (`vite build`, `tsc`) from the image — **not** live-mounted source. If you change code and the browser still shows the old app, rebuild without cache:
 
@@ -69,9 +69,18 @@ make dev-down
 | Piece | Role |
 |-------|------|
 | `docker-compose.yml` | Ports, `DATABASE_URL`, `WEB_PUBLIC_DIR`, healthchecks |
-| `Dockerfile` | Multi-stage build: Vite → `public/`, `tsc` → `api/dist` |
+| `Dockerfile` | Multi-stage build: Vite → `public/`, `tsc` → `api/dist`; **`patches/`** is copied before **`npm install`** in the builder so **`patch-package`** applies (FortuneSheet fixes); the runner uses **`npm install --ignore-scripts`** so production does not need **`patch-package`**. |
 | Postgres | Real DB for all persistent state |
 | SSE (`/api/v1/realtime`) | Live TanStack invalidation after REST mutations — see [`REALTIME.md`](REALTIME.md) |
+
+## Patches (`patches/`)
+
+Some **npm** dependencies ship with **patch-package** fixes under **`patches/*.patch`** (e.g. **FortuneSheet**). The **builder** stage **`COPY patches`** before **`npm install`** so **`postinstall` → `patch-package`** runs inside the image — **Docker builds must include the `patches/` directory** in the build context (it is **not** in **`.dockerignore`**).
+
+- **Local:** Root **`npm install`** runs **`patch-package`** after install.
+- **Runner image:** Uses **`npm install --omit=dev --ignore-scripts`** for **`@changeoverlord/api`** only — **`patch-package`** is not installed in production; the **SPA** is already built in the **builder** with patched **`node_modules`**.
+
+Adding or changing a patch: edit **`node_modules`**, run **`npx patch-package <package-name>`**, commit the new file under **`patches/`**, and **`CHANGELOG.md`** if behaviour changes.
 
 ## Environment
 
@@ -95,6 +104,7 @@ What usually costs time:
 | **Tool caches (BuildKit)** | The builder mounts **Vite’s** cache (`node_modules/.vite`) and **tsc incremental** metadata (`api/.cache/`) so repeated builds of the same tree stay faster even when a layer re-runs. |
 | **API `tsc` + empty `dist`** | The **Dockerfile** removes **`api/dist`** and **`api/.cache/tsconfig.tsbuildinfo`** before **`npm run build -w api`**. Clearing only **`dist`** while the incremental file still says “up to date” could make **`tsc` emit nothing** (still exit **0**), producing an **empty or partial** `api/dist` and a broken runtime image (e.g. missing `db/client.js`). |
 | **`--no-cache`** | Only use **`make dev-fresh`** when the running app is clearly stale; it disables **all** layer cache and is much slower. |
+| **LibreOffice + Poppler + ImageMagick** | The **runner** image installs **`apk`** packages in **two layers** (small tools first, **LibreOffice + fonts** second) with **BuildKit cache mounts** on **`/var/cache/apk`** so repeated downloads are faster when the layer re-runs. **LibreOffice** is the largest cost — expect a slow step on first build or after a cache miss. |
 
 **Practical tips**
 
@@ -104,6 +114,13 @@ What usually costs time:
 - Rebuild **only** the app service: **`docker compose build app && docker compose up -d app`** (Compose still rebuilds when sources change; this is the same scope as **`make dev`** for the `app` image).
 - **BuildKit** must be on (Docker Desktop: **Settings → Docker Engine** or ensure `{"features":{"buildkit":true}}`; CLI: `export DOCKER_BUILDKIT=1` — usually the default).
 - **Docker Desktop (Mac / Windows):** give the VM **enough CPUs and RAM** (**Settings → Resources**) — slow builds are often under-resourced VMs. On **Mac**, enabling **VirtioFS** for file sharing (when available) can help I/O-heavy builds.
+
+**Heavy runtime packages (LibreOffice, etc.)**
+
+- **Why it feels slow:** **Word/ODT/RTF → PDF** uses **LibreOffice** headless, which pulls a **large** dependency graph on Alpine. That is separate from the **Node/Vite** build; **`make dev`** still has to rebuild the **app image** when **`Dockerfile`**, **`api/`**, **`web/`**, or **`patches/`** change.
+- **What already helps:** **Two `apk` layers** + **BuildKit cache** for **`/var/cache/apk`** so repeated **`apk add`** work is cheaper when the layer invalidates; **builder** still uses **`npm`** and **Vite** cache mounts as above.
+- **Optional — publish a “runtime deps” base image:** If CI or local builds are still too slow, maintain a small **`Dockerfile`** that is only **`FROM node:22-alpine`** + the **`apk add`** lines, **build and push** it to your registry (e.g. **`ghcr.io/…/changeoverlord-app-runtime-deps:v1`**), then change the app **`Dockerfile`** to **`FROM`** that image instead of plain **`node:22-alpine`** for the **runner** stage. Day-to-day app rebuilds then **skip** re-downloading LibreOffice as long as the base tag is unchanged.
+- **When you do not need Word:** For **local** iteration without Docker, **`npm run build`** at the repo root avoids the image entirely. There is **no** slim Compose profile in-repo yet; skipping LibreOffice would require a **build-arg** and a **runtime** guard so **Convert to PDF** for Office docs does not silently mislead the UI.
 
 **What this repo does *not* do**
 

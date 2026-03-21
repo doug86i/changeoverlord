@@ -37,6 +37,7 @@ Run after changes to any of:
 
 - `api/`, `web/`, `Dockerfile`, `docker-compose.yml`
 - Root `package.json` / `package-lock.json`, workspace packages
+- `patches/` (patch-package fixes applied at `npm install` — must be in the Docker build context)
 - `api/drizzle/` migrations or `api/src/db/schema.ts`
 
 Skip only for **docs-only** or **comment-only** edits with zero effect on build/runtime.

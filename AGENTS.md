@@ -13,7 +13,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | Phase | Requirement |
 |-------|----------------|
 | **Commits** | When the repo is **Git**: **`git commit`** after each **logical unit** of work (one feature slice, one bug, one refactor, one test batch) — **not** one giant commit at the end. Messages: **short**, **specific**, **imperative** (e.g. “Add…”, “Fix…”, “Refactor…”). See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** § *Git commits* and **[`.cursor/rules/git-commits.mdc`](.cursor/rules/git-commits.mdc)**. |
-| **Testing** | Local integration testing is **Docker Compose only** — same **`Dockerfile`** and **`docker-compose.yml`** as production. After code changes that affect runtime, run **`make dev`** from the repo root. Confirm **`GET /api/v1/health`** (or **`docker compose ps`**) succeeds. If the browser still shows old UI/API, run **`make dev-fresh`**. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**. |
+| **Testing** | Local integration testing is **Docker Compose only** — same **`Dockerfile`** and **`docker-compose.yml`** as production. After code changes that affect runtime, run **`make dev`** from the repo root. Confirm **`GET /api/v1/health`** (or **`docker compose ps`**) succeeds. If the browser still shows old UI/API, run **`make dev-fresh`**. Rebuild when **`api/`**, **`web/`**, **`Dockerfile`**, **`docker-compose.yml`**, **`patches/`**, or root **`package.json`** / **`package-lock.json`** change — see **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** (*What gets exercised*, *Patches*, *Faster Docker rebuilds*). |
 | **Deployment** | There is **no** bind-mounted dev server: the app is **`web/dist` + `api/dist`** inside the image. Do **not** tell the user to “just refresh” without a rebuild unless the change is docs-only. Always give the **exact** base URL (**`http://localhost/`** or **`http://localhost:<HOST_PORT>/`**). |
 | **Logging** | Follow **[`docs/LOGGING.md`](docs/LOGGING.md)** for all new or changed server and client logging: **`req.log`** / **`createLogger`**, levels (**`debug`** for routine mutations with ids), **never** secrets or tokens. For local troubleshooting, **`LOG_LEVEL=debug`** in **`.env`** and **`docker compose logs -f app`** — see **DEVELOPMENT.md** and **LOGGING.md**. |
 | **Changelog** | For any change that affects **build output** or **runtime behaviour** (`api/`, `web/`, **`Dockerfile`**, **`docker-compose.yml`**, migrations, dependency changes that ship), add a bullet under **`[Unreleased]`** in **[`CHANGELOG.md`](CHANGELOG.md)** in the **same change**. See **[`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc)** for skip rules (docs-only / comment-only / no ship impact). |
@@ -21,6 +21,12 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 **Skip** `make dev` only for **docs-only** or **comment-only** changes with **zero** build or runtime effect.
 
 **Skip** a changelog entry only when the change **cannot** affect what ships or how the app behaves (same bar as changelog rule — pure docs, comment-only, or non-shipping metadata).
+
+### Docker image: patches and dependencies
+
+- **`patches/`** — **`patch-package`** applies fixes under **`node_modules`** at **`npm install`** (e.g. **FortuneSheet**). The **builder** stage **`COPY patches`** before **`npm install`** so Docker builds include the same patches as local dev. **Commit** new **`patches/*.patch`** files with the change that needs them.
+- **Runner stage** uses **`npm install --omit=dev --ignore-scripts`** for the API workspace only — **`patch-package`** is **not** required at runtime; the SPA is already compiled into **`web/dist`**.
+- **Heavy OS packages** (Poppler, ImageMagick, **LibreOffice**) install in the **runner** image in **separate layers** with **BuildKit** **`apk`** cache mounts — first builds or cache misses are slow; see **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** → *Faster Docker rebuilds* and *Heavy runtime packages*.
 
 ---
 
@@ -52,7 +58,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 
 **Agent checklist at end of a coding task** (skip only when [Development process](#development-process-agents--follow-end-to-end) says to skip):
 
-1. From the **repository root**, run **`make dev`** (`docker compose up -d --build`) so the **app image** matches what ships. The image embeds **`web/dist`** and **`api/dist`** — there is no hot reload from host source; if the UI/API still looks stale after `make dev`, run **`make dev-fresh`** (no-cache rebuild of `app`). Faster rebuild tips: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** → *Faster Docker rebuilds*.
+1. From the **repository root**, run **`make dev`** (`docker compose up -d --build`) so the **app image** matches what ships. The image embeds **`web/dist`** and **`api/dist`** — there is no hot reload from host source; if the UI/API still looks stale after `make dev`, run **`make dev-fresh`** (no-cache rebuild of `app`). Rebuild after changes to **`patches/`** or root **`package.json`** / **`package-lock.json`** (not only **`api/`** / **`web/`**). Faster rebuild tips: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** → *Faster Docker rebuilds*.
 2. Confirm the stack is up (e.g. **`docker compose ps`**, or **`GET /api/v1/health`** on the app port).
 3. **Tell the user the exact base URL:** **`http://localhost/`** when **`HOST_PORT`** is unset or **80**; otherwise **`http://localhost:<HOST_PORT>/`** (from **`.env`**).
 4. If you changed **logging** or need to verify server behaviour, tail **`docker compose logs -f app`** with **`LOG_LEVEL=debug`** as needed — see **[`docs/LOGGING.md`](docs/LOGGING.md)**.
@@ -112,7 +118,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 ## Known constraints (read before making changes)
 
 - **Yjs version pin**: `@y/protocols` must stay at `1.0.6-1` and `yjs` at `13.6.30`. The `@y/websocket-server` package wants Yjs 14 (`@y/y`), but the rest of the app uses Yjs 13. Upgrading without careful testing will break WebSocket connections. See [`docs/DECISIONS.md`](docs/DECISIONS.md) for details.
-- **FortuneSheet**: Core spreadsheet dependency. Collaboration uses its `onOp`/`applyOp` API with a Yjs `opLog` (append-only `Y.Array` of serialized ops). This means server-side state reconstruction from the opLog is not possible without reimplementing FortuneSheet's op application logic. The Yjs snapshot (stored in DB) is the source of truth for workbook state; the `.xlsx` file on disk reflects the state at upload/creation time only.
+- **FortuneSheet**: Core spreadsheet dependency. Collaboration uses its `onOp`/`applyOp` API with a Yjs `opLog` (append-only `Y.Array` of serialized ops). This means server-side state reconstruction from the opLog is not possible without reimplementing FortuneSheet's op application logic. The Yjs snapshot (stored in DB) is the source of truth for workbook state; the `.xlsx` file on disk reflects the state at upload/creation time only. **Upstream bugs** may be fixed via **`patches/`** + **`patch-package`** (see **Docker image: patches and dependencies** above); prefer **upstream PRs** when practical.
 - **In-process EventEmitter**: SSE invalidation uses an in-process bus. The app is designed for a single API instance. Adding a second replica requires Redis pub/sub or Postgres `LISTEN/NOTIFY` — see [`docs/REALTIME.md`](docs/REALTIME.md).
 - **No Redis**: Redis is not in the stack. Do not attempt to use Redis clients without first adding the service to `docker-compose.yml`.
 - **Container runs as `node` user**: The Dockerfile switches to a non-root user. Ensure file writes (uploads) go to the mounted volume at `UPLOADS_DIR`.
@@ -159,7 +165,7 @@ api/
       sheet-preview.ts    # Sheet[] → preview JSON
       yjs-persistence.ts  # Yjs doc save/load (Postgres snapshots)
       yjs-template-snapshot.ts  # encode/decode template Yjs snapshots
-      patch-template-presets.ts # blank/example sheet layouts
+      patch-template-presets.ts # blank + bundled example sheet layouts
       seed-patch-templates.ts   # auto-seed example template on startup
       performance-overlap.ts    # schedule validation helpers (same-day intervals)
       session-token.ts    # HMAC session cookie

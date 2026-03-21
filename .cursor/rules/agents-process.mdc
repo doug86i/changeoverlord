@@ -11,7 +11,7 @@ Treat **every** coding task that changes `api/`, `web/`, Docker, or migrations a
 
 ## Do by default (unless AGENTS.md says to skip)
 
-1. **`make dev`** from the repo root after changes that affect build or runtime — **you** execute it; do not only tell the user to run it. Skip only for **docs-only** / **comment-only** with zero ship impact.
+1. **`make dev`** from the repo root after changes that affect build or runtime — **you** execute it; do not only tell the user to run it. Includes changes to **`patches/`** or root **`package.json`** / **`package-lock.json`**, not only **`api/`** / **`web/`**. Skip only for **docs-only** / **comment-only** with zero ship impact.
 2. **Verify** the stack: e.g. `curl` **`/api/v1/health`** → **200**, or **`docker compose ps`**.
 3. **Tell the user the exact base URL** to open: **`http://localhost/`** (port 80) or **`http://localhost:<HOST_PORT>/`** from **`.env`**. If the UI is still stale after `make dev`, run **`make dev-fresh`** and retry.
 4. **`CHANGELOG.md`** — add an **`[Unreleased]`** bullet in the **same** change when behaviour or build output changes; follow **[`changelog.mdc`](changelog.mdc)** skip rules.

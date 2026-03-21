@@ -1,0 +1,36 @@
+diff --git a/node_modules/@fortune-sheet/core/dist/index.esm.js b/node_modules/@fortune-sheet/core/dist/index.esm.js
+index 5c9820b..04c6408 100644
+--- a/node_modules/@fortune-sheet/core/dist/index.esm.js
++++ b/node_modules/@fortune-sheet/core/dist/index.esm.js
+@@ -9893,10 +9893,10 @@ var en = {
+   fontFamily: {
+     MicrosoftYaHei: "YaHei"
+   },
+-  fontarray: ["Times New Roman", "Arial", "Tahoma", "Verdana"],
++  fontarray: ["Arial", "Times New Roman", "Tahoma", "Verdana"],
+   fontjson: {
+-    "times new roman": 0,
+-    arial: 1,
++    "times new roman": 1,
++    arial: 0,
+     tahoma: 2,
+     verdana: 3
+   },
+diff --git a/node_modules/@fortune-sheet/core/dist/index.js b/node_modules/@fortune-sheet/core/dist/index.js
+index 04113a1..9b83293 100644
+--- a/node_modules/@fortune-sheet/core/dist/index.js
++++ b/node_modules/@fortune-sheet/core/dist/index.js
+@@ -9903,10 +9903,10 @@ var en = {
+   fontFamily: {
+     MicrosoftYaHei: "YaHei"
+   },
+-  fontarray: ["Times New Roman", "Arial", "Tahoma", "Verdana"],
++  fontarray: ["Arial", "Times New Roman", "Tahoma", "Verdana"],
+   fontjson: {
+-    "times new roman": 0,
+-    arial: 1,
++    "times new roman": 1,
++    arial: 0,
+     tahoma: 2,
+     verdana: 3
+   },

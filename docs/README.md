@@ -15,7 +15,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 | **[`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md)** | Competitive research, detailed feature requirements for completion |
 | **[`DECISIONS.md`](DECISIONS.md)** | Locked product and engineering choices (stack, API, limits) |
 | **[`DESIGN.md`](DESIGN.md)** | Visual design — themes, tokens |
-| **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing via **Compose only** (`make dev`), DB resets, optional `npm run build` for CI |
+| **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing via **Compose only** (`make dev`), **`patches/`** + **`patch-package`**, **faster Docker rebuilds** (layer + **apk** cache), DB resets, optional **`npm run build`** for CI |
 | **[`REALTIME.md`](REALTIME.md)** | Live schedule updates (SSE) vs patch grid collaboration (Yjs + WebSockets) |
 | **[`LOGGING.md`](LOGGING.md)** | **Structured logging** — API Pino / `req.log`, web `logDebug`, `LOG_LEVEL`, no secrets |
 | **[`LICENSING.md`](LICENSING.md)** | Repository and dependency licences |
