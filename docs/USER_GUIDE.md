@@ -93,8 +93,8 @@ On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** k
 - **Changeover** — Shown when the day is in a gap between acts (same condition as the stage clock).
 - **Local time** → **Now** → **Countdown** → **Next** — same timing rules as the stage day clock. **Now** and **Next** band names are **links** to that act’s patch page.
 - **This spreadsheet** — The act you’re editing; **Alt+←** / **Alt+→** switch acts on this day.
-- **Quick links** — **All files**, **Rider PDF** when uploaded, **Stage clock**, **Running order**.
-- **Stage plot** — Preview of the file uploaded as **Stage plot** (see **Files** below); performance files take priority over stage files.
+- **Quick links** — **All files**, **Rider PDF** when a file is marked **Rider**, **Stage clock**, **Running order**.
+- **Stage plot** — Preview of the file marked **Stage plot** (see **Files** below); performance files take priority over stage files.
 
 The spreadsheet **toolbar, formula bar, and sheet tabs** use the app’s **sans-serif** font and theme colours; **cell selection** uses **FortuneSheet’s default** styling. **Text you type** in the active cell is shown in **high-contrast** colour so it stays readable on the edit box.
 
@@ -167,13 +167,14 @@ All uploaded files (patch templates, riders, plots) live on the **server's data 
 
 - **Stage** — On a **stage** screen, **Stage files** lets you upload **documents and images** (PDF, photos, text, Word/ODT, etc.). These are **stage-wide** (not tied to one band).
 - **Performance** — On a **stage day**, each performance row has a **Files** link. Upload files that belong to **that band only** (e.g. their rider).
-- **Upload new files as** — Choose radio options: **Rider / tech pack**, **Stage plot**, **Plot from rider PDF**, or **Other**. **Stage plot** is what the patch page sidebar and stage views use for plot previews. **Plot from rider PDF** is also set automatically when you **extract a page** from a PDF.
-- **One plot per list** — For each **stage** or **performance** file list, only **one** file can be **Stage plot** or **Plot from rider** at a time. Marking a different file as the plot reclassifies the previous one as **Other**.
-- **Use as (per file)** — After upload, change the **Type** on each row using the same radio options if you picked the wrong category.
+- **New uploads are Other** — Everything uploads as **Other** (general attachments). There is no “upload as” step.
+- **Rider and Stage plot (per file)** — On each row, use **Rider** or **Stage plot** so the patch sidebar can link the rider and show a plot preview. **Click the active choice again** to clear it back to **Other**. A file cannot be both at once.
+- **One rider and one stage plot per list** — For each **stage** or **performance** file list, only **one** file can be **Rider** and only **one** can be **Stage plot** at a time. Choosing a different file for either role moves the previous one to **Other**.
+- **Extract** — When you **extract a page** from a PDF, the new single-page file is saved as **Stage plot** (and follows the same “one stage plot” rule).
 - **Drag and drop** — Drop files directly onto the upload zone, or click to browse.
 - **View** — Open a **PDF** in an inline viewer without leaving the page.
 - **Open** — Open the file in a **new browser tab** (same control style as **View** — compact **button-shaped** actions).
-- **Extract** — For **PDFs** only: click **Extract**, then **choose a page** from the **thumbnail previews**, and **Extract as new PDF** to save a **single-page** copy. The original PDF is unchanged; the extract is tagged as derived from the source.
+- **Extract** — For **PDFs** only: click **Extract**, then **choose a page** from the **thumbnail previews** (rendered on the server), and **Extract as new PDF** to save a **single-page** copy. The original PDF is unchanged; the extract is the **Stage plot** for that list unless you change it.
 - **Delete** — Remove files with confirmation.
 
 Maximum upload size is **100 MB** per file (see **[`DECISIONS.md`](DECISIONS.md)** for limits).

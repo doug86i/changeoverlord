@@ -219,7 +219,7 @@ These integrations are **additive**: the **file-based** export/import remains th
 ## 8. PDF workflow (planned)
 
 1. Upload PDF → store file → **page count** + **thumbnail sprites** or **on-demand** thumbnails.
-2. UI: grid of pages → user selects page → **extract** to new asset (`plot_from_rider`) and attach to stage/performance.
+2. UI: grid of pages → user selects page → **extract** to new asset (`plot_pdf`) and attach to stage/performance.
 3. **Original rider** stays immutable; extracted plot is a **derivative** for quick display on stage.
 
 ---

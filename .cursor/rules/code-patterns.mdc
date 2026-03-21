@@ -104,6 +104,6 @@ Do **not** use a raw `<a>` without **`icon-btn`** next to **`icon-btn`** buttons
 ## File attachments (`/api/v1/files`)
 
 - **List:** `GET /api/v1/files?stageId=` (stage-only files) or `?performanceId=` (per-band files).
-- **Upload:** `POST /api/v1/files?stageId=` **or** `?performanceId=` — multipart field `file`, query `purpose=rider_pdf` (default). Allowed types: see `api/src/lib/upload-allowlists.ts` (PDF, images, text, common docs).
+- **Upload:** `POST /api/v1/files?stageId=` **or** `?performanceId=` — multipart field `file` only; new rows are stored as **`generic`** (Other). **PATCH** `purpose` to **`rider_pdf`** or **`plot_pdf`** as needed. Allowed types: see `api/src/lib/upload-allowlists.ts` (PDF, images, text, common docs).
 - **Extract:** `POST /api/v1/files/:id/extract-page` JSON `{ "pageIndex": 0 }` (0-based) — **PDF sources only**.
 - **TanStack keys:** `["files", stageId]` and `["files", "performance", performanceId]` — must be invalidated after upload/delete/extract (see `api/src/routes/v1/files.ts`).

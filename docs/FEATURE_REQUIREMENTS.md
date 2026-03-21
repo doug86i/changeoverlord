@@ -231,13 +231,13 @@ Core workflow in the plan: prep on a laptop at the office, transfer to the live 
 ## 8. PDF and rider workflow improvements (medium priority — partially done)
 
 ### The problem
-PDFs upload and page extraction works; thumbnails in the file list help pick a page (see **`PdfPageThumbnailGrid`**). The rider still lives on a separate page from the patch view — the tech has to switch tabs to compare.
+PDFs upload and page extraction works; server-rendered thumbnails in the extract dialog help pick a page (**`FileAttachments`** + **`GET .../page-previews`**). The rider still lives on a separate page from the patch view — the tech has to switch tabs to compare.
 
 ### Requirements
 
 | ID | Feature | Priority |
 |----|---------|----------|
-| F-1 | **PDF thumbnail page picker** — render page thumbnails so users can visually select the stage plot page to extract | Must — **Files** list (`PdfPageThumbnailGrid`) |
+| F-1 | **PDF thumbnail page picker** — render page thumbnails so users can visually select the stage plot page to extract | Must — **Files** list (`FileAttachments`, server previews) |
 | F-2 | **Inline PDF viewer** — view a PDF within the app in a modal or panel, not a new browser tab | Should |
 | F-3 | **View rider from the patch page** — a "Rider / Plot" button in the patch view that opens the performance's (or stage's) attached PDF in a sidebar or overlay | Should |
 | F-4 | **Image upload support** — accept JPG/PNG stage plots directly (currently limited to PDF and document types on the server; the `accept` attribute includes `image/*` but verify server-side handling) | Should |

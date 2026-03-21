@@ -97,7 +97,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | Collaborative patch/RF workbook (Yjs + FortuneSheet) | **Done** | WebSocket sync, Yjs persistence, template cloning, band-to-band nav, patch **sidebar** (changeover, clock, now/next, rider/plot, collapsible), theme-aligned **toolbar / sheet chrome**; **cell selection / editor** use **FortuneSheet defaults** |
 | Global patch template library | **Done** | Upload OOXML Excel (`.xlsx`, `.xltx`, `.xlsm`, `.xltm`, …), presets, in-app edit, preview, rename, replace, delete |
 | DHSL footer branding | **Done** | Fixed "Powered by" footer |
-| Rider / plot attachments (stage + performance) | **Done** | Upload, drag-drop, inline PDF viewer, extract page via **pdf-lib**, delete with confirmation |
+| Rider / plot attachments (stage + performance) | **Done** | Upload (Other by default), **Rider** / **Stage plot** toggles, drag-drop, inline PDF viewer, extract page via **pdf-lib** with **server-side** Poppler thumbnails, delete with confirmation |
 | Responsive layouts | **Done** | Hamburger nav, stacked forms, 768/1024 breakpoints, print styles, reduced motion, skip-to-content |
 | Event export / import packages | **Done** | JSON export/import of full event with stages, days, performances, and Yjs snapshots |
 | Global search | **Done** | `GET /api/v1/search?q=` searches bands/events/stages; `Ctrl+K` / `/` shortcut |

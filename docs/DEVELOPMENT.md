@@ -118,7 +118,7 @@ What usually costs time:
 - **`global.css`** defines **`button.icon-btn`** / **`a.icon-btn`** (padding, **36px** min touch target, **`0.8rem`** text on both).
 - **Primary** actions on the same row may use **`button.primary`**; **destructive** text actions use **`button.icon-btn.danger-text`** (e.g. **Delete**).
 
-**PDF page extract:** thumbnails are rendered client-side with **`pdfjs-dist/legacy/build`** (`PdfPageThumbnailGrid`) so older runtimes do not hit **`Map.prototype.getOrInsertComputed`** errors; the file is fetched with **`credentials: "include"`** so auth matches the API. **CMap / standard_fonts / wasm** URLs point at the matching **`unpkg.com/pdfjs-dist@<version>`** tree.
+**PDF page extract:** **`GET /api/v1/files/:id/page-previews`** returns **`pageCount`** and **`thumbnails`** (JPEG **data URLs**) rendered server-side with **Poppler** **`pdftoppm`** (`api/src/lib/pdf-thumbnails.ts`). The API container installs **`poppler-utils`**; local dev needs **`pdftoppm`** on **`PATH`** (e.g. **`brew install poppler`** on macOS). The web UI shows these in **`FileAttachments`** when **Extract** is open — no **pdf.js** in the browser.
 
 ## AI / Cursor workflow
 
