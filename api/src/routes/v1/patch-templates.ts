@@ -9,6 +9,7 @@ import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { createDefaultPatchWorkbookSheets } from "../../lib/default-patch-sheets.js";
 import { excelBufferToSheets } from "../../lib/excel-to-sheets.js";
+import { jsonBufferToSheets } from "../../lib/json-patch-template.js";
 import { getUploadsDir } from "../../lib/uploads-dir.js";
 import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import { sheetsToPreviewPayload } from "../../lib/sheet-preview.js";
@@ -19,9 +20,10 @@ import {
 import { patchTemplates, stages } from "../../db/schema.js";
 import { uuidParam } from "../../schemas/api.js";
 import {
-  excelTemplateStorageExtension,
   isExcelOoxmlTemplate,
-  stripExcelTemplateBasename,
+  isPatchTemplateJsonFile,
+  patchTemplateStorageExtension,
+  stripPatchTemplateBasename,
 } from "../../lib/upload-allowlists.js";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -40,6 +42,42 @@ const blankTemplateBody = z.object({
 
 function invalidateAll() {
   broadcastInvalidate([["patchTemplates"], ["patchTemplate"], ["events"]]);
+}
+
+function templateRowLooksLikeJson(row: {
+  storageKey: string;
+  mimeType: string;
+  originalName: string;
+}): boolean {
+  const ext = path.extname(row.storageKey).toLowerCase();
+  if (ext === ".json") return true;
+  return isPatchTemplateJsonFile(row.originalName, row.mimeType);
+}
+
+async function sheetsFromTemplateUpload(
+  buf: Buffer,
+  filename: string | undefined,
+  mime: string,
+): Promise<Sheet[]> {
+  if (isPatchTemplateJsonFile(filename, mime)) {
+    return jsonBufferToSheets(buf);
+  }
+  if (isExcelOoxmlTemplate(filename, mime)) {
+    return excelBufferToSheets(buf);
+  }
+  throw new Error(
+    "Unsupported file: upload Excel (.xlsx, .xlsm, .xltx, .xltm) or FortuneSheet JSON (.json)",
+  );
+}
+
+function normalizedTemplateMime(
+  filename: string | undefined,
+  reported: string,
+): string {
+  if (isPatchTemplateJsonFile(filename, reported)) {
+    return "application/json";
+  }
+  return reported || "application/octet-stream";
 }
 
 export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
@@ -129,7 +167,9 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     } else {
       try {
         const buf = await fs.readFile(abs);
-        sheets = await excelBufferToSheets(buf);
+        sheets = templateRowLooksLikeJson(row)
+          ? jsonBufferToSheets(buf)
+          : await excelBufferToSheets(buf);
       } catch {
         sheets = [];
       }
@@ -152,7 +192,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     const mime = data.mimetype || "application/octet-stream";
     const displayName =
       q.name?.trim() ||
-      (filename ? stripExcelTemplateBasename(filename).trim() : "") ||
+      (filename ? stripPatchTemplateBasename(filename).trim() : "") ||
       "Template";
     if (buf.length === 0) {
       return reply.code(400).send({ error: "ValidationError", message: "Empty file" });
@@ -160,27 +200,22 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     if (buf.length > MAX_BYTES) {
       return reply.code(413).send({ error: "PayloadTooLarge" });
     }
-    if (!isExcelOoxmlTemplate(filename, mime)) {
-      return reply.code(400).send({
-        error: "ValidationError",
-        message:
-          "Upload an Excel workbook (.xlsx, .xlsm, .xltx, .xltm, or matching MIME type)",
-      });
-    }
-    let sheets;
+    let sheets: Sheet[];
     try {
-      sheets = await excelBufferToSheets(buf);
+      sheets = await sheetsFromTemplateUpload(buf, filename, mime);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Invalid Excel file";
+      const msg =
+        e instanceof Error ? e.message : "Invalid template file";
       return reply.code(400).send({ error: "ValidationError", message: msg });
     }
     const snapshot = encodeTemplateSnapshotFromSheets(sheets);
     const uploadsRoot = getUploadsDir();
-    const tmplExt = excelTemplateStorageExtension(filename);
+    const tmplExt = patchTemplateStorageExtension(filename);
     const storageKey = `patch-templates/${randomUUID()}${tmplExt}`;
     const abs = path.join(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, buf);
+    const storedMime = normalizedTemplateMime(filename, mime);
 
     const [inserted] = await db
       .insert(patchTemplates)
@@ -188,14 +223,20 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         name: displayName,
         originalName: filename || `template${tmplExt}`,
         storageKey,
-        mimeType: mime,
+        mimeType: storedMime,
         byteSize: buf.length,
         snapshot,
       })
       .returning({ id: patchTemplates.id });
 
     invalidateAll();
-    req.log.info({ templateId: inserted?.id }, "patch template created");
+    req.log.debug(
+      {
+        templateId: inserted?.id,
+        format: isPatchTemplateJsonFile(filename, mime) ? "json" : "excel",
+      },
+      "patch template created",
+    );
     return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
   });
 
@@ -294,18 +335,12 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     if (buf.length > MAX_BYTES) {
       return reply.code(413).send({ error: "PayloadTooLarge" });
     }
-    if (!isExcelOoxmlTemplate(filename, mime)) {
-      return reply.code(400).send({
-        error: "ValidationError",
-        message:
-          "Upload an Excel workbook (.xlsx, .xlsm, .xltx, .xltm, or matching MIME type)",
-      });
-    }
-    let sheets;
+    let sheets: Sheet[];
     try {
-      sheets = await excelBufferToSheets(buf);
+      sheets = await sheetsFromTemplateUpload(buf, filename, mime);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Invalid Excel file";
+      const msg =
+        e instanceof Error ? e.message : "Invalid template file";
       return reply.code(400).send({ error: "ValidationError", message: msg });
     }
     const snapshot = encodeTemplateSnapshotFromSheets(sheets);
@@ -316,18 +351,19 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     } catch {
       /* ignore */
     }
-    const tmplExt = excelTemplateStorageExtension(filename);
+    const tmplExt = patchTemplateStorageExtension(filename);
     const storageKey = `patch-templates/${randomUUID()}${tmplExt}`;
     const abs = path.join(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, buf);
+    const storedMime = normalizedTemplateMime(filename, mime);
 
     await db
       .update(patchTemplates)
       .set({
         originalName: filename || existing.originalName,
         storageKey,
-        mimeType: mime,
+        mimeType: storedMime,
         byteSize: buf.length,
         snapshot,
         updatedAt: new Date(),

@@ -41,6 +41,34 @@ export function stripExcelTemplateBasename(name: string): string {
   return name.replace(/\.(xlsx|xlsm|xltx|xltm)$/i, "").trim();
 }
 
+const JSON_TEMPLATE_MIME = new Set(["application/json", "text/json"]);
+
+/** FortuneSheet-native workbook JSON for patch template library upload. */
+export function isPatchTemplateJsonFile(
+  filename: string | undefined,
+  mimetype: string,
+): boolean {
+  const ext = path.extname(filename || "").toLowerCase();
+  if (ext === ".json") return true;
+  const m = (mimetype || "").toLowerCase();
+  if (JSON_TEMPLATE_MIME.has(m)) return true;
+  return false;
+}
+
+/** Stored file extension for a patch template upload (Excel OOXML or JSON). */
+export function patchTemplateStorageExtension(
+  filename: string | undefined,
+): string {
+  const ext = path.extname(filename || "").toLowerCase();
+  if (EXCEL_OOXML_EXT.has(ext)) return ext;
+  if (ext === ".json") return ".json";
+  return ".xlsx";
+}
+
+export function stripPatchTemplateBasename(name: string): string {
+  return name.replace(/\.(xlsx|xlsm|xltx|xltm|json)$/i, "").trim();
+}
+
 const RIDER_EXT = new Set([
   ".pdf",
   ".jpg",

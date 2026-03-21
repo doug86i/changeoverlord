@@ -119,7 +119,7 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 
 **Creating templates**
 
-- **Upload Excel** — Import from **Excel** (`.xlsx`, `.xltx`, macro-enabled `.xlsm` / `.xltm`, etc.) or **Google Sheets** (export to Excel-compatible format first). The server reads **cell values** (and formulas where supported); prepare anything FortuneSheet-specific (e.g. dropdowns) in your workbook before upload or edit in **Edit spreadsheet** after. **Replace** a template after changing the Excel file so the library snapshot matches. Starter workbooks may ship under **`examples/`** (see **`examples/README.md`**) — upload them in **Settings** to add them to your library.
+- **Upload Excel or JSON** — Import from **Excel** (`.xlsx`, `.xltx`, macro-enabled `.xlsm` / `.xltm`, etc.) or **Google Sheets** (export to Excel-compatible format first), **or** upload **FortuneSheet-native JSON** (`.json`) to avoid Excel conversion loss (e.g. some conditional formatting). JSON shape and limits are documented in **`docs/PATCH_TEMPLATE_JSON.md`**. The server reads **cell values** (and formulas where supported); prepare anything FortuneSheet-specific in your workbook or JSON, or fix it in **Edit spreadsheet** after. **Replace** a template after changing the source file so the library snapshot matches. Starter workbooks may ship under **`examples/`** (see **`examples/README.md`**) — upload them in **Settings** to add them to your library.
 
 - **Create blank template** — In **Settings**, add a new library entry with two empty tabs (**Input**, **RF**), then use **Edit spreadsheet** to build it. Optional **display name** applies when you use **Create blank template** (defaults to **New template** if you leave the name blank).
 
@@ -131,7 +131,7 @@ On **Settings** and on the **stage** template picker you can:
 - **Preview** — See a sample of sheets/cells without opening the full editor.
 - **Edit name** — Change the **display name** of a template in the library.
 - **Duplicate** — Copy a template to a new library entry (name becomes **"… (copy)"**; rename if you like).
-- **Replace** — Upload a new Excel-compatible workbook for an existing template (updates the stored file and snapshot for new use).
+- **Replace** — Upload a new Excel-compatible workbook **or** `.json` file for an existing template (updates the stored file and snapshot for new use).
 - **Delete** — Remove a template from the library (stages using it may need a new assignment).
 
 ---

@@ -38,15 +38,41 @@ function celldataToMatrix(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RawSheet = Record<string, any>;
+export type RawFortuneSheet = Record<string, any>;
+
+/** Extra sheet keys preserved for native JSON uploads (not used for Excel import). */
+const NATIVE_JSON_SHEET_PASSTHROUGH: (keyof Sheet)[] = [
+  "luckysheet_conditionformat_save",
+  "luckysheet_alternateformat_save",
+  "dataVerification",
+  "filter",
+  "filter_select",
+  "frozen",
+  "hyperlink",
+  "showGridLines",
+  "zoomRatio",
+  "color",
+  "pivotTable",
+  "isPivotTable",
+  "luckysheet_select_save",
+  "luckysheet_selection_range",
+  "dynamicArray_compute",
+  "dynamicArray",
+];
+
+export type NormalizeSheetOptions = { nativeJson?: boolean };
 
 /**
- * Build a clean FortuneSheet `Sheet` from raw library output, keeping only
- * the properties FortuneSheet's Immer state model supports. This avoids
- * unknown properties that break rendering (e.g. object-typed `images` or
- * string-typed `status`).
+ * Build a clean FortuneSheet `Sheet` from raw workbook data.
+ *
+ * Excel import uses the default path (strict). Native JSON may pass through
+ * additional fields FortuneSheet expects (conditional formatting, filters, etc.).
  */
-function toCleanSheet(raw: RawSheet, order: number): Sheet {
+export function normalizeSheetFromRaw(
+  raw: RawFortuneSheet,
+  order: number,
+  opts?: NormalizeSheetOptions,
+): Sheet {
   // Compute grid dimensions from celldata if not set.
   let rows = typeof raw.row === "number" ? raw.row : 0;
   let cols = typeof raw.column === "number" ? raw.column : 0;
@@ -66,31 +92,41 @@ function toCleanSheet(raw: RawSheet, order: number): Sheet {
 
   // Convert sparse celldata → dense data matrix.
   const data: CellMatrix =
-    raw.data ??
-    celldataToMatrix(celldata ?? [], rows, cols);
+    raw.data ?? celldataToMatrix(celldata ?? [], rows, cols);
 
   const cfg = raw.config ?? {};
 
+  const baseConfig = {
+    ...(cfg.merge ? { merge: cfg.merge } : {}),
+    ...(Array.isArray(cfg.borderInfo) && cfg.borderInfo.length
+      ? { borderInfo: cfg.borderInfo }
+      : {}),
+    ...(cfg.rowlen ? { rowlen: cfg.rowlen } : {}),
+    ...(cfg.columnlen ? { columnlen: cfg.columnlen } : {}),
+    ...(cfg.rowhidden ? { rowhidden: cfg.rowhidden } : {}),
+    ...(cfg.colhidden ? { colhidden: cfg.colhidden } : {}),
+    ...(cfg.customHeight ? { customHeight: cfg.customHeight } : {}),
+    ...(cfg.customWidth ? { customWidth: cfg.customWidth } : {}),
+    ...(opts?.nativeJson && cfg.authority != null
+      ? { authority: cfg.authority }
+      : {}),
+    ...(opts?.nativeJson && cfg.rowReadOnly != null
+      ? { rowReadOnly: cfg.rowReadOnly }
+      : {}),
+    ...(opts?.nativeJson && cfg.colReadOnly != null
+      ? { colReadOnly: cfg.colReadOnly }
+      : {}),
+  };
+
   const sheet: Sheet = {
     id: raw.id ?? crypto.randomUUID(),
-    name: decodeHtmlEntities(raw.name ?? `Sheet${order + 1}`),
+    name: decodeHtmlEntities(String(raw.name ?? `Sheet${order + 1}`)),
     status: order === 0 ? 1 : 0,
     order,
     row: rows,
     column: cols,
     data,
-    config: {
-      ...(cfg.merge ? { merge: cfg.merge } : {}),
-      ...(Array.isArray(cfg.borderInfo) && cfg.borderInfo.length
-        ? { borderInfo: cfg.borderInfo }
-        : {}),
-      ...(cfg.rowlen ? { rowlen: cfg.rowlen } : {}),
-      ...(cfg.columnlen ? { columnlen: cfg.columnlen } : {}),
-      ...(cfg.rowhidden ? { rowhidden: cfg.rowhidden } : {}),
-      ...(cfg.colhidden ? { colhidden: cfg.colhidden } : {}),
-      ...(cfg.customHeight ? { customHeight: cfg.customHeight } : {}),
-      ...(cfg.customWidth ? { customWidth: cfg.customWidth } : {}),
-    },
+    config: baseConfig,
     ...(typeof raw.defaultColWidth === "number"
       ? { defaultColWidth: raw.defaultColWidth }
       : {}),
@@ -103,7 +139,15 @@ function toCleanSheet(raw: RawSheet, order: number): Sheet {
     ...(raw.hide === 1 ? { hide: 1 } : {}),
   };
 
-  return sheet;
+  if (!opts?.nativeJson) return sheet;
+
+  const extra: Partial<Sheet> = {};
+  for (const key of NATIVE_JSON_SHEET_PASSTHROUGH) {
+    if (raw[key] !== undefined) {
+      (extra as Record<string, unknown>)[key] = raw[key];
+    }
+  }
+  return { ...sheet, ...extra };
 }
 
 /**
@@ -122,12 +166,12 @@ export async function excelBufferToSheets(buffer: Buffer): Promise<Sheet[]> {
     const result = await transformExcelToFortune(buffer as unknown as File);
     console.log = savedLog;
 
-    const raw = result.sheets as unknown as RawSheet[];
+    const raw = result.sheets as unknown as RawFortuneSheet[];
     if (!raw || raw.length === 0) {
       throw new Error("Workbook has no sheets");
     }
 
-    return raw.map((s, i) => toCleanSheet(s, i));
+    return raw.map((s, i) => normalizeSheetFromRaw(s, i));
   } catch (e) {
     console.log = savedLog;
     throw e;

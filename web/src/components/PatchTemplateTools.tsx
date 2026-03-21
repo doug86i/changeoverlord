@@ -7,9 +7,9 @@ import type {
   PatchTemplateRow,
 } from "../api/types";
 
-/** Matches server OOXML Excel acceptance (`api/src/lib/upload-allowlists.ts`). */
-const EXCEL_TEMPLATE_ACCEPT =
-  ".xlsx,.xlsm,.xltx,.xltm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.openxmlformats-officedocument.spreadsheetml.template,application/vnd.ms-excel.template.macroEnabled.12";
+/** Matches server patch template acceptance (`api/src/lib/upload-allowlists.ts`). */
+const PATCH_TEMPLATE_FILE_ACCEPT =
+  ".xlsx,.xlsm,.xltx,.xltm,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.openxmlformats-officedocument.spreadsheetml.template,application/vnd.ms-excel.template.macroEnabled.12,application/json";
 
 function PreviewModal({
   title,
@@ -243,11 +243,11 @@ export function PatchTemplateLibrarySettings() {
         </label>
         <label>
           <span className="muted" style={{ display: "block", marginBottom: 4 }}>
-            Upload Excel (.xlsx, .xltx, …)
+            Upload Excel (.xlsx, …) or FortuneSheet JSON (.json)
           </span>
           <input
             type="file"
-            accept={EXCEL_TEMPLATE_ACCEPT}
+            accept={PATCH_TEMPLATE_FILE_ACCEPT}
             disabled={createTpl.isPending || createBlankTpl.isPending}
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -355,7 +355,7 @@ export function PatchTemplateLibrarySettings() {
       <input
         ref={replaceRef}
         type="file"
-        accept={EXCEL_TEMPLATE_ACCEPT}
+        accept={PATCH_TEMPLATE_FILE_ACCEPT}
         style={{ display: "none" }}
         onChange={(e) => {
           const id = replaceRef.current?.getAttribute("data-id");
@@ -675,11 +675,11 @@ export function StagePatchTemplatePicker({
           />
           <label style={{ margin: 0 }}>
             <span className="muted" style={{ marginRight: 6 }}>
-              Upload Excel
+              Excel or JSON
             </span>
             <input
               type="file"
-              accept={EXCEL_TEMPLATE_ACCEPT}
+              accept={PATCH_TEMPLATE_FILE_ACCEPT}
               disabled={createTpl.isPending}
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -694,7 +694,7 @@ export function StagePatchTemplatePicker({
       <input
         ref={replaceRef}
         type="file"
-        accept={EXCEL_TEMPLATE_ACCEPT}
+        accept={PATCH_TEMPLATE_FILE_ACCEPT}
         style={{ display: "none" }}
         onChange={(e) => {
           const id = replaceRef.current?.getAttribute("data-id");

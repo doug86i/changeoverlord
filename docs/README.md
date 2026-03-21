@@ -17,6 +17,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 | **[`DESIGN.md`](DESIGN.md)** | Visual design — themes, tokens |
 | **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing via **Compose only** (`make dev`), **`patches/`** + **`patch-package`**, **faster Docker rebuilds** (layer + **apk** cache), DB resets, optional **`npm run build`** for CI |
 | **[`REALTIME.md`](REALTIME.md)** | Live schedule updates (SSE) vs patch grid collaboration (Yjs + WebSockets) |
+| **[`PATCH_TEMPLATE_JSON.md`](PATCH_TEMPLATE_JSON.md)** | **FortuneSheet JSON** patch template upload — file shape, preserved fields, API |
 | **[`LOGGING.md`](LOGGING.md)** | **Structured logging** — API Pino / `req.log`, web `logDebug`, `LOG_LEVEL`, no secrets |
 | **[`LICENSING.md`](LICENSING.md)** | Repository and dependency licences |
 | **[`HANDOVER.md`](HANDOVER.md)** | **New machine / teammate** — clone, `make dev`, moving data |
