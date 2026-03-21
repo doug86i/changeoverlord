@@ -8,10 +8,30 @@ Canonical choices before implementation. Update when something changes.
 
 ### Multi-person prep (events / stages / days)
 
-- Different people may prepare **different events, days, or stages** on **different machines**; each export is independent.
-- **Import** always creates **new** top-level records (see **IDs** below) so nothing is silently overwritten.
+- Different people may prepare **different events, stages, or stage-days** on **different machines**.
+- **Export scope** (separate packages): **whole event**, **one stage** (all its days), or **one stage-day** — so preparers move **only** the slice they own.
+- **Import** always creates **new** records (see **IDs** below) so nothing is silently overwritten.
 - Operators can **delete** obsolete events/stages/days in the UI when a newer package has been imported or prep was wrong.
-- **“Replace with new”** (optional UX): user may **delete** an old event (or stage) then **import** again — same effect as replace without a dangerous merge. Automated “swap” can be a later convenience.
+- **“Replace with new”** (optional UX): **delete** the old scope then **import** again — same effect as replace without a dangerous merge. Automated “swap” can be a later convenience.
+
+### Time (local event)
+
+- Each **event = one physical location** — schedule times are **local event time** in v1 (store and display as local; no cross-timezone rules).
+- **Server time API** answers “what time is it now” on the host for countdowns; comparing to the running order uses **event-local** times.
+
+### v1 deployment posture
+
+- **Audience**: **DHSL staff**; **offline** private LAN at show — **no** internet required for runtime.
+- **Backups**: **External** (host backup of **`DATA_DIR`**, snapshots, etc.). **In-app backup/restore** — **future** version, not v1.
+
+### Accountability
+
+- **Not required** for v1 (no per-user edit history).
+
+### Spreadsheet shape
+
+- **One collaborative workbook per performance** — multiple **sheets** inside it (e.g. **Input**, **RF**). Patch and RF material live in that file.
+- **Stage default template** (authored **in-app** or imported from **Excel / GSheets → `.xlsx`**) is **cloned** into each new performance.
 
 ### Internationalisation
 
@@ -29,6 +49,7 @@ Canonical choices before implementation. Update when something changes.
 
 - **Always import as new** entities (new UUIDs) — never merge by reusing old IDs from another server unless we add an explicit **advanced** flow later.
 - **Deletion** of old data is manual (or bulk “delete event”) so crews stay in control on the **live** machine.
+- Export **manifest** must record **scope** (event / stage / stage-day) so imports validate expected contents.
 
 ---
 
@@ -54,7 +75,7 @@ Set **generous** server-side maximums; **soft** warnings in UI before hard failu
 |------|-------------------------------------|-----|
 | **Upload** (single file) | **100 MB** | Clear message if exceeded; suggest split/compress PDFs |
 | **Export package** (zip) | **500 MB** | Warn when approaching limit |
-| **Spreadsheet** | **50k cells** per performance sheet (configurable) | Warn before limit; prefer scrolling over hard cap if performance allows |
+| **Spreadsheet** | **50k cells** per performance **workbook** (configurable; tune if multi-sheet totals differ) | Warn before limit; prefer scrolling over hard cap if performance allows |
 | **Request body** | Match largest upload + headroom | Same as upload limit |
 
 If a limit is hit, message must be **short, actionable** (“File too large — max 100 MB — try compressing the PDF”) — **no** stack traces to end users.

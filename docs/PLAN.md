@@ -20,9 +20,9 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 
 | Area | Direction |
 |------|-----------|
-| **Connectivity** | Primary: **LAN / offline** server at the show (no internet required at runtime). Same stack can be hosted online behind HTTPS. |
+| **Connectivity** | **v1**: **DHSL staff**, **offline-only** use (private LAN; no internet assumed at runtime). Same stack can be hosted online behind HTTPS later. |
 | **Ease of deploy** | Non-IT staff: ideally **`docker compose up`** with **sensible defaults** in a **single [`docker-compose.yml`](../docker-compose.yml)**; optional **`.env`** only for infrastructure. |
-| **Config split** | **Infrastructure** (paths, ports, image tag) in Compose / `.env`. **Product** behaviour (auth, timezone, riders, patch data, branding) in the **app UI**, not env toggles. |
+| **Config split** | **Infrastructure** (paths, ports, image tag) in Compose / `.env`. **Product** behaviour (auth, **local** schedule times, riders, patch data, branding) in the **app UI**, not env toggles. |
 | **Clients** | One **responsive** web app: **desktop** (incl. 32" touch), **tablet**, **mobile** — layouts tuned per form factor. |
 | **Domain** | **Event → Stage(s) → Day schedule(s) → Performance(s)** with times, changeovers, uploads, collaborative patch/RF from **stage-level default templates**. |
 | **Collaboration** | **Real-time** shared **modern spreadsheet** (cell grid, multi-sheet where needed, sensible keyboard/clipboard behaviour) for **input list + RF** — see **§6.1**. |
@@ -38,19 +38,22 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 
 | Topic | Decision |
 |-------|----------|
-| **Patch + RF** | **One collaborative document** with **tabs: Input \| RF** |
+| **Patch + RF** | **One spreadsheet per performance** (multi-sheet workbook: **Input**, **RF**, etc.); template prepared in-app and/or from **Excel / Google Sheets** (export → `.xlsx`). |
 | **Desktop / large touch default** | **Day timeline / running order** (now/next, jump band) after choosing event + stage — not clock-first or patch-first |
 | **Guest / kiosk / read-only URLs** | **Not MVP** — trusted LAN or optional password |
 | **Print / PDF export** | **Defer** post-MVP |
 | **Spreadsheet templates** | **Default “base”** for a stage can come from **Microsoft Excel** (`.xlsx`) and, for **Google Sheets**, by **exporting** to `.xlsx` or **CSV** and uploading (LAN/offline-safe). Optional **live Google Sheets** sync is a **post-MVP** track when internet + OAuth are acceptable. |
 | **Portable event packages** | **MVP**: **Export** → **download** an archive; **import** via **upload** on another Changeoverlord instance (e.g. prep laptop → **USB** → live rig). **Future**: **push/pull** via **SeaDrive**, **Dropbox**, **Google Drive** (or similar) when online. |
-| **Multi-person prep** | Different people may prepare **different events/days/stages** on different machines — each **export/import** is independent. |
+| **Multi-person prep** | Different people may prepare **different events, stages, or days** on different machines — **export/import** is **granular** (separate packages per **event**, **stage**, or **stage-day** as needed). |
 | **Auth** | **Default: no password** (trusted LAN). **Optional: single shared password** in Settings. |
 | **Threat model** | If **no password**: assume **trusted environment**; still follow baseline web hygiene. Stricter defaults when password is on or host is **internet-facing** — see **[`DECISIONS.md`](DECISIONS.md)**. |
 | **Limits** | **Generous** server maxima + clear user messages — avoid **“computer says no”** on stage; numbers in **[`DECISIONS.md`](DECISIONS.md)**. |
 | **Browsers** | Current ±1 major **Chrome, Firefox, Safari, Edge**; no bleeding-edge-only APIs; see **[`DECISIONS.md`](DECISIONS.md)**. |
 | **Logging** | **`LOG_LEVEL`** via **`.env` / Compose** for API debug (default `info`) — see **[`DECISIONS.md`](DECISIONS.md)**. |
 | **Locale** | **English** only for MVP. |
+| **Time** | Each **event = one location** — all **times are local event time** unless explicitly labelled otherwise (no multi-timezone complexity in v1). |
+| **Accountability** | **Not required** for v1 (no per-user audit trail). |
+| **Backups** | Operators use **external** backup of **`DATA_DIR`** (or host backups). **In-app manual backup/restore** is a **future** feature — not v1. |
 
 **Detailed engineering choices** (IDs, API prefixes, Yjs storage, stack, migrations, E2E, load): **[`DECISIONS.md`](DECISIONS.md)**.
 
@@ -95,12 +98,13 @@ See **[`data/README.md`](../data/README.md)**. Set **`DATA_DIR`** in **`.env`** 
 
 ### 4.5 What stays outside the UI
 
-Appropriate for Compose / host docs only: **port binding**, **TLS termination** in front of the stack, **`DATA_DIR` backups**, **firewall**. Not product toggles.
+Appropriate for Compose / host docs only: **port binding**, **TLS termination** in front of the stack, **`DATA_DIR` / host-level backups**, **firewall**. **In-app backup/restore** may arrive in a later version; v1 assumes **external** copies of the data tree or VM snapshots.
 
 ### 4.6 Deployment philosophy (non-IT summary)
 
+- **v1 audience**: **Doug Hunt Sound & Light staff** on a **private LAN** — **offline** at show time (no reliance on internet for core operation).
 - **Goal**: one command (**`docker compose up -d`**) with **no required** YAML or `.env` edits for a default LAN run.
-- **Settings in the app** (not env): authentication mode, **timezone**, clock behaviour, **how to sync host time** (NTP guidance), **public URL / trust** copy, **template defaults** for new performances.
+- **Settings in the app** (not env): authentication mode, **local event time** display (see **§6**), clock behaviour, **how to sync host time** (NTP guidance), **public URL / trust** copy (for future online use), **template defaults** for new performances.
 - **Sensible defaults**: open LAN or **first-run** password to DB; **offline-safe** UI assets (**no** runtime dependency on public CDNs for core flows).
 - **Hardening**: internal Postgres/Redis passwords are **fixed on the Docker network** for LAN; document stricter secrets for internet-facing deployments.
 - **Offline runtime**: bundle **fonts/icons** in the **`app`** image; LAN does not need GitHub or registry after images are cached.
@@ -155,26 +159,26 @@ flowchart LR
 
 ## 6. Data model (core)
 
-- **Event** — name, dates, timezone, optional **auth scope** (if multi-tenant later).
-- **Stage** — belongs to event; **`default_patch_template_id`** (nullable = blank grid); **RF** shares the **same collaborative doc** as input (**tabs: Input \| RF**).
+- **Event** — name, dates; **one location per event** — all schedule times stored and shown as **local event time** (optional explicit **IANA timezone** label later if needed; v1 assumes local-only semantics).
+- **Stage** — belongs to event; **`default_patch_template`** (nullable = blank grid) — **cloned into each new performance** as that performance’s live workbook.
 - **StageDay** — stage + calendar date (or day index); ordered **performances** and **changeover** blocks.
-- **Performance** — start/end times, band name, notes; **attachments**; **live Yjs document id** (and optional **snapshot** table for history).
+- **Performance** — start/end times (**local**), band name, notes; **attachments**; **one collaborative spreadsheet per performance** (multi-sheet: **Input**, **RF**, etc.) — **live Yjs doc id** + optional snapshot/history.
 - **FileAsset** — local path under `uploads/` (or S3-compatible later); types e.g. `rider_pdf`, `plot_pdf`, `plot_image`, `extracted_page`.
-- **Template** — **Yjs initial state** and/or **JSON schema** for rows/columns; **cloned** into each new performance from stage defaults. Templates may be **seeded from an imported workbook** (see below).
+- **Template** — **Yjs initial state** for the **stage default** workbook; **cloned** into each new **performance** (each performance then has its **own** live doc). Stage templates may be **authored in-app** or **seeded from an imported workbook** (see below).
 
 ### 6.1 Spreadsheet templates and import (Excel / Google Sheets)
 
-**Goal**: Crews already work in **Excel** or **Google Sheets**; Changeoverlord should accept those as the **starting point** for the **stage default template** (and blank in-app starter remains an option).
+**Goal**: Crews already work in **Excel** or **Google Sheets**; those feed the **stage default template**. Each **performance** gets **one** workbook (FortuneSheet): **multiple sheets** inside it (e.g. **`Input`**, **`RF`**) — patch and RF live in the same file, not separate apps.
 
 | Source | MVP behaviour | Notes |
 |--------|----------------|--------|
-| **Excel (`.xlsx`)** | **Upload** in Settings or when defining the stage default template. Server **imports** workbook structure and cell values into the app’s **canonical grid model** (then **Yjs** for live collaboration). | Prefer **one workbook** with clear sheet names (e.g. `Input`, `RF`) or a single sheet + tabs in-app — product detail TBD. Use a **well-maintained OSS parser** on the server (e.g. **[ExcelJS](https://github.com/exceljs/exceljs)** MIT, or **[SheetJS](https://sheetjs.com/)** community build — **verify license** for your use case). |
+| **Excel (`.xlsx`)** | **Upload** when defining the **stage default template** (or edit equivalent structure **in-app**). Server imports workbook → **canonical model** → **Yjs** per performance. | **One `.xlsx` workbook** with named sheets (**`Input`**, **`RF`**, …). Use **[ExcelJS](https://github.com/exceljs/exceljs)** (MIT) unless licence review picks another parser. |
 | **Google Sheets** | **Export** → **Excel (`.xlsx`)** or **CSV** while online, then **upload** to Changeoverlord like any Excel file. | **No Google API required** on the festival LAN; matches **offline-first** deployment. |
 | **Google Sheets (live)** | **Post-MVP**: optional integration (**Google Sheets API** + OAuth) to **pull** or **periodically sync** a sheet when the server has **internet** and the org accepts Google access. | Not required for core festival-LAN use. |
 
 **Frontend**: a **modern** spreadsheet component (e.g. **[FortuneSheet](https://github.com/ruilisi/fortune-sheet)** MIT, with **Op**/collab hooks) aligned with **Yjs** — or equivalent that supports **import** of parsed workbooks into its document model.
 
-**Persistence**: imported content becomes the **initial Yjs snapshot** (and optional **Postgres** blob of source `.xlsx` for audit/re-import).
+**Persistence**: imported content seeds the **stage template**; each **performance** clone stores **its own** Yjs state (optional **Postgres** blob of source `.xlsx` on the template for re-import).
 
 ### 6.2 Portable event packages (export / import between machines)
 
@@ -184,7 +188,7 @@ flowchart LR
 
 | Flow | Behaviour |
 |------|-----------|
-| **Export** | User selects scope (**one event**, or **event + nested stages/days**, TBD) → server builds a **single archive** (e.g. **`.zip`**) containing: **structured manifest** (JSON or similar), **Postgres-oriented entity dump** (or normalised export format), **files** from `uploads/` referenced by that scope, **Yjs binary snapshots** / checkpoints for patch sheets where needed. User **downloads** the file through the browser. |
+| **Export** | User selects **scope**: **whole event**, **one stage** (all days), or **one stage-day** — each is a **separate** export so different preparers can move **only their** event/stage/day. Server builds one **`.zip`** with: **manifest** (JSON), **entity dump** for that scope, **`uploads/`** files referenced, **Yjs snapshots** for performances in scope. User **downloads** through the browser. |
 | **Transfer** | Physical **USB**, **AirDrop**, **email**, shared disk — anything that moves a file. |
 | **Import** | On the **target** instance: **Upload** the archive → validate format/version → **always create new** records (**new UUIDs**) — no silent overwrite of existing prep. Operators **delete** outdated events/stages when replacing prep; optional future **“replace” wizard** is convenience only. |
 | **Versioning** | Export format carries **schema version** so older packages can be migrated or rejected with a clear error. |
@@ -210,7 +214,7 @@ These integrations are **additive**: the **file-based** export/import remains th
 - **Tablet**: **Single primary panel** — default next performance patch sheet or clock; hamburger for schedule and files.
 - **Mobile**: **Stacked** — search/jump band → patch/RF (read-mostly, edit on demand) → attachments.
 - **Navigation**: Prev/next band, jump list, search (shared across form factors).
-- **Clock**: **`GET /api/time`** — UTC + optional `offsetMs` if leap-second handling is added later; clients compute countdown to next **performance start** or **changeover end**. **`/clock`** route with **Fullscreen API**; optional **`/clock?stage=id`**; minimal chrome, large digits + next label.
+- **Clock**: **`GET /api/v1/time`** — server **local** clock for the host; schedule comparisons use **event local times** (see **§6**). Clients compute countdown to next **performance start** or **changeover end**. **`/clock`** route with **Fullscreen API**; optional **`/clock?stage=id`**; minimal chrome, large digits + next label.
 - **NTP**: **Settings** shows **server time vs browser time**, drift warning, plain-language steps to enable **NTP on the host running Docker** (no NTP in Compose; optional **sidecar** only as advanced documentation).
 
 ---
@@ -225,10 +229,10 @@ These integrations are **additive**: the **file-based** export/import remains th
 
 ## 9. Settings & access (UI)
 
-- **Modes** (DB-backed, toggled in Settings): **open** (trusted LAN), **shared password** (global or per-event later), optional future **accounts** for audit.
+- **Modes** (DB-backed, toggled in Settings): **open** (trusted LAN), **shared password** (global or per-event later). **Per-user accounts / audit** — not v1 (see **§3**).
 - **First-run**: optional wizard — “Set a password now” or “Continue without password” (**warn** on exposed networks).
 - **No `AUTH_DISABLED`-style env**: access mode is visible and editable in the UI — operators should not hunt Compose env docs for auth.
-- **Timezone**, clock copy, **server vs browser time** / NTP guidance — not env vars.
+- **Clock copy**, **server vs browser time** / NTP guidance — not env vars. **Event times** are **local** (see **§3**); optional timezone label is a future nicety.
 
 ---
 
@@ -268,11 +272,11 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 | Idea | Notes |
 |------|--------|
 | **Print / PDF export** | Day sheet or plot + times — revisit after core is stable |
-| **Activity log** | Append-only schedule/patch history (accountability) |
+| **Activity log** | Append-only schedule/patch history — **not required** for v1 |
 | **Kiosk / guest mode** | Read-only URL — revisit if visiting engineers need it |
 | **Light roles** | FOH / monitors / stage — same data, different default views |
 | **PWA / service worker** | Faster reload on poor Wi‑Fi; server remains source of truth |
-| **Contingency slots** | TBD acts without breaking the clock |
+| **Contingency slots** | TBD acts without breaking the clock — **deferred** |
 | **Stage notes** | Weather / intercom / SM notes per day (not the spreadsheet) |
 | **Mic line / walk checklist** | Optional separate from patch grid |
 | **SeaDrive / Dropbox / Google Drive** | **Push/pull** event packages or sync — see **§6.2** (future) |
@@ -303,7 +307,7 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 | collab-grids | Stage default templates (**Excel/Google-via-export** as base); clone per performance; **import `.xlsx`**; Yjs + WebSocket + persistence | Pending |
 | pdf-plots | PDF upload, thumbnails, extract page as plot asset | Pending |
 | responsive-ux | Desktop / tablet / mobile layouts; touch-first stage views | Pending |
-| settings-ui | Settings: auth, passwords, timezone, time/NTP guidance (no ops in Compose) | Pending |
+| settings-ui | Settings: auth, passwords, local event time / clock, time+NTP guidance (no ops in Compose) | Pending |
 | branding-ui | Client logo; fixed “Powered by DHSL” footer + bundled logo | Pending |
 | event-pack | **Export** / **import** event packages (zip + manifest + uploads + Yjs snapshots); conflict/version rules | Pending |
 

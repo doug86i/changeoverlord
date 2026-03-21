@@ -14,6 +14,8 @@ Discussion of **repo licence** and **dependency** choices for Changeoverlord.
 
 **Recommendation:** keep **MIT** (or switch to **Apache-2.0** if you want the patent clause — both are fine for a crew-facing tool). **Do not** AGPL the main app unless you intentionally want strong copyleft obligations on network use.
 
+**Current choice:** repository stays **MIT** — no change planned.
+
 ---
 
 ## Dependencies (libraries you do not own)
