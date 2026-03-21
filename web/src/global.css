@@ -1501,6 +1501,17 @@ a.patch-sidebar-perf-link:hover {
   border-color: var(--color-brand);
 }
 
+/* In-cell editor: inherited theme colour was too faint over the white edit box */
+:root[data-theme="light"] .patch-workbook-host .luckysheet-input-box-inner,
+:root[data-theme="light"] .patch-workbook-host .luckysheet-cell-input {
+  color: #000 !important;
+}
+
+:root[data-theme="dark"] .patch-workbook-host .luckysheet-input-box-inner,
+:root[data-theme="dark"] .patch-workbook-host .luckysheet-cell-input {
+  color: #f5f5f5 !important;
+}
+
 /* ── Print ─────────────────────────────────────────────────── */
 
 .print-only {

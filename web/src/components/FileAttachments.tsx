@@ -93,6 +93,7 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
   const openExtract = () => {
     setPageIndex(1);
     setExtractOpen(true);
+    extract.reset();
     void loadMeta();
   };
   const isPdf = f.mimeType === "application/pdf";
@@ -201,6 +202,11 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
                 Cancel
               </button>
             </div>
+            {extract.isError && (
+              <p role="alert" style={{ color: "var(--color-danger)", marginTop: "0.5rem", fontSize: "0.85rem" }}>
+                {(extract.error as Error).message}
+              </p>
+            )}
           </div>
         )}
       </li>

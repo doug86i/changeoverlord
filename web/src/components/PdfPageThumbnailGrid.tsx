@@ -37,7 +37,11 @@ export function PdfPageThumbnailGrid({
           return;
         }
         const buf = await r.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buf) });
+        const loadingTask = pdfjsLib.getDocument({
+          data: new Uint8Array(buf),
+          useSystemFonts: true,
+          standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
+        });
         const pdf = await loadingTask.promise;
         try {
           const n = pdf.numPages;
@@ -49,9 +53,18 @@ export function PdfPageThumbnailGrid({
             const scale = THUMB_MAX_WIDTH / base.width;
             const vp = page.getViewport({ scale });
             const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d", { alpha: false });
+            if (!ctx) {
+              setError("Canvas is not available in this browser.");
+              return;
+            }
             canvas.width = Math.floor(vp.width);
             canvas.height = Math.floor(vp.height);
-            await page.render({ canvas, viewport: vp }).promise;
+            const renderTask = page.render({
+              canvasContext: ctx,
+              viewport: vp,
+            });
+            await renderTask.promise;
             urls.push(canvas.toDataURL("image/jpeg", 0.82));
           }
           if (!cancelled) setThumbs(urls);

@@ -22,6 +22,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API — Files:** Only **one** **Stage plot** / **Plot from rider** attachment per **stage** or **performance** file scope; uploading, **PATCH**ing, or **extract-page** to set a plot **demotes** any other plot in that scope to **Other** (`generic`).
+
+- **Web — FortuneSheet:** **In-cell editor** (typed text) uses **forced high-contrast** colour — **black** in **light** theme and **near-white** in **dark** — so characters stay readable in the edit box.
+
+- **Web — PDF extract:** Thumbnail previews use **`canvasContext`** rendering plus **`standardFontDataUrl`** / **`useSystemFonts`** for **pdf.js**; **Extract as new PDF** failures show the **API error message** under the controls.
+
 - **Web — Patch sidebar:** Block order: **Local time** → **Now** → **Countdown** → **Next** → **This spreadsheet** (then quick links and plot). **Now** / **Next** band names **link to `/patch/:performanceId`**.
 
 - **Docker build:** The **API** builder step now removes **`api/dist`** and **`api/.cache/tsconfig.tsbuildinfo`** before **`tsc`**. Without clearing incremental metadata, **`tsc` could emit no files** while exiting successfully, yielding an **empty `api/dist`** in the image and a **crash loop** at runtime (`ERR_MODULE_NOT_FOUND` for `db/client.js`, etc.).
@@ -38,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Web — Files (performance / stage):** PDF **extract page** shows **per-page thumbnails** (client-side **`pdfjs-dist`**) instead of typing a page number. Row actions (**View**, **Open**, **Extract**, **Delete**) use **`icon-btn`** + text labels to match **stage day** compact actions. **`docs/DEVELOPMENT.md`** and **`.cursor/rules/code-patterns.mdc`** document the pattern.
 
-- **Web — FortuneSheet:** `.patch-workbook-host` themes **toolbar**, **formula bar**, **sheet tabs**, **row/column headers**, **resize handles**, and **modals** with **`var(--color-*)`** / **`var(--color-brand)`** (better **light/dark** alignment). **Cell selection**, **fill handle**, **formula-range selection**, and **in-cell editor** use **library defaults** — custom overrides for those were removed (fixes odd dark fill while typing).
+- **Web — FortuneSheet:** `.patch-workbook-host` themes **toolbar**, **formula bar**, **sheet tabs**, **row/column headers**, **resize handles**, and **modals** with **`var(--color-*)`** / **`var(--color-brand)`** (better **light/dark** alignment). **Cell selection** and related chrome use **library defaults** (no custom fill on the active cell); **typed text** in the editor is overridden for **readability** (see **Fixed**).
 
 - **Docs:** **`docs/USER_GUIDE.md`** — patch / RF page **sidebar** (clock, countdown, now/next, links, plot preview) and band-nav wording; **`AGENTS.md`** — implementation status for the patch workbook updated (sidebar replaces the old “mini clock” note).
 

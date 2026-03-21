@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
@@ -90,6 +90,35 @@ function invalidateFileQueries(stageId: string, performanceId: string | null) {
     keys.push(["performance", performanceId], ["files", "performance", performanceId]);
   }
   broadcastInvalidate(keys);
+}
+
+const PLOT_PURPOSES = ["plot_pdf", "plot_from_rider"] as const;
+
+function isPlotPurpose(purpose: string): boolean {
+  return purpose === "plot_pdf" || purpose === "plot_from_rider";
+}
+
+/** At most one plot per scope (stage row or performance row). Demote others to `generic`. */
+async function demoteOtherPlotsInScope(
+  stageId: string,
+  performanceId: string | null,
+  exceptFileId: string,
+): Promise<void> {
+  const scope =
+    performanceId === null
+      ? and(eq(fileAssets.stageId, stageId), isNull(fileAssets.performanceId))
+      : and(eq(fileAssets.stageId, stageId), eq(fileAssets.performanceId, performanceId));
+
+  await db
+    .update(fileAssets)
+    .set({ purpose: "generic" })
+    .where(
+      and(
+        scope,
+        ne(fileAssets.id, exceptFileId),
+        inArray(fileAssets.purpose, [...PLOT_PURPOSES]),
+      ),
+    );
 }
 
 export const filesRoutes: FastifyPluginAsync = async (app) => {
@@ -225,6 +254,10 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         createdAt: fileAssets.createdAt,
       });
 
+    if (isPlotPurpose(q.purpose)) {
+      await demoteOtherPlotsInScope(stageId, performanceId, row.id);
+    }
+
     invalidateFileQueries(stageId, performanceId);
     req.log.debug(
       { fileId: row.id, stageId, performanceId, pageCount },
@@ -294,6 +327,10 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       });
 
     const row = updated!;
+    if (row.stageId && isPlotPurpose(body.purpose)) {
+      await demoteOtherPlotsInScope(row.stageId, row.performanceId, row.id);
+    }
+
     if (row.stageId) {
       invalidateFileQueries(row.stageId, row.performanceId);
     }
@@ -391,6 +428,11 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       });
 
     if (parent.stageId) {
+      await demoteOtherPlotsInScope(
+        parent.stageId,
+        parent.performanceId,
+        row.id,
+      );
       invalidateFileQueries(parent.stageId, parent.performanceId);
     }
 
