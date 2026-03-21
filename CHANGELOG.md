@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web — PDF thumbnails:** **pdf.js** is loaded from **`pdfjs-dist/legacy/build`** so older browsers (and embedded WebViews) do not throw **`getOrInsertComputed is not a function`** when rendering page previews. **CMap**, **standard font**, and **WASM** base URLs are still passed for correct decoding.
+
 - **API — Files:** Only **one** **Stage plot** / **Plot from rider** attachment per **stage** or **performance** file scope; uploading, **PATCH**ing, or **extract-page** to set a plot **demotes** any other plot in that scope to **Other** (`generic`).
 
 - **Web — FortuneSheet:** **In-cell editor** (typed text) uses **forced high-contrast** colour — **black** in **light** theme and **near-white** in **dark** — so characters stay readable in the edit box.
@@ -41,6 +43,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Web — stage days:** “Bulk add days” → “Add range” now uses the same date fallbacks as the From/To fields (event start/end when the fields were never edited). Previously the UI could show event dates while React state stayed empty, so the range was computed as empty and no days were created.
 
 ### Changed
+
+- **Web — Files (performance / stage):** **Upload** and **per-file type** use **radio buttons** (**Rider / tech pack**, **Stage plot**, **Plot from rider PDF**, **Other**) instead of dropdowns.
 
 - **Web — Files (performance / stage):** PDF **extract page** shows **per-page thumbnails** (client-side **`pdfjs-dist`**) instead of typing a page number. Row actions (**View**, **Open**, **Extract**, **Delete**) use **`icon-btn`** + text labels to match **stage day** compact actions. **`docs/DEVELOPMENT.md`** and **`.cursor/rules/code-patterns.mdc`** document the pattern.
 

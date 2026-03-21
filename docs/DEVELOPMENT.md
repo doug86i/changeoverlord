@@ -118,7 +118,7 @@ What usually costs time:
 - **`global.css`** defines **`button.icon-btn`** / **`a.icon-btn`** (padding, **36px** min touch target, **`0.8rem`** text on both).
 - **Primary** actions on the same row may use **`button.primary`**; **destructive** text actions use **`button.icon-btn.danger-text`** (e.g. **Delete**).
 
-**PDF page extract:** thumbnails are rendered client-side with **`pdfjs-dist`** (`PdfPageThumbnailGrid`); the file is fetched with **`credentials: "include"`** so auth matches the API.
+**PDF page extract:** thumbnails are rendered client-side with **`pdfjs-dist/legacy/build`** (`PdfPageThumbnailGrid`) so older runtimes do not hit **`Map.prototype.getOrInsertComputed`** errors; the file is fetched with **`credentials: "include"`** so auth matches the API. **CMap / standard_fonts / wasm** URLs point at the matching **`unpkg.com/pdfjs-dist@<version>`** tree.
 
 ## AI / Cursor workflow
 

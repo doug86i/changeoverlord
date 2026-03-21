@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ensurePdfJsWorker, pdfjsLib } from "../lib/pdfjs";
+import { ensurePdfJsWorker, getPdfDocumentParams, pdfjsLib } from "../lib/pdfjs";
 
 const THUMB_MAX_WIDTH = 120;
 
@@ -37,11 +37,9 @@ export function PdfPageThumbnailGrid({
           return;
         }
         const buf = await r.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({
-          data: new Uint8Array(buf),
-          useSystemFonts: true,
-          standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
-        });
+        const loadingTask = pdfjsLib.getDocument(
+          getPdfDocumentParams(new Uint8Array(buf)),
+        );
         const pdf = await loadingTask.promise;
         try {
           const n = pdf.numPages;

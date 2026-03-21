@@ -167,9 +167,9 @@ All uploaded files (patch templates, riders, plots) live on the **server's data 
 
 - **Stage** — On a **stage** screen, **Stage files** lets you upload **documents and images** (PDF, photos, text, Word/ODT, etc.). These are **stage-wide** (not tied to one band).
 - **Performance** — On a **stage day**, each performance row has a **Files** link. Upload files that belong to **that band only** (e.g. their rider).
-- **Upload as** — Before you upload, choose **Rider / tech pack**, **Stage plot**, **Plot from rider PDF**, or **Other**. **Stage plot** is what the patch page sidebar and stage views use for plot previews. **Plot from rider PDF** is also set automatically when you **extract a page** from a PDF.
+- **Upload new files as** — Choose radio options: **Rider / tech pack**, **Stage plot**, **Plot from rider PDF**, or **Other**. **Stage plot** is what the patch page sidebar and stage views use for plot previews. **Plot from rider PDF** is also set automatically when you **extract a page** from a PDF.
 - **One plot per list** — For each **stage** or **performance** file list, only **one** file can be **Stage plot** or **Plot from rider** at a time. Marking a different file as the plot reclassifies the previous one as **Other**.
-- **Type (per file)** — After upload, change the **Type** on each row if you picked the wrong category.
+- **Use as (per file)** — After upload, change the **Type** on each row using the same radio options if you picked the wrong category.
 - **Drag and drop** — Drop files directly onto the upload zone, or click to browse.
 - **View** — Open a **PDF** in an inline viewer without leaving the page.
 - **Open** — Open the file in a **new browser tab** (same control style as **View** — compact **button-shaped** actions).

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiSend, apiSendForm } from "../api/client";
 import type { FileAssetPurpose, FileAssetRow } from "../api/types";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const FILE_PURPOSE_OPTIONS: { value: FileAssetPurpose; label: string }[] = [
   { value: "rider_pdf", label: "Rider / tech pack" },
@@ -9,7 +10,40 @@ const FILE_PURPOSE_OPTIONS: { value: FileAssetPurpose; label: string }[] = [
   { value: "plot_from_rider", label: "Plot from rider PDF" },
   { value: "generic", label: "Other" },
 ];
-import { ConfirmDialog } from "./ConfirmDialog";
+
+function FilePurposeRadios({
+  name,
+  value,
+  onChange,
+  disabled,
+  legend,
+}: {
+  name: string;
+  value: FileAssetPurpose;
+  onChange: (v: FileAssetPurpose) => void;
+  disabled?: boolean;
+  legend: string;
+}) {
+  return (
+    <fieldset className="file-purpose-fieldset" disabled={disabled}>
+      <legend className="file-purpose-fieldset-legend">{legend}</legend>
+      <div className="file-purpose-radios">
+        {FILE_PURPOSE_OPTIONS.map((o) => (
+          <label key={o.value} className="file-purpose-radio-label">
+            <input
+              type="radio"
+              name={name}
+              value={o.value}
+              checked={value === o.value}
+              onChange={() => onChange(o.value)}
+            />
+            <span>{o.label}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 
 const PdfPageThumbnailGrid = lazy(async () => {
   const m = await import("./PdfPageThumbnailGrid");
@@ -108,33 +142,21 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
               {formatBytes(f.byteSize)}
               {f.pageCount ? ` · ${f.pageCount} pages` : ""}
             </div>
-            <label
-              style={{
-                display: "flex",
-                gap: "0.35rem",
-                alignItems: "center",
-                marginTop: "0.35rem",
-                fontSize: "0.8rem",
-              }}
+            <div style={{ marginTop: "0.35rem",
+              maxWidth: "28rem",
+            }}
             >
-              <span className="muted">Type</span>
-              <select
+              <FilePurposeRadios
+                name={`file-purpose-${f.id}`}
+                legend="Use as"
                 value={purpose}
-                onChange={(e) => {
-                  const v = e.target.value as FileAssetPurpose;
+                disabled={patchPurpose.isPending}
+                onChange={(v) => {
                   setPurpose(v);
                   patchPurpose.mutate(v);
                 }}
-                disabled={patchPurpose.isPending}
-                aria-label="Attachment type"
-              >
-                {FILE_PURPOSE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
           </div>
           <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
             {isPdf && (
@@ -272,29 +294,18 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
     <div className="card" style={{ marginBottom: "1.5rem" }}>
       <div className="title-bar" style={{ marginBottom: "0.75rem" }}>{title}</div>
 
-      <label
-        style={{
-          display: "flex",
-          gap: "0.5rem",
-          alignItems: "center",
-          flexWrap: "wrap",
-          marginBottom: "0.65rem",
-          fontSize: "0.9rem",
-        }}
-      >
-        <span className="muted">Upload as</span>
-        <select
+      <div style={{ marginBottom: "0.65rem", maxWidth: "28rem" }}>
+        <FilePurposeRadios
+          name={
+            scope.kind === "stage"
+              ? `upload-purpose-stage-${scope.stageId}`
+              : `upload-purpose-perf-${scope.performanceId}`
+          }
+          legend="Upload new files as"
           value={uploadPurpose}
-          onChange={(e) => setUploadPurpose(e.target.value as FileAssetPurpose)}
-          aria-label="Type for new uploads"
-        >
-          {FILE_PURPOSE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </label>
+          onChange={setUploadPurpose}
+        />
+      </div>
 
       {/* Drop zone */}
       <div
