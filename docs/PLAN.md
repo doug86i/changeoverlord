@@ -25,7 +25,7 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 | **Config split** | **Infrastructure** (paths, ports, image tag) in Compose / `.env`. **Product** behaviour (auth, timezone, riders, patch data, branding) in the **app UI**, not env toggles. |
 | **Clients** | One **responsive** web app: **desktop** (incl. 32" touch), **tablet**, **mobile** — layouts tuned per form factor. |
 | **Domain** | **Event → Stage(s) → Day schedule(s) → Performance(s)** with times, changeovers, uploads, collaborative patch/RF from **stage-level default templates**. |
-| **Collaboration** | **Real-time** shared spreadsheet for **input list + RF** (see stack). |
+| **Collaboration** | **Real-time** shared **modern spreadsheet** (cell grid, multi-sheet where needed, sensible keyboard/clipboard behaviour) for **input list + RF** — see **§6.1**. |
 | **Media** | Upload riders and plots; **pick a PDF page** to extract when the plot is inside a multi-page rider. |
 | **Clock** | **Server time** + countdown to next performance/changeover; **fullscreen** clock for stage displays. |
 | **Branding** | **Client/event logo** configurable in-app; **fixed** “Powered by Doug Hunt Sound & Light” footer + bundled DHSL logo (offline-safe). |
@@ -41,6 +41,7 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 | **Desktop / large touch default** | **Day timeline / running order** (now/next, jump band) after choosing event + stage — not clock-first or patch-first |
 | **Guest / kiosk / read-only URLs** | **Not MVP** — trusted LAN or optional password |
 | **Print / PDF export** | **Defer** post-MVP |
+| **Spreadsheet templates** | **Default “base”** for a stage can come from **Microsoft Excel** (`.xlsx`) and, for **Google Sheets**, by **exporting** to `.xlsx` or **CSV** and uploading (LAN/offline-safe). Optional **live Google Sheets** sync is a **post-MVP** track when internet + OAuth are acceptable. |
 
 ---
 
@@ -128,6 +129,7 @@ flowchart LR
 |-------|-----------|
 | API | **Node.js + TypeScript** (e.g. Fastify) — *or Python + FastAPI if preferred* |
 | Real-time | **WebSockets** + **Yjs** (or **Automerge**) for CRDT spreadsheet state |
+| Spreadsheet UI | **FortuneSheet** (or similar) for **modern** grid UX; **import** path from **ExcelJS**/SheetJS → seed **Yjs** / sheet state |
 | DB | **PostgreSQL** — events, stages, days, performances, metadata, template links, file refs |
 | PDF | **`pdf-lib` / `pdf.js` / `pdftoppm` (poppler)** — thumbnails + extract chosen page → PDF/PNG beside uploads |
 | Frontend | **Vite + React + TypeScript**, TanStack Query — SPA served fully from the LAN appliance |
@@ -144,7 +146,21 @@ flowchart LR
 - **StageDay** — stage + calendar date (or day index); ordered **performances** and **changeover** blocks.
 - **Performance** — start/end times, band name, notes; **attachments**; **live Yjs document id** (and optional **snapshot** table for history).
 - **FileAsset** — local path under `uploads/` (or S3-compatible later); types e.g. `rider_pdf`, `plot_pdf`, `plot_image`, `extracted_page`.
-- **Template** — **Yjs initial state** and/or **JSON schema** for rows/columns; **cloned** into each new performance from stage defaults.
+- **Template** — **Yjs initial state** and/or **JSON schema** for rows/columns; **cloned** into each new performance from stage defaults. Templates may be **seeded from an imported workbook** (see below).
+
+### 6.1 Spreadsheet templates and import (Excel / Google Sheets)
+
+**Goal**: Crews already work in **Excel** or **Google Sheets**; Changeoverlord should accept those as the **starting point** for the **stage default template** (and blank in-app starter remains an option).
+
+| Source | MVP behaviour | Notes |
+|--------|----------------|--------|
+| **Excel (`.xlsx`)** | **Upload** in Settings or when defining the stage default template. Server **imports** workbook structure and cell values into the app’s **canonical grid model** (then **Yjs** for live collaboration). | Prefer **one workbook** with clear sheet names (e.g. `Input`, `RF`) or a single sheet + tabs in-app — product detail TBD. Use a **well-maintained OSS parser** on the server (e.g. **[ExcelJS](https://github.com/exceljs/exceljs)** MIT, or **[SheetJS](https://sheetjs.com/)** community build — **verify license** for your use case). |
+| **Google Sheets** | **Export** → **Excel (`.xlsx`)** or **CSV** while online, then **upload** to Changeoverlord like any Excel file. | **No Google API required** on the festival LAN; matches **offline-first** deployment. |
+| **Google Sheets (live)** | **Post-MVP**: optional integration (**Google Sheets API** + OAuth) to **pull** or **periodically sync** a sheet when the server has **internet** and the org accepts Google access. | Not required for core festival-LAN use. |
+
+**Frontend**: a **modern** spreadsheet component (e.g. **[FortuneSheet](https://github.com/ruilisi/fortune-sheet)** MIT, with **Op**/collab hooks) aligned with **Yjs** — or equivalent that supports **import** of parsed workbooks into its document model.
+
+**Persistence**: imported content becomes the **initial Yjs snapshot** (and optional **Postgres** blob of source `.xlsx` for audit/re-import).
 
 ---
 
@@ -230,7 +246,7 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 2. **Settings + first-run** + server time API + operator docs
 3. **CRUD**: events → stages → days → performances + file metadata
 4. **Clock UI**: countdown, fullscreen, band navigation
-5. **Collaborative grids**: templates, clone per show, Yjs + WS, persistence
+5. **Collaborative grids**: **`.xlsx` import** as stage default template; clone per show, Yjs + WS, persistence
 6. **PDF**: thumbnails + page extract
 7. **Branding**: client logo + DHSL footer assets
 8. **Polish**: responsive layouts, touch; TLS/reverse-proxy doc for online hosting
@@ -244,7 +260,7 @@ Current priorities: **no guest/kiosk in MVP**; **print/PDF deferred**.
 | — | Compose + GHCR + `DATA_DIR` layout + single `docker-compose.yml` | **Done** |
 | domain-api | Event → Stage → Day → Performance CRUD + file metadata API | Pending |
 | clock-ui | Server time API + countdown + fullscreen + band navigation | Pending |
-| collab-grids | Stage default templates; clone per performance; Yjs + WebSocket + persistence | Pending |
+| collab-grids | Stage default templates (**Excel/Google-via-export** as base); clone per performance; **import `.xlsx`**; Yjs + WebSocket + persistence | Pending |
 | pdf-plots | PDF upload, thumbnails, extract page as plot asset | Pending |
 | responsive-ux | Desktop / tablet / mobile layouts; touch-first stage views | Pending |
 | settings-ui | Settings: auth, passwords, timezone, time/NTP guidance (no ops in Compose) | Pending |
