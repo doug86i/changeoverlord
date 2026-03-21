@@ -41,7 +41,12 @@ export function stripExcelTemplateBasename(name: string): string {
   return name.replace(/\.(xlsx|xlsm|xltx|xltm)$/i, "").trim();
 }
 
-const JSON_TEMPLATE_MIME = new Set(["application/json", "text/json"]);
+const JSON_TEMPLATE_MIME = new Set([
+  "application/json",
+  "text/json",
+  /** Browsers / OS file pickers often use this for `.json` (especially on Replace). */
+  "text/plain",
+]);
 
 /** FortuneSheet-native workbook JSON for patch template library upload. */
 export function isPatchTemplateJsonFile(

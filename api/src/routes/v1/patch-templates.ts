@@ -9,7 +9,11 @@ import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { createDefaultPatchWorkbookSheets } from "../../lib/default-patch-sheets.js";
 import { excelBufferToSheets } from "../../lib/excel-to-sheets.js";
-import { jsonBufferToSheets } from "../../lib/json-patch-template.js";
+import {
+  bufferLooksLikeWorkbookJson,
+  jsonBufferToSheets,
+  parseWorkbookJsonRoot,
+} from "../../lib/json-patch-template.js";
 import { getUploadsDir } from "../../lib/uploads-dir.js";
 import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import { sheetsToPreviewPayload } from "../../lib/sheet-preview.js";
@@ -25,8 +29,17 @@ import {
   patchTemplateStorageExtension,
   stripPatchTemplateBasename,
 } from "../../lib/upload-allowlists.js";
+import {
+  buildWorkbookJsonExportV1,
+  safeDownloadBasename,
+} from "../../lib/workbook-json-envelope.js";
+import {
+  templateCollabDocName,
+  workbookSnapshotBufferForPersist,
+} from "../../lib/yjs-collab-replace.js";
 
 const MAX_BYTES = 10 * 1024 * 1024;
+const JSON_SHEETS_BODY_LIMIT = 12 * 1024 * 1024;
 
 const patchNameBody = z.object({
   name: z.string().min(1).max(200),
@@ -65,6 +78,19 @@ async function sheetsFromTemplateUpload(
   if (isExcelOoxmlTemplate(filename, mime)) {
     return excelBufferToSheets(buf);
   }
+  /** Multipart often drops extension or sends `text/plain` / `octet-stream` only. */
+  if (bufferLooksLikeWorkbookJson(buf)) {
+    return jsonBufferToSheets(buf);
+  }
+  if (
+    buf.length >= 4 &&
+    buf[0] === 0x50 &&
+    buf[1] === 0x4b &&
+    buf[2] === 0x03 &&
+    buf[3] === 0x04
+  ) {
+    return excelBufferToSheets(buf);
+  }
   throw new Error(
     "Unsupported file: upload Excel (.xlsx, .xlsm, .xltx, .xltm) or FortuneSheet JSON (.json)",
   );
@@ -78,6 +104,34 @@ function normalizedTemplateMime(
     return "application/json";
   }
   return reported || "application/octet-stream";
+}
+
+/** Disk extension when multipart filename/MIME are unreliable (JSON body often reported as `text/plain`). */
+function storageExtensionForTemplateUpload(
+  buf: Buffer,
+  filename: string | undefined,
+  mime: string,
+): string {
+  if (isPatchTemplateJsonFile(filename, mime) || bufferLooksLikeWorkbookJson(buf)) {
+    return ".json";
+  }
+  return patchTemplateStorageExtension(filename);
+}
+
+async function loadSheetsForPatchTemplateRow(
+  row: typeof patchTemplates.$inferSelect,
+  uploadsRoot: string,
+): Promise<Sheet[]> {
+  const fromYjs = decodeTemplateSnapshotToSheets(Buffer.from(row.snapshot));
+  if (fromYjs.length > 0) return fromYjs;
+  try {
+    const buf = await fs.readFile(path.join(uploadsRoot, row.storageKey));
+    return templateRowLooksLikeJson(row)
+      ? jsonBufferToSheets(buf)
+      : await excelBufferToSheets(buf);
+  } catch {
+    return [];
+  }
 }
 
 export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
@@ -126,6 +180,61 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
   });
 
+  app.post(
+    "/patch-templates/sheets-import",
+    { bodyLimit: JSON_SHEETS_BODY_LIMIT },
+    async (req, reply) => {
+      const q = z
+        .object({ name: z.string().min(1).max(200).optional() })
+        .parse(req.query);
+      let sheets: Sheet[];
+      try {
+        sheets = parseWorkbookJsonRoot(req.body);
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : "Invalid workbook JSON";
+        return reply.code(400).send({ error: "ValidationError", message: msg });
+      }
+      const displayName = q.name?.trim() || "Imported template";
+      const snapshot = encodeTemplateSnapshotFromSheets(sheets);
+      const uploadsRoot = getUploadsDir();
+      const storageKey = `patch-templates/${randomUUID()}.json`;
+      const abs = path.join(uploadsRoot, storageKey);
+      const fileStr = JSON.stringify(
+        buildWorkbookJsonExportV1(
+          "patchTemplate",
+          displayName,
+          sheets,
+          {},
+        ),
+        null,
+        2,
+      );
+      await fs.mkdir(path.dirname(abs), { recursive: true });
+      await fs.writeFile(abs, fileStr, "utf8");
+      const byteSize = Buffer.byteLength(fileStr, "utf8");
+
+      const [inserted] = await db
+        .insert(patchTemplates)
+        .values({
+          name: displayName.slice(0, 200),
+          originalName: "workbook-import.json",
+          storageKey,
+          mimeType: "application/json",
+          byteSize,
+          snapshot,
+        })
+        .returning({ id: patchTemplates.id });
+
+      invalidateAll();
+      req.log.debug(
+        { templateId: inserted?.id },
+        "patch template created from JSON body",
+      );
+      return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
+    },
+  );
+
   app.get("/patch-templates/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
     const [row] = await db
@@ -151,6 +260,100 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
+  app.get("/patch-templates/:id/sheets-export", async (req, reply) => {
+    const { id } = uuidParam.parse(req.params);
+    const [row] = await db
+      .select()
+      .from(patchTemplates)
+      .where(eq(patchTemplates.id, id));
+    if (!row) return reply.code(404).send({ error: "NotFound" });
+    const uploadsRoot = getUploadsDir();
+    const sheets = await loadSheetsForPatchTemplateRow(row, uploadsRoot);
+    if (sheets.length === 0) {
+      return reply.code(404).send({
+        error: "NotFound",
+        message: "No sheet data in this template",
+      });
+    }
+    const payload = buildWorkbookJsonExportV1(
+      "patchTemplate",
+      row.name,
+      sheets,
+      { templateId: id },
+    );
+    const fname = safeDownloadBasename(row.name, "patch-template");
+    reply.header("Content-Type", "application/json; charset=utf-8");
+    reply.header(
+      "Content-Disposition",
+      `attachment; filename="${fname}_workbook.json"`,
+    );
+    req.log.debug({ templateId: id }, "patch template workbook exported");
+    return reply.send(JSON.stringify(payload, null, 2));
+  });
+
+  app.put(
+    "/patch-templates/:id/sheets-import",
+    { bodyLimit: JSON_SHEETS_BODY_LIMIT },
+    async (req, reply) => {
+      const { id } = uuidParam.parse(req.params);
+      const [existing] = await db
+        .select()
+        .from(patchTemplates)
+        .where(eq(patchTemplates.id, id));
+      if (!existing) return reply.code(404).send({ error: "NotFound" });
+
+      let sheets: Sheet[];
+      try {
+        sheets = parseWorkbookJsonRoot(req.body);
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : "Invalid workbook JSON";
+        return reply.code(400).send({ error: "ValidationError", message: msg });
+      }
+
+      const docName = templateCollabDocName(id);
+      const snapshot = workbookSnapshotBufferForPersist(docName, sheets);
+      const uploadsRoot = getUploadsDir();
+      const oldAbs = path.join(uploadsRoot, existing.storageKey);
+      try {
+        await fs.unlink(oldAbs);
+      } catch {
+        /* ignore */
+      }
+      const storageKey = `patch-templates/${randomUUID()}.json`;
+      const abs = path.join(uploadsRoot, storageKey);
+      const fileStr = JSON.stringify(
+        buildWorkbookJsonExportV1(
+          "patchTemplate",
+          existing.name,
+          sheets,
+          { templateId: id },
+        ),
+        null,
+        2,
+      );
+      await fs.mkdir(path.dirname(abs), { recursive: true });
+      await fs.writeFile(abs, fileStr, "utf8");
+      const byteSize = Buffer.byteLength(fileStr, "utf8");
+
+      await db
+        .update(patchTemplates)
+        .set({
+          storageKey,
+          mimeType: "application/json",
+          byteSize,
+          snapshot,
+          originalName: "workbook-import.json",
+          updatedAt: new Date(),
+        })
+        .where(eq(patchTemplates.id, id));
+
+      invalidateAll();
+      req.log.debug({ templateId: id }, "patch template workbook replaced from JSON");
+      return { ok: true };
+    },
+  );
+
   app.get("/patch-templates/:id/preview", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
     const [row] = await db
@@ -159,21 +362,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(patchTemplates.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
     const uploadsRoot = getUploadsDir();
-    const abs = path.join(uploadsRoot, row.storageKey);
-    const fromYjs = decodeTemplateSnapshotToSheets(Buffer.from(row.snapshot));
-    let sheets: Sheet[];
-    if (fromYjs.length > 0) {
-      sheets = fromYjs;
-    } else {
-      try {
-        const buf = await fs.readFile(abs);
-        sheets = templateRowLooksLikeJson(row)
-          ? jsonBufferToSheets(buf)
-          : await excelBufferToSheets(buf);
-      } catch {
-        sheets = [];
-      }
-    }
+    const sheets = await loadSheetsForPatchTemplateRow(row, uploadsRoot);
     return sheetsToPreviewPayload(sheets);
   });
 
@@ -210,12 +399,15 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     }
     const snapshot = encodeTemplateSnapshotFromSheets(sheets);
     const uploadsRoot = getUploadsDir();
-    const tmplExt = patchTemplateStorageExtension(filename);
+    const tmplExt = storageExtensionForTemplateUpload(buf, filename, mime);
     const storageKey = `patch-templates/${randomUUID()}${tmplExt}`;
     const abs = path.join(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, buf);
-    const storedMime = normalizedTemplateMime(filename, mime);
+    const storedMime =
+      tmplExt === ".json"
+        ? "application/json"
+        : normalizedTemplateMime(filename, mime);
 
     const [inserted] = await db
       .insert(patchTemplates)
@@ -233,7 +425,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     req.log.debug(
       {
         templateId: inserted?.id,
-        format: isPatchTemplateJsonFile(filename, mime) ? "json" : "excel",
+        format: tmplExt === ".json" ? "json" : "excel",
       },
       "patch template created",
     );
@@ -343,7 +535,8 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         e instanceof Error ? e.message : "Invalid template file";
       return reply.code(400).send({ error: "ValidationError", message: msg });
     }
-    const snapshot = encodeTemplateSnapshotFromSheets(sheets);
+    const docName = templateCollabDocName(id);
+    const snapshot = workbookSnapshotBufferForPersist(docName, sheets);
     const uploadsRoot = getUploadsDir();
     const oldAbs = path.join(uploadsRoot, existing.storageKey);
     try {
@@ -351,12 +544,15 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     } catch {
       /* ignore */
     }
-    const tmplExt = patchTemplateStorageExtension(filename);
+    const tmplExt = storageExtensionForTemplateUpload(buf, filename, mime);
     const storageKey = `patch-templates/${randomUUID()}${tmplExt}`;
     const abs = path.join(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, buf);
-    const storedMime = normalizedTemplateMime(filename, mime);
+    const storedMime =
+      tmplExt === ".json"
+        ? "application/json"
+        : normalizedTemplateMime(filename, mime);
 
     await db
       .update(patchTemplates)

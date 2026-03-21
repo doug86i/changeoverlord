@@ -11,6 +11,16 @@ import {
   performances,
   stages,
 } from "../../db/schema.js";
+import { parseWorkbookJsonRoot } from "../../lib/json-patch-template.js";
+import {
+  buildWorkbookJsonExportV1,
+  safeDownloadBasename,
+} from "../../lib/workbook-json-envelope.js";
+import { decodeTemplateSnapshotToSheets } from "../../lib/yjs-template-snapshot.js";
+import {
+  performanceCollabDocName,
+  workbookSnapshotBufferForPersist,
+} from "../../lib/yjs-collab-replace.js";
 import {
   createPerformanceBody,
   patchPerformanceBody,
@@ -18,6 +28,8 @@ import {
   uuidParam,
 } from "../../schemas/api.js";
 import { z } from "zod";
+
+const JSON_SHEETS_BODY_LIMIT = 12 * 1024 * 1024;
 
 function addMinutes(hhmm: string, delta: number): string {
   let total = hhmmToMinutes(hhmm) + delta;
@@ -135,6 +147,98 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
     );
     return reply.code(201).send({ performance: row });
   });
+
+  app.get("/performances/:id/sheets-export", async (req, reply) => {
+    const { id } = uuidParam.parse(req.params);
+    const [perf] = await db
+      .select()
+      .from(performances)
+      .where(eq(performances.id, id));
+    if (!perf) return reply.code(404).send({ error: "NotFound" });
+    const [snap] = await db
+      .select()
+      .from(performanceYjsSnapshots)
+      .where(eq(performanceYjsSnapshots.performanceId, id));
+    if (!snap?.snapshot?.length) {
+      return reply.code(404).send({
+        error: "NotFound",
+        message: "No patch workbook snapshot for this performance",
+      });
+    }
+    const sheets = decodeTemplateSnapshotToSheets(Buffer.from(snap.snapshot));
+    if (sheets.length === 0) {
+      return reply.code(404).send({
+        error: "NotFound",
+        message: "Snapshot contained no sheet data",
+      });
+    }
+    const label = perf.bandName || "performance";
+    const payload = buildWorkbookJsonExportV1(
+      "performance",
+      label,
+      sheets,
+      { performanceId: id },
+    );
+    const fname = safeDownloadBasename(label, "patch");
+    reply.header("Content-Type", "application/json; charset=utf-8");
+    reply.header(
+      "Content-Disposition",
+      `attachment; filename="${fname}_workbook.json"`,
+    );
+    req.log.debug({ performanceId: id }, "performance workbook exported");
+    return reply.send(JSON.stringify(payload, null, 2));
+  });
+
+  app.put(
+    "/performances/:id/sheets-import",
+    { bodyLimit: JSON_SHEETS_BODY_LIMIT },
+    async (req, reply) => {
+      const { id } = uuidParam.parse(req.params);
+      const [perf] = await db
+        .select()
+        .from(performances)
+        .where(eq(performances.id, id));
+      if (!perf) return reply.code(404).send({ error: "NotFound" });
+
+      let sheets;
+      try {
+        sheets = parseWorkbookJsonRoot(req.body);
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : "Invalid workbook JSON";
+        return reply.code(400).send({ error: "ValidationError", message: msg });
+      }
+
+      const snapshot = workbookSnapshotBufferForPersist(
+        performanceCollabDocName(id),
+        sheets,
+      );
+
+      const [existing] = await db
+        .select()
+        .from(performanceYjsSnapshots)
+        .where(eq(performanceYjsSnapshots.performanceId, id));
+      if (existing) {
+        await db
+          .update(performanceYjsSnapshots)
+          .set({ snapshot, updatedAt: new Date() })
+          .where(eq(performanceYjsSnapshots.performanceId, id));
+      } else {
+        await db.insert(performanceYjsSnapshots).values({
+          performanceId: id,
+          snapshot,
+          updatedAt: new Date(),
+        });
+      }
+
+      broadcastInvalidate([
+        ["performances", perf.stageDayId],
+        ["performance", id],
+      ]);
+      req.log.debug({ performanceId: id }, "performance workbook imported from JSON");
+      return { ok: true };
+    },
+  );
 
   app.get("/performances/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
