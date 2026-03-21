@@ -33,6 +33,11 @@ Canonical choices before implementation. Update when something changes.
 - **One collaborative workbook per performance** — multiple **sheets** inside it (e.g. **Input**, **RF**). Patch and RF material live in that file.
 - **Stage default template** (authored **in-app** or imported from **Excel / GSheets → `.xlsx`**) is **cloned** into each new performance.
 
+### Visual UI
+
+- **Two first-class themes**: **light** (daylight / outdoor prep) and **dark** (venue). Shared **design tokens** (spacing, type, radius, colours) — **no** one-off screens.
+- **Default** follows **`prefers-color-scheme`**; **manual** theme toggle in Settings (persist locally). Details: **[`DESIGN.md`](DESIGN.md)**.
+
 ### Internationalisation
 
 - **English only** for MVP (UI copy, errors, docs).
@@ -153,4 +158,5 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 ## Related docs
 
 - **[`PLAN.md`](PLAN.md)** — product vision and roadmap  
+- **[`DESIGN.md`](DESIGN.md)** — visual design (themes, tokens)  
 - **[`LICENSING.md`](LICENSING.md)** — repo + dependency licences  

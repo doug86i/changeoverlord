@@ -241,11 +241,9 @@ These integrations are **additive**: the **file-based** export/import remains th
 - **Client / festival logo**: configurable in Settings (**per event** or deployment policy); use in **header**, optional **splash/login**, future **print/export**; **PNG/SVG** with safe-area preview.
 - **Fixed attribution**: compact footer on layouts — **“Powered by Doug Hunt Sound & Light”** + logo → [doughunt.co.uk](https://www.doughunt.co.uk/). **Not removable** in normal OSS builds (white-label could be a separate product if ever needed).
 - **Bundled assets**: ship DHSL logo(s) in the frontend bundle (e.g. `web/public/branding/dhsl-logo.svg`) — **no** reliance on live hotlinking for LAN/offline. Prefer a clean horizontal lockup from source art (avoid depending on arbitrary URLs from third-party sites).
-- **Accessibility**: footer readable on **dark** stage theme (default) and **light** if added.
+- **Accessibility**: footer readable on **dark** and **light** themes.
 
-### Open styling default
-
-- On-stage / backstage UI: default **dark, high-contrast** theme for **32"** displays (refinable).
+**Visual design** (clean/modern, **two themes** — daylight + dark venue, shared tokens): **[`DESIGN.md`](DESIGN.md)**.
 
 ---
 

@@ -74,6 +74,7 @@ Stop: `make dev-down`.
 | `docs/PLAN.md` | Product vision, architecture, roadmap |
 | `docs/DECISIONS.md` | Pre-build engineering decisions (stack, limits, auth, logging) |
 | `docs/LICENSING.md` | Repo + dependency licence notes |
+| `docs/DESIGN.md` | UI theme direction (light + dark, tokens, consistency) |
 
 ## Status
 
