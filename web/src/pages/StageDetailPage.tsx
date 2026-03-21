@@ -66,7 +66,14 @@ export function StageDetailPage() {
 
   const bulkCreate = useMutation({
     mutationFn: async () => {
-      const dates = dateRange(bulkFrom, bulkTo);
+      // Match controlled inputs: they show event start/end when bulkFrom/bulkTo are still "".
+      const ev = eventQ.data?.event;
+      const from = bulkFrom || ev?.startDate || "";
+      const to = bulkTo || ev?.endDate || "";
+      if (!from || !to) {
+        throw new Error("Set both From and To dates, or add start/end dates on the event.");
+      }
+      const dates = dateRange(from, to);
       for (const d of dates) {
         await apiSend(`/api/v1/stages/${stageId}/days`, "POST", { dayDate: d });
       }
