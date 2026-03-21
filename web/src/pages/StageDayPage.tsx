@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { apiGet, apiSend } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow, EventRow } from "../api/types";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import {
   formatDateShort,
@@ -142,6 +142,12 @@ export function StageDayPage() {
   const [band, setBand] = useState("");
   const [start, setStart] = useState("12:00");
   const [end, setEnd] = useState("");
+  /** "end" = enter end time; "duration" = enter set length in minutes (stored as end time on save). */
+  const [addTimeMode, setAddTimeMode] = useState<"end" | "duration">("end");
+  const [addDurationMins, setAddDurationMins] = useState("");
+  /** Minutes after this act’s end (or implied slot) — not saved; used to pre-fill the next start time. */
+  const [addChangeoverMins, setAddChangeoverMins] = useState(15);
+  const addFormSuggestedForDay = useRef<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState<Set<string>>(new Set());
 
@@ -156,6 +162,29 @@ export function StageDayPage() {
     () => sortPerfs(perfQ.data?.performances ?? []),
     [perfQ.data],
   );
+
+  useEffect(() => {
+    addFormSuggestedForDay.current = null;
+  }, [stageDayId]);
+
+  /** First suggested start time when opening a stage day (not after each add — that uses onSuccess). */
+  useEffect(() => {
+    if (!stageDayId || perfQ.isLoading) return;
+    if (addFormSuggestedForDay.current === stageDayId) return;
+    const list = perfQ.data?.performances ?? [];
+    const sortedList = sortPerfs(list);
+    if (!sortedList.length) {
+      setStart("12:00");
+    } else {
+      const last = sortedList[sortedList.length - 1];
+      const co = 15;
+      const next = last.endTime
+        ? addMinutesToHhmm(last.endTime, co)
+        : addMinutesToHhmm(last.startTime, 60 + co);
+      setStart(next);
+    }
+    addFormSuggestedForDay.current = stageDayId;
+  }, [stageDayId, perfQ.isLoading, perfQ.data]);
 
   const day = dayQ.data?.stageDay;
   const stage = stageQ.data?.stage;
@@ -203,13 +232,43 @@ export function StageDayPage() {
   }, [qc, stageDayId]);
 
   const createPerf = useMutation({
-    mutationFn: () =>
-      apiSend<{ performance: PerformanceRow }>(
+    mutationFn: () => {
+      const startH = start.slice(0, 5);
+      let endH: string | null = null;
+      if (addTimeMode === "duration") {
+        const d = parseInt(addDurationMins.trim(), 10);
+        if (!Number.isNaN(d) && d > 0) {
+          endH = addMinutesToHhmm(startH, d);
+        }
+      } else {
+        endH = end ? end.slice(0, 5) : null;
+      }
+      return apiSend<{ performance: PerformanceRow }>(
         `/api/v1/stage-days/${stageDayId}/performances`,
         "POST",
-        { bandName: band, startTime: start.slice(0, 5), endTime: end ? end.slice(0, 5) : null },
-      ),
-    onSuccess: () => { invalidate(); setBand(""); },
+        { bandName: band, startTime: startH, endTime: endH },
+      );
+    },
+    onSuccess: () => {
+      invalidate();
+      setBand("");
+      const startH = start.slice(0, 5);
+      let endH: string | null = null;
+      if (addTimeMode === "duration") {
+        const d = parseInt(addDurationMins.trim(), 10);
+        if (!Number.isNaN(d) && d > 0) {
+          endH = addMinutesToHhmm(startH, d);
+        }
+      } else {
+        endH = end ? end.slice(0, 5) : null;
+      }
+      const nextStart = endH
+        ? addMinutesToHhmm(endH, addChangeoverMins)
+        : addMinutesToHhmm(startH, 60 + addChangeoverMins);
+      setStart(nextStart);
+      setEnd("");
+      setAddDurationMins("");
+    },
   });
 
   const patchPerf = useMutation({
@@ -394,14 +453,14 @@ export function StageDayPage() {
         <div className="title-bar" style={{ marginBottom: "0.75rem" }}>
           Add performance
         </div>
-        <div className="form-row">
+        <div className="form-row" style={{ alignItems: "flex-end" }}>
           <label>
             <span className="form-label">Band / act</span>
             <input
               value={band}
               onChange={(e) => setBand(e.target.value)}
               placeholder="Artist"
-              style={{ width: "100%" }}
+              style={{ width: "100%", minWidth: "8rem" }}
             />
           </label>
           <label>
@@ -412,12 +471,74 @@ export function StageDayPage() {
               onChange={(e) => setStart(e.target.value.slice(0, 5))}
             />
           </label>
+          <fieldset style={{ border: "none", padding: 0, margin: 0, minWidth: 0 }}>
+            <legend className="form-label" style={{ padding: 0, marginBottom: "0.25rem" }}>
+              End or length
+            </legend>
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="addTimeMode"
+                  checked={addTimeMode === "end"}
+                  onChange={() => {
+                    setAddTimeMode("end");
+                    setAddDurationMins("");
+                  }}
+                />
+                End time
+              </label>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="addTimeMode"
+                  checked={addTimeMode === "duration"}
+                  onChange={() => {
+                    setAddTimeMode("duration");
+                    setEnd("");
+                  }}
+                />
+                Set length
+              </label>
+            </div>
+          </fieldset>
+          {addTimeMode === "end" ? (
+            <label>
+              <span className="form-label">End (optional)</span>
+              <input
+                type="time"
+                value={end}
+                onChange={(e) => setEnd(e.target.value.slice(0, 5))}
+              />
+            </label>
+          ) : (
+            <label>
+              <span className="form-label">Length (min)</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={addDurationMins}
+                onChange={(e) => setAddDurationMins(e.target.value)}
+                placeholder="45"
+                style={{ width: "5rem", fontVariantNumeric: "tabular-nums" }}
+              />
+            </label>
+          )}
           <label>
-            <span className="form-label">End (optional)</span>
+            <span className="form-label" title="Not stored. After you add this act, the next start time is filled using: end + changeover (or start + 60 min + changeover if no end).">
+              Changeover (min)
+            </span>
             <input
-              type="time"
-              value={end}
-              onChange={(e) => setEnd(e.target.value.slice(0, 5))}
+              type="number"
+              min={0}
+              step={5}
+              value={addChangeoverMins}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setAddChangeoverMins(Number.isNaN(v) ? 0 : Math.max(0, v));
+              }}
+              style={{ width: "4.5rem", fontVariantNumeric: "tabular-nums" }}
             />
           </label>
           <button
@@ -429,6 +550,11 @@ export function StageDayPage() {
             Add
           </button>
         </div>
+        <p className="muted" style={{ fontSize: "0.8rem", margin: "0.75rem 0 0" }}>
+          {addTimeMode === "duration"
+            ? "Set length is stored as the end time (start + length). Changeover is only used to suggest the next start after you click Add."
+            : "End time is optional. Changeover is only used to suggest the next start after you click Add — it is not saved."}
+        </p>
         {createPerf.isError && (
           <p role="alert" style={{ color: "var(--color-danger)", marginTop: "0.75rem", marginBottom: 0 }}>
             {(createPerf.error as Error).message}
@@ -643,7 +769,9 @@ export function StageDayPage() {
       {sorted.length === 0 && (
         <div className="empty-state card">
           <h2>No performances yet</h2>
-          <p>Add your first act above. Set a start time and optionally an end time — the changeover duration will be calculated automatically.</p>
+          <p>
+            Add your first act above. Choose <strong>end time</strong> or <strong>set length</strong> (minutes); optional changeover minutes suggest the next start after each add.
+          </p>
         </div>
       )}
 

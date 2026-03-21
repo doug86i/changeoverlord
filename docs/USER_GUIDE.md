@@ -44,9 +44,14 @@ A **banner** appears at the top of the screen when the connection to the server 
 1. **Events** — Create or open an **event** (one location; times are **local event time**). You can **edit** or **delete** events using the ✎ and ✕ buttons.
 2. **Stages** — Inside an event, add **stages** (e.g. Main, Second). Stages are editable and deletable inline.
 3. **Stage days** — For each stage, add **days** (individual dates or **bulk add** from a date range). Days can be deleted.
-4. **Performances** — On a **stage day**, add **performances** (bands/slots) with start/end times and notes.
+4. **Performances** — On a **stage day**, add **performances** (bands/slots) with start time and either an **end time** or a **set length** (minutes), plus notes.
 
 ### Performance management
+
+**Adding performances** — In **Add performance**, choose **End time** or **Set length**:
+- **End time** — Optional end clock time (same as editing a row).
+- **Set length** — Enter the slot length in **minutes**; the app stores it as an end time (start + length).
+- **Changeover (min)** — Not saved. After you click **Add**, the **next** suggested **Start** time is filled as: this act’s **end** + changeover, or — if you left no end — **start + 60 minutes + changeover** (a one-hour placeholder gap).
 
 On the **stage day page**, each performance supports:
 - **Inline editing** — Click band name, start time, or end time to edit in place.
