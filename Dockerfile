@@ -34,7 +34,8 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Poppler `pdftoppm` — PDF page thumbnails; ImageMagick — images → PDF; LibreOffice — Word/ODT/RTF → PDF.
-RUN apk add --no-cache poppler-utils imagemagick libreoffice
+# `ttf-dejavu` gives LibreOffice usable fonts when embedding PDFs (otherwise many glyphs can be missing).
+RUN apk add --no-cache poppler-utils imagemagick libreoffice ttf-dejavu
 
 ENV NODE_ENV=production
 ENV PORT=80

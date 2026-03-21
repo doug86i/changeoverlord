@@ -131,7 +131,12 @@ async function officeToPdfWithLibreOffice(
     {
       timeout: 120_000,
       maxBuffer: 50 * 1024 * 1024,
-      env: { ...process.env, HOME: tmpHome },
+      env: {
+        ...process.env,
+        HOME: tmpHome,
+        /** Avoid OpenCL/GPU assumptions in headless containers. */
+        SAL_DISABLE_OPENCL: "1",
+      },
     },
   );
   const base = path.basename(inputPath, path.extname(inputPath));

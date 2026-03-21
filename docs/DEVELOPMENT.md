@@ -120,7 +120,7 @@ What usually costs time:
 
 **PDF page extract:** **`GET /api/v1/files/:id/page-previews`** returns **`pageCount`** and **`thumbnails`** (JPEG **data URLs**) rendered server-side with **Poppler** **`pdftoppm`** (`api/src/lib/pdf-thumbnails.ts`). The API container installs **`poppler-utils`**; local dev needs **`pdftoppm`** on **`PATH`** (e.g. **`brew install poppler`** on macOS). The web UI shows these in **`FileAttachments`** when **Extract** is open — no **pdf.js** in the browser.
 
-**Convert to PDF:** **`POST /api/v1/files/:id/convert-to-pdf`** builds a PDF from the stored file using **`api/src/lib/convert-to-pdf.ts`**: **ImageMagick** (`magick`) for images, **LibreOffice** for Word/ODT/RTF, **pdf-lib** for plain text (`.txt`, `.md`, `.csv`). The Docker image installs **`imagemagick`** and **`libreoffice`** (large layer). Local dev without Docker needs those tools on **`PATH`** for the same conversions; text-only conversion works with **pdf-lib** only.
+**Convert to PDF:** **`POST /api/v1/files/:id/convert-to-pdf`** builds a PDF from the stored file using **`api/src/lib/convert-to-pdf.ts`**: **ImageMagick** (`magick`) for images, **LibreOffice** for Word/ODT/RTF, **pdf-lib** for plain text (`.txt`, `.md`, `.csv`). The Docker image installs **`imagemagick`**, **`libreoffice`**, and **`ttf-dejavu`** (large layer; fonts help LibreOffice PDF output). Local dev without Docker needs **`magick`**/**`convert`**, **`libreoffice`**, and sensible fonts on **`PATH`** for the same conversions; text-only conversion works with **pdf-lib** only.
 
 ## AI / Cursor workflow
 
