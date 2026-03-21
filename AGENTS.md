@@ -94,7 +94,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | CRUD (events → stages → days → performances) | **Done** | Full REST API + SSE invalidation, inline edit/delete all entities |
 | Auth (optional shared password) | **Done** | Session cookie, `@fastify/cookie` |
 | Stage clocks | **Done** | Day clock, distance layout (fullscreen or `?kiosk=1`), band nav, auto-advance, message overlay, warning colours |
-| Collaborative patch/RF workbook (Yjs + FortuneSheet) | **Done** | WebSocket sync, Yjs persistence, template cloning, band-to-band nav, patch page **sidebar** (clock, now/next, links, plot preview) |
+| Collaborative patch/RF workbook (Yjs + FortuneSheet) | **Done** | WebSocket sync, Yjs persistence, template cloning, band-to-band nav, patch **sidebar** (changeover, clock, now/next, rider/plot, collapsible), app-font + contrast overrides for the grid |
 | Global patch template library | **Done** | Upload OOXML Excel (`.xlsx`, `.xltx`, `.xlsm`, `.xltm`, …), presets, in-app edit, preview, rename, replace, delete |
 | DHSL footer branding | **Done** | Fixed "Powered by" footer |
 | Rider / plot attachments (stage + performance) | **Done** | Upload, drag-drop, inline PDF viewer, extract page via **pdf-lib**, delete with confirmation |

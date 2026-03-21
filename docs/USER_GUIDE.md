@@ -87,13 +87,18 @@ Each **performance** can have a **patch / RF workbook** — a multi-sheet grid (
 
 ### Patch page sidebar (stay on the sheet)
 
-On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** helps you avoid jumping to other tabs:
+On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** is built for **stage techs and FOH** who need schedule, plots, and files without leaving the spreadsheet (see **`docs/FEATURE_REQUIREMENTS.md`** — patch tech, FOH, RF coordinator).
 
+- **Hide »** — Collapses the sidebar so the **grid uses the full width**; your choice is remembered on this device. Use **« Context** on the slim rail to bring it back.
+- **Changeover** — When nobody is on stage but the **next act is coming**, a **banner** explains you’re in the gap between acts and shows **who just finished** (so you can compare their patch to the next).
+- **This spreadsheet (your act)** — The band and times for the performance you’re editing, plus a reminder of **Alt+← / Alt+→** to jump acts.
 - **Local time** — server-synced wall clock.
-- **Countdown** — same idea as the **stage day clock** (time left on the current act, time until the next act, or “finished” when the day is done).
-- **On stage** and **Next** — who is playing now and who follows, for that day.
-- **Quick links** — **Files** for this performance (riders, plots), **Stage clock** (fullscreen day clock), and **Running order** for that day.
+- **Countdown** — same rules as the **stage day clock** (time left on the current act, time until the next act, or “finished” when the day is done).
+- **On stage (now)** and **Next** — who is playing now and who follows, for that day.
+- **Quick links** — **All files** (riders, plots, docs), **Rider PDF** when one is uploaded (opens in a new tab), **Stage clock** (fullscreen), and **Running order**.
 - **Stage plot** — if a file is uploaded with purpose **plot** (see **Files** below), a **preview** appears here (performance files are preferred over stage-level files).
+
+The spreadsheet uses the same **sans-serif** font as the rest of the app, and the **active cell / editor** is outlined in the app **accent** colour so the cell you’re typing in stays obvious.
 
 ### Band-to-band navigation
 

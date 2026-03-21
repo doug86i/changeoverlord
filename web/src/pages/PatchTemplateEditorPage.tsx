@@ -163,6 +163,7 @@ export function PatchTemplateEditorPage() {
         performances that use this template. Close this tab when done.
       </p>
       <div
+        className="patch-workbook-host"
         style={{
           height: "min(70vh, 720px)",
           minHeight: 360,

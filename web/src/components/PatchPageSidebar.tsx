@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../api/client";
-import type { FileAssetRow, PerformanceRow } from "../api/types";
+import type { FileAssetPurpose, FileAssetRow, PerformanceRow } from "../api/types";
 import { formatClockHeroCountdown } from "../lib/dateFormat";
 import {
   computeStageDayClockMetrics,
@@ -22,16 +22,33 @@ function pickPlotPreview(perfFiles: FileAssetRow[], stageFiles: FileAssetRow[]):
   return stageFiles.find(isPlotAsset) ?? null;
 }
 
+function firstFileByPurpose(
+  files: FileAssetRow[],
+  purpose: FileAssetPurpose,
+): FileAssetRow | null {
+  return files.find((f) => f.purpose === purpose) ?? null;
+}
+
 export function PatchPageSidebar({
   performanceId,
   stageDayId,
   dayDate,
   stageId,
+  currentPerformance,
+  collapsed,
+  onCollapsedChange,
 }: {
   performanceId: string;
   stageDayId: string;
   dayDate: string;
   stageId: string;
+  currentPerformance: {
+    bandName: string;
+    startTime: string;
+    endTime: string | null;
+  };
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
 }) {
   const perfQ = useQuery({
     queryKey: ["performances", stageDayId],
@@ -66,7 +83,7 @@ export function PatchPageSidebar({
     [perfQ.data],
   );
 
-  const { currentIdx, nextIdx, heroSeconds, heroLabel } = useMemo(
+  const { currentIdx, nextIdx, heroSeconds, heroLabel, isChangeover } = useMemo(
     () => computeStageDayClockMetrics(dayDate, sorted, now),
     [dayDate, sorted, now],
   );
@@ -84,6 +101,8 @@ export function PatchPageSidebar({
 
   const onStage = currentIdx >= 0 ? sorted[currentIdx] : null;
   const nextAct = nextIdx >= 0 ? sorted[nextIdx] : null;
+  const previousAct =
+    isChangeover && nextIdx > 0 ? sorted[nextIdx - 1] : null;
 
   const perfFilesQ = useQuery({
     queryKey: ["files", "performance", performanceId],
@@ -105,6 +124,12 @@ export function PatchPageSidebar({
     return pickPlotPreview(pf, sf);
   }, [perfFilesQ.data, stageFilesQ.data]);
 
+  const riderFile = useMemo(() => {
+    const pf = perfFilesQ.data?.files ?? [];
+    const sf = stageFilesQ.data?.files ?? [];
+    return firstFileByPurpose(pf, "rider_pdf") ?? firstFileByPurpose(sf, "rider_pdf");
+  }, [perfFilesQ.data, stageFilesQ.data]);
+
   const urgencyClass =
     heroSeconds === null
       ? ""
@@ -114,8 +139,70 @@ export function PatchPageSidebar({
           ? "status-warn"
           : "status-ok";
 
+  if (collapsed) {
+    return (
+      <div className="patch-sidebar patch-sidebar--collapsed-rail">
+        <button
+          type="button"
+          className="patch-sidebar-expand-btn"
+          onClick={() => onCollapsedChange(false)}
+          aria-expanded="false"
+          title="Show sidebar — clock, schedule, plots, links"
+        >
+          <span aria-hidden className="patch-sidebar-expand-icon">
+            «
+          </span>
+          <span className="patch-sidebar-expand-label">Context</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <aside className="patch-sidebar" aria-label="Patch context">
+      <div className="patch-sidebar-header">
+        <span className="patch-sidebar-header-title">Session context</span>
+        <button
+          type="button"
+          className="patch-sidebar-collapse-btn icon-btn"
+          onClick={() => onCollapsedChange(true)}
+          aria-expanded="true"
+          title="Hide sidebar for a larger spreadsheet"
+        >
+          Hide »
+        </button>
+      </div>
+
+      {isChangeover ? (
+        <div className="patch-sidebar-changeover" role="status">
+          <strong>Changeover</strong>
+          <span className="patch-sidebar-changeover-sub">
+            Between acts — you’re preparing the next slot. Countdown is time until the next act starts.
+          </span>
+          {previousAct ? (
+            <span className="patch-sidebar-changeover-sub">
+              Previous: <strong>{previousAct.bandName || "—"}</strong>
+              {previousAct.endTime ? ` (ended ${previousAct.endTime})` : ""}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="patch-sidebar-block patch-sidebar-block--this-act">
+        <div className="patch-sidebar-label">This spreadsheet (your act)</div>
+        <div className="patch-sidebar-slot">
+          <strong>{currentPerformance.bandName || "—"}</strong>
+          <div className="muted" style={{ fontSize: "0.8rem" }}>
+            {currentPerformance.startTime}
+            {currentPerformance.endTime ? ` – ${currentPerformance.endTime}` : ""}
+          </div>
+        </div>
+        <p className="patch-sidebar-hint muted">
+          <kbd className="patch-kbd">Alt</kbd>+<kbd className="patch-kbd">←</kbd> /{" "}
+          <kbd className="patch-kbd">→</kbd> other acts on this day
+        </p>
+      </div>
+
       <div className="patch-sidebar-block">
         <div className="patch-sidebar-label">Local time</div>
         <div className="patch-sidebar-wall" title="Server-synced time">
@@ -130,7 +217,7 @@ export function PatchPageSidebar({
         {heroLabel ? <div className="patch-sidebar-sublabel muted">{heroLabel}</div> : null}
       </div>
       <div className="patch-sidebar-block">
-        <div className="patch-sidebar-label">On stage</div>
+        <div className="patch-sidebar-label">On stage (now)</div>
         {onStage ? (
           <div className="patch-sidebar-slot">
             <strong>{onStage.bandName || "—"}</strong>
@@ -164,9 +251,21 @@ export function PatchPageSidebar({
         <div className="patch-sidebar-label">Quick links</div>
         <ul className="patch-sidebar-links">
           <li>
-            <Link to={`/performances/${performanceId}/files`}>Files</Link>
+            <Link to={`/performances/${performanceId}/files`}>All files</Link>
             <span className="muted"> — rider, plots, docs</span>
           </li>
+          {riderFile ? (
+            <li>
+              <a
+                href={`/api/v1/files/${riderFile.id}/raw`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Rider PDF
+              </a>
+              <span className="muted"> — new tab</span>
+            </li>
+          ) : null}
           <li>
             <Link to={`/clock/day/${stageDayId}`}>Stage clock</Link>
             <span className="muted"> — fullscreen</span>

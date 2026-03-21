@@ -25,6 +25,8 @@ export function computeStageDayClockMetrics(
   secondsRemaining: number | null;
   heroSeconds: number | null;
   heroLabel: string;
+  /** Nobody on stage, next act not yet started — gap between acts (same as stage clock). */
+  isChangeover: boolean;
 } {
   if (!dayDate || sorted.length === 0) {
     return {
@@ -34,6 +36,7 @@ export function computeStageDayClockMetrics(
       secondsRemaining: null,
       heroSeconds: null,
       heroLabel: "",
+      isChangeover: false,
     };
   }
   let current = -1;
@@ -79,6 +82,8 @@ export function computeStageDayClockMetrics(
     heroLabel = "Finished";
   }
 
+  const isChangeover = current < 0 && next >= 0 && sec !== null;
+
   return {
     currentIdx: current,
     nextIdx: next,
@@ -86,5 +91,6 @@ export function computeStageDayClockMetrics(
     secondsRemaining: remaining,
     heroSeconds,
     heroLabel,
+    isChangeover,
   };
 }

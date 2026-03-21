@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **Web — Patch & RF:** A **sticky sidebar** on the patch workbook page with **server-synced local time**, **countdown** (same rules as the stage day clock: time left / until next / next act in / finished), **on stage** and **next** act for that day, **links** (files, stage clock, running order), and a **stage plot preview** when a file has purpose **`plot_pdf`** or **`plot_from_rider`** (performance files first, then stage files). Shared timing logic lives in **`stageDayClockMetrics.ts`**.
+- **Web — Patch & RF:** **Sticky sidebar** on the patch workbook: **server-synced** time, **countdown** (same rules as the stage day clock), **changeover** banner + **previous act** when between acts, **this act** times + **Alt+arrow** hint, **on stage** / **next**, **All files** + **Rider PDF** when uploaded, **stage clock** / **running order** links, **collapsible** sidebar (**Hide »** / **« Context**, preference in `localStorage`), **stage plot** preview (`plot_pdf` / `plot_from_rider`, performance then stage). **`stageDayClockMetrics`** includes **`isChangeover`**. **FortuneSheet** (patch + template editors): **app font** and **higher-contrast** active cell / in-cell editor (`.patch-workbook-host`).
 
 - **Web — stage day:** Acts with **non-empty notes** show a **Note** badge next to the band name and a **highlighted Notes** control so it is obvious before expanding the notes field.
 

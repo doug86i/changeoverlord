@@ -15,6 +15,8 @@ import { PatchPageSidebar } from "../components/PatchPageSidebar";
 
 const ORIGIN = "fortune-local";
 
+const PATCH_SIDEBAR_COLLAPSED_KEY = "patch-sidebar-collapsed";
+
 function createEmptyPatchSheets(): Sheet[] {
   return [
     {
@@ -44,6 +46,23 @@ export function PatchPage() {
   );
   const [synced, setSynced] = useState(false);
   const dirtyRef = useRef(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setSidebarCollapsed(localStorage.getItem(PATCH_SIDEBAR_COLLAPSED_KEY) === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PATCH_SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [sidebarCollapsed]);
 
   const perfQ = useQuery({
     queryKey: ["performance", performanceId],
@@ -186,14 +205,25 @@ export function PatchPage() {
     performanceId && stageDayId && day?.dayDate && day.stageId,
   );
 
+  const layoutClass = showPatchSidebar
+    ? `patch-page-layout${sidebarCollapsed ? " patch-page-layout--sidebar-collapsed" : ""}`
+    : undefined;
+
   return (
-    <div className={showPatchSidebar ? "patch-page-layout" : undefined}>
+    <div className={layoutClass}>
       {showPatchSidebar && day && (
         <PatchPageSidebar
           performanceId={performanceId}
           stageDayId={stageDayId}
           dayDate={day.dayDate}
           stageId={day.stageId}
+          currentPerformance={{
+            bandName: perf.bandName,
+            startTime: perf.startTime,
+            endTime: perf.endTime,
+          }}
+          collapsed={sidebarCollapsed}
+          onCollapsedChange={setSidebarCollapsed}
         />
       )}
       <div className={showPatchSidebar ? "patch-page-main" : undefined}>
@@ -239,6 +269,7 @@ export function PatchPage() {
         </div>
       </div>
       <div
+        className="patch-workbook-host"
         style={{
           height: "min(70vh, 720px)",
           minHeight: 360,
