@@ -1,4 +1,4 @@
-# Festival stage operations
+# Changeoverlord
 
 Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, **riders** / **stage plots**, collaborative **input patch** and **RF** grids, and **stage clocks**. Designed for **LAN / offline** deployment with optional cloud hosting.
 
@@ -9,8 +9,8 @@ Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, *
 Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2.
 
 ```bash
-git clone https://github.com/doug86i/festival-stage-ops.git
-cd festival-stage-ops
+git clone https://github.com/doug86i/changeoverlord.git
+cd changeoverlord
 docker compose pull   # first run: pulls images from GHCR
 docker compose up -d
 ```
