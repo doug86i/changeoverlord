@@ -160,7 +160,7 @@ api/
       uploads-dir.ts      # getUploadsDir()
       pdf.ts              # PDF page count + single-page extract (pdf-lib)
       upload-allowlists.ts # allowed MIME/extensions for files + patch templates
-      excel-to-sheets.ts  # OOXML Excel → FortuneSheet Sheet[]
+      excel-to-sheets.ts  # OOXML Excel → FortuneSheet Sheet[] (cell values; no dataVerification mapping)
       default-patch-sheets.ts  # two-tab empty shell for POST …/patch-templates/blank
       sheets-to-excel.ts  # Sheet[] → .xlsx buffer
       sheet-preview.ts    # Sheet[] → preview JSON

@@ -119,7 +119,7 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 
 **Creating templates**
 
-- **Upload Excel** — Import from **Excel** (`.xlsx`, `.xltx`, macro-enabled `.xlsm` / `.xltm`, etc.) or **Google Sheets** (export to Excel-compatible format first). **Dropdown lists** (data validation → list) are carried into the in-app sheet; **Replace** a template after changing the Excel file so the library snapshot matches. Starter workbooks may ship under **`examples/`** (see **`examples/README.md`**) — upload them in **Settings** to add them to your library.
+- **Upload Excel** — Import from **Excel** (`.xlsx`, `.xltx`, macro-enabled `.xlsm` / `.xltm`, etc.) or **Google Sheets** (export to Excel-compatible format first). The server reads **cell values** (and formulas where supported); prepare anything FortuneSheet-specific (e.g. dropdowns) in your workbook before upload or edit in **Edit spreadsheet** after. **Replace** a template after changing the Excel file so the library snapshot matches. Starter workbooks may ship under **`examples/`** (see **`examples/README.md`**) — upload them in **Settings** to add them to your library.
 
 - **Create blank template** — In **Settings**, add a new library entry with two empty tabs (**Input**, **RF**), then use **Edit spreadsheet** to build it. Optional **display name** applies when you use **Create blank template** (defaults to **New template** if you leave the name blank).
 
