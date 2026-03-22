@@ -26,7 +26,7 @@ export const myRoutes: FastifyPluginAsync = async (app) => {
   app.post("/my-things", async (req, reply) => {
     const body = createMyBody.parse(req.body);
     const [row] = await db.insert(myTable).values(body).returning();
-    broadcastInvalidate([["myThings"]]);        // <-- REQUIRED for SSE
+    broadcastInvalidate([["myThings"]]); // <-- REQUIRED when UI should refresh (SSE)
     req.log.debug({ id: row.id }, "thing created"); // <-- REQUIRED logging
     return reply.code(201).send({ myThing: row });
   });
@@ -35,8 +35,8 @@ export const myRoutes: FastifyPluginAsync = async (app) => {
 
 Key rules:
 - Parse params/body with **Zod** (`schemas/api.ts` or local).
-- Call **`broadcastInvalidate`** after every successful mutation.
-- Log with **`req.log.debug`** (never `console.log`).
+- Call **`broadcastInvalidate`** after each successful mutation that should refresh TanStack-cached domain data (match **`docs/REALTIME.md`**).
+- Log with **`req.log.debug`** (never raw **`console.log`**).
 - Return `{ resourceName: row }` (match existing responses).
 
 ## Adding Zod schemas

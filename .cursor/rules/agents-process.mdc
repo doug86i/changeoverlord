@@ -15,8 +15,31 @@ Treat **every** coding task that changes `api/`, `web/`, Docker, or migrations a
 2. **Verify** the stack: e.g. `curl` **`/api/v1/health`** → **200**, or **`docker compose ps`** (use the compose file you started).
 3. **Tell the user the exact base URL**: after **`make dev-fast`**, **`http://localhost/`** when **`FAST_WEB_PORT`** is default **80**, else **`http://localhost:<FAST_WEB_PORT>/`**; after **`make dev`**, **`http://localhost/`** (port 80) or **`http://localhost:<HOST_PORT>/`**. If the classic image looks stale after **`make dev`**, run **`make dev-fresh`** and retry.
 4. **`CHANGELOG.md`** — add an **`[Unreleased]`** bullet in the **same** change when behaviour or build output changes; follow **[`changelog.mdc`](changelog.mdc)** skip rules.
-5. **`docs/USER_GUIDE.md`** — update when operator-visible UX, routes, or labels change; follow **[`user-documentation.mdc`](user-documentation.mdc)**.
-6. **`git commit`** — when the repo is Git, commit **each logical unit** with a short imperative message; follow **[`git-commits.mdc`](git-commits.mdc)**. Do not leave a large uncommitted diff unless the user asked to hold commits.
+5. **`docs/USER_GUIDE.md`** — when operator-visible UX, routes, or labels change, update in the **same change when practical**; follow **[`user-documentation.mdc`](user-documentation.mdc)**.
+6. **`git commit`** — follow **§ Git commits (commit strategy)** below and **[`git-commits.mdc`](git-commits.mdc)**. Do not leave a large uncommitted diff unless the user asked to hold commits.
+
+## Git commits (commit strategy)
+
+Same intent as **[`docs/DEVELOPMENT.md`](../../docs/DEVELOPMENT.md)** § *Git commits* — record work in **small, reviewable steps**, not one enormous commit at the end of a session.
+
+**Commit after** a single coherent unit, for example:
+
+- One feature component or vertical slice
+- One bug fix (one cause / one fix)
+- One refactor of a specific module or area
+- Tests for one behaviour or file
+
+If a session touches **several unrelated concerns**, use **several commits** so history stays readable and reverts stay safe.
+
+**Message style:** short, specific, imperative — what the commit *does* (roughly ≤ 72 characters for the subject is a good habit).
+
+| Prefer | Avoid |
+|--------|--------|
+| `Add set-length option to performance form` | `changes`, `fixes`, `wip` |
+| `Fix bulk add range when event dates shown` | `stuff`, `updates`, `work on project` |
+| `Refactor stage day time helpers` | vague one-word subjects |
+
+**Scope with changelog and docs:** when a logical slice includes the matching **`CHANGELOG.md`** line or **`docs/USER_GUIDE.md`** tweak, put them in the **same** commit as that slice. Extended examples and edge cases: **[`git-commits.mdc`](git-commits.mdc)**. If Git is unavailable or commits fail, tell the user instead of skipping silently.
 
 ## What not to do
 
@@ -26,4 +49,4 @@ Treat **every** coding task that changes `api/`, `web/`, Docker, or migrations a
 
 ## Canonical doc
 
-Full detail, logging, and edge cases: **[`AGENTS.md`](../../AGENTS.md)** § *Development process* and *Local testing after each change*.
+Full detail, logging, and edge cases: **[`AGENTS.md`](../../AGENTS.md)** § *Development process* and *Local testing after each change*. **Git commit** granularity and message style: **[`docs/DEVELOPMENT.md`](../../docs/DEVELOPMENT.md)** § *Git commits* and **[`git-commits.mdc`](git-commits.mdc)**.

@@ -11,7 +11,7 @@ alwaysApply: true
 - **Do NOT attempt to reconstruct sheet state from the Yjs opLog on the server** for arbitrary live editing. The opLog contains serialized FortuneSheet ops that only FortuneSheet's `applyOp` can replay; the Yjs snapshot in the DB is the source of truth. **Exception:** controlled **server-side replay** in **`api/src/lib/yjs-oplog-replay.ts`** (export / preview / template flows) mutates sheet JSON directly — do **not** extend that path without understanding FortuneSheet op shapes and row/column index semantics.
 - **Do NOT modify the FortuneSheet collaboration bridge** (the `onOp` → `yops.push` → `observe` → `applyOp` flow in **`web/src/lib/patchWorkbookCollab.ts`** / **`web/src/lib/patchWorkbookYjs.ts`**, wired from `PatchPage.tsx` / `PatchTemplateEditorPage.tsx`) unless you deeply understand both FortuneSheet ops and Yjs transactions.
 - **Do NOT forget `ydoc.destroy()`** in cleanup effects when creating `Y.Doc` instances.
-- **Do NOT use `patch-package`** on FortuneSheet (`@fortune-sheet/core`, `@fortune-sheet/react`, `@zenmrp/fortune-sheet-excel`). Fix template issues in the **build script** or **JSON creator**, not by patching the editor. See **`.cursor/rules/patch-templates.mdc`**.
+- **FortuneSheet + `patch-package`:** avoid by default; **last resort** only per **`.cursor/rules/patch-templates.mdc`** (document in **`docs/DECISIONS.md`**).
 
 ## Redis
 
@@ -19,8 +19,8 @@ alwaysApply: true
 
 ## Realtime sync
 
-- **Every** successful `POST` / `PATCH` / `DELETE` route **must** call `broadcastInvalidate` with the relevant TanStack Query keys. Missing this means other browsers won't see the change until manual refresh.
-- **Every** new `useQuery` key on the frontend must be covered by `broadcastInvalidate` calls in the relevant API mutations.
+- Successful `POST` / `PATCH` / `DELETE` handlers that **should refresh** other users’ **domain / schedule / settings** UI **must** call **`broadcastInvalidate`** with **`queryKey` tuples** matching **`web/src/`**. Mutations with no REST-cached surface (e.g. internal housekeeping) are exempt — when unsure, see **`docs/REALTIME.md`** and **`.cursor/rules/realtime-and-data-sync.mdc`**.
+- Every new **`useQuery`** key for that REST data must be covered by **`broadcastInvalidate`** in the relevant API mutations, or users need a manual refresh.
 - Domain data uses **SSE**. Workbook data uses **Yjs/WebSocket**. Never mix them.
 
 ## Docker and testing
@@ -34,7 +34,7 @@ alwaysApply: true
 
 - **Do NOT use hardcoded colors** (`#fff`, `rgba(...)`) — use CSS variables (`var(--color-on-brand)`, `var(--color-overlay)`).
 - **Do NOT create new CSS files** — put styles in `web/src/global.css` or use existing classes.
-- **Do NOT use `console.log`** — use `req.log` (API routes), `createLogger` (API off-request), or `logDebug` (web).
+- **Do NOT use raw `console.log`** in feature code — use **`req.log`** (API routes), **`createLogger`** (API off-request), or **`logDebug()`** (web); see **`.cursor/rules/logging.mdc`**.
 
 ## Schema and migrations
 
