@@ -439,7 +439,7 @@ Fix: add `flex-shrink: 0` (and `white-space: nowrap` where appropriate) to each 
 
 **Root cause:** FortuneSheet **`addSheet`** is **not idempotent** at the workbook level; applying duplicate batches appends extra tabs. Duplicate **`onOp`** reaches the relay from **`emitOp` running inside `setContext` functional updaters** in React **`Workbook`** (`setContextWithProduce`, undo/redo) — a **side effect where React expects a pure updater** — plus **multiple WebSocket messages** for one UI action. **Each** spurious batch often carries a **new sheet `id`**, so server **`addSheet` skip-if-id-exists** in **`applyOpBatchToSheets`** does **not** dedupe.
 
-**Proper fix (fork):** Defer **`onOp` / `emitOp`** until **after** the state commit (e.g. **`useLayoutEffect`** + ref), one emission per transition — see **`docs/DECISIONS.md`** (FortuneSheet fork, commit bullet **#8**). Rebuild **`vendor/fortune-sheet-react-*.tgz`** from **`doug86i/fortune-sheet`** `dhsl/v1.0.4`.
+**Root fix (fork, shipped in vendor):** **`emitOp` / `onOp`** are deferred until **after** commit via **`useLayoutEffect`** + a ref queue — see **`docs/DECISIONS.md`** (FortuneSheet fork, bullet **#8**). Tarball **`vendor/fortune-sheet-react-1.0.4.tgz`**; mirror the same commit on **`doug86i/fortune-sheet`** branch **`dhsl/v1.0.4`** (`git push`) if you rebuilt from a local clone.
 
 **Mitigation (current code):**
 
