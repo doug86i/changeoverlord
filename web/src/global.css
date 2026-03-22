@@ -2046,7 +2046,7 @@ a.patch-sidebar-perf-link:hover {
 }
 
 .patch-workbook-host--phone {
-  flex: 1 1 auto;
+  height: calc(100dvh - 8rem);
   min-height: 200px;
 }
 

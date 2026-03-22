@@ -159,8 +159,13 @@ export function usePatchWorkbookCollab(opts: {
     const provider = providerRef.current;
     if (!provider) return;
     if (!pauseWhenHidden) {
-      // Ensure we're connected if we previously disconnected (e.g. phone→desktop resize)
       provider.connect();
+      return;
+    }
+    if (!workbookHydrated) {
+      // Keep the connection alive until initial sync + opLog replay finishes;
+      // disconnecting before hydration would leave the workbook stuck on the
+      // loading overlay (especially on iOS where visibility can flicker).
       return;
     }
     if (!pageVisible) {
@@ -171,7 +176,7 @@ export function usePatchWorkbookCollab(opts: {
       logDebug("patch-workbook", "Page visible — reconnecting Yjs WebSocket");
       provider.connect();
     }
-  }, [pauseWhenHidden, pageVisible]);
+  }, [pauseWhenHidden, pageVisible, workbookHydrated]);
 
   usePatchWorkbookOpLogEffects(
     roomId,
