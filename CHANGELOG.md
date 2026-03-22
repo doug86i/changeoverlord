@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web — stage chat:** The message list and composer textarea use **slim, themed scrollbars** (tokens + **`color-mix`**) so they match light/dark UI instead of the browser default.
+
 - **Web — stage chat:** Only two states — compact **Chat** button or **full panel** with **Minimize** (removed the extra bar + **Hide** + session “tucked” state).
 
 - **Web — stage chat:** Wider open panel (**`min(56rem, 92vw, 100vw − 2rem)`**); collapsed **Chat** control stays compact (full width only when open). Taller panel (**`max-height` ~72vh / 720px**) and message list grows with flex (**no fixed 280px cap**).

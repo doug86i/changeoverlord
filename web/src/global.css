@@ -1639,8 +1639,32 @@ a.patch-sidebar-perf-link:hover {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding-right: 0.25rem;
+  padding-right: 0.2rem;
   font-size: 0.85rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-border))
+    color-mix(in srgb, var(--color-border) 14%, var(--color-surface));
+}
+
+.stage-chat-dock__messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.stage-chat-dock__messages::-webkit-scrollbar-track {
+  margin: 4px 0;
+  background: color-mix(in srgb, var(--color-border) 12%, var(--color-surface));
+  border-radius: var(--radius-sm);
+}
+
+.stage-chat-dock__messages::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--color-border) 12%, var(--color-surface));
+  background-color: color-mix(in srgb, var(--color-text-muted) 45%, var(--color-border));
+  background-clip: padding-box;
+}
+
+.stage-chat-dock__messages::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-brand) 28%, var(--color-text-muted));
 }
 
 .stage-chat-dock__msg {
@@ -1730,6 +1754,30 @@ a.patch-sidebar-perf-link:hover {
   resize: vertical;
   min-height: 4rem;
   font-family: inherit;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-border))
+    color-mix(in srgb, var(--color-border) 14%, var(--color-bg));
+}
+
+.stage-chat-dock__textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.stage-chat-dock__textarea::-webkit-scrollbar-track {
+  margin: 4px 0;
+  background: color-mix(in srgb, var(--color-border) 10%, var(--color-bg));
+  border-radius: var(--radius-sm);
+}
+
+.stage-chat-dock__textarea::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--color-border) 10%, var(--color-bg));
+  background-color: color-mix(in srgb, var(--color-text-muted) 45%, var(--color-border));
+  background-clip: padding-box;
+}
+
+.stage-chat-dock__textarea::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-brand) 28%, var(--color-text-muted));
 }
 
 .stage-chat-dock__scope {
