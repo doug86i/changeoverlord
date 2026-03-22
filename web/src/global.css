@@ -25,6 +25,7 @@
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /** Fixed chat dock: sit above `.app-footer` (padding + line + border + gap). */
   --stage-chat-dock-bottom: 3.35rem;
+  --stage-chat-dock-max-width: 36rem;
 }
 
 :root[data-theme="dark"] {
@@ -50,6 +51,7 @@
   --radius-sm: 6px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --stage-chat-dock-bottom: 3.35rem;
+  --stage-chat-dock-max-width: 36rem;
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
@@ -1541,7 +1543,7 @@ a.patch-sidebar-perf-link:hover {
   right: 1rem;
   bottom: calc(var(--stage-chat-dock-bottom) + env(safe-area-inset-bottom, 0px));
   z-index: 90;
-  max-width: min(420px, calc(100vw - 2rem));
+  max-width: min(var(--stage-chat-dock-max-width), calc(100vw - 2rem));
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1621,7 +1623,7 @@ a.patch-sidebar-perf-link:hover {
 
 .stage-chat-dock__panel {
   padding: 0.75rem;
-  max-height: min(52vh, 420px);
+  max-height: min(55vh, 480px);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -1633,7 +1635,7 @@ a.patch-sidebar-perf-link:hover {
   flex: 1;
   overflow-y: auto;
   min-height: 120px;
-  max-height: 220px;
+  max-height: 280px;
   padding-right: 0.25rem;
   font-size: 0.85rem;
 }
