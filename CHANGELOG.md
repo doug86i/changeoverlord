@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web — patch sidebar:** **Rider PDF** quick link no longer falls back to a **stage-wide** rider; only a file marked **Rider** on **this act’s** Files page is linked (matches stage-plot behaviour and avoids showing another band’s rider).
+
 - **Web — patch template editor + docs:** In-app copy matches behaviour (automatic persistence, no “close tab to save”; **copy-at-creation** vs unchanged existing band workbooks). **`docs/USER_GUIDE.md`** **Edit spreadsheet** bullet aligned.
 
 - **Web — patch / RF workbook:** Opening a performance patch sheet or **Edit spreadsheet** (template) right after navigation or upload could show a **blank** grid: Yjs reported synced before the server finished merging the DB snapshot, and remote `opLog` updates were ignored until hydration finished. The client now **drains the log until quiescent** (extra animation frames), **defers local `onOp`** until replay completes, and shows **Loading workbook…** over the grid until then.

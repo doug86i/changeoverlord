@@ -111,14 +111,7 @@ export function PatchPageSidebar({
     enabled: Boolean(performanceId),
   });
 
-  const stageFilesQ = useQuery({
-    queryKey: ["files", stageId],
-    queryFn: () =>
-      apiGet<{ files: FileAssetRow[] }>(`/api/v1/files?stageId=${stageId}`),
-    enabled: Boolean(stageId),
-  });
-
-  /** Only performance-scoped plots — stage-wide plots belong to the whole stage and look like “someone else’s” on a new act. */
+  /** Only this act’s files — same rule as stage plot (no stage-wide fallback; avoids another band’s rider). */
   const plotFile = useMemo(() => {
     const pf = perfFilesQ.data?.files ?? [];
     return pf.find(isPlotAsset) ?? null;
@@ -126,9 +119,8 @@ export function PatchPageSidebar({
 
   const riderFile = useMemo(() => {
     const pf = perfFilesQ.data?.files ?? [];
-    const sf = stageFilesQ.data?.files ?? [];
-    return firstFileByPurpose(pf, "rider_pdf") ?? firstFileByPurpose(sf, "rider_pdf");
-  }, [perfFilesQ.data, stageFilesQ.data]);
+    return firstFileByPurpose(pf, "rider_pdf");
+  }, [perfFilesQ.data]);
 
   const urgencyClass =
     heroSeconds === null

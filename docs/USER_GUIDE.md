@@ -104,7 +104,7 @@ On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** k
 - **Changeover** — Shown when the day is in a gap between acts (same condition as the stage clock).
 - **Local time** → **Now** → **Countdown** → **Next** — same timing rules as the stage day clock. **Now** and **Next** band names are **links** to that act’s patch page.
 - **This spreadsheet** — The act you’re editing; **Alt+←** / **Alt+→** switch acts on this day.
-- **Quick links** — **All files**, **Rider PDF** when a file is marked **Rider**, **Stage clock**, **Running order**.
+- **Quick links** — **All files**, **Rider PDF** when **this act’s** Files list has a file marked **Rider** (stage-wide uploads are not used here), **Stage clock**, **Running order**.
 - **Stage plot** — Preview of a file marked **Stage plot** on **this act’s Files** page only. **Stage-wide** plots (uploaded under **Stage → Stage files**) are **not** shown here, so a new act does not inherit another band’s sidebar preview by mistake. Use **this act’s Files** to attach a plot for patch preview, or open **Stage files** when you need the shared plot.
 
 The spreadsheet **toolbar, formula bar, and sheet tabs** use the app’s **sans-serif** font and theme colours; **cell selection** uses **FortuneSheet’s default** styling. **Text you type** in the active cell is shown in **high-contrast** colour so it stays readable on the edit box.
