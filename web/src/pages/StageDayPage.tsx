@@ -342,8 +342,9 @@ export function StageDayPage() {
             : addMinutesToHhmm(newStart, DEFAULT_SET_LENGTH_MINS);
       }
 
+      const baseName = p.bandName.trim() || "Untitled act";
       return apiSend(`/api/v1/stage-days/${stageDayId}/performances`, "POST", {
-        bandName: `${p.bandName} (copy)`,
+        bandName: `${baseName} (copy)`,
         startTime: newStart,
         endTime: newEnd,
         notes: p.notes,

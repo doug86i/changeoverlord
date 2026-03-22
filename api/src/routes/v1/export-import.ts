@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { events, stages, stageDays, performances, fileAssets, performanceYjsSnapshots } from "../../db/schema.js";
+import { normalizePerformanceBandName } from "../../lib/performance-band-name.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { uuidParam } from "../../schemas/api.js";
 
@@ -105,7 +106,7 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
         .values({
           stageDayId: newStageDayId,
           sortOrder: p.sortOrder,
-          bandName: p.bandName,
+          bandName: normalizePerformanceBandName(p.bandName ?? ""),
           notes: p.notes,
           startTime: p.startTime,
           endTime: p.endTime,

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API / Web — performances:** Blank or whitespace-only **band / act** names are stored as **Untitled act** on create, patch, and event import (duplicate rows use the same fallback before **(copy)**). This avoids fragile patch-workbook edge cases tied to unnamed acts. Post-replay formula refresh also **skips sheets with an empty `id`** so FortuneSheet does not call **`activateSheet`** with an invalid target.
+
 - **Web — patch workbook formulas:** After **`applyOp`** / Yjs replay, FortuneSheet could keep a **stale `formulaCellInfoMap`** built from the pre-replay grid, so **`execFunctionGroup`** did not walk the right dependency edges and **dependent formulas did not refresh** on cell edits. Post-replay and post-remote-batch recalc now runs **`jfrefreshgrid`** over each sheet’s **`data`** bounds (rebuilds **`setFormulaCellInfo`**) before **`calculateFormula`**, and clears **`onOp` suppression** after **two `requestAnimationFrame`** ticks so nested updates finish before local ops resume.
 
 - **Web — collaborative patch workbook:** Remote **`applyOp`** updates applied only **Immer patches** to the grid; FortuneSheet’s **`execFunctionGroup`** (dependent formula refresh) does not run for those mutations. After **hydration** we already called **`calculateFormula`**; we now **queue the same full recalc** (with **`onOp` suppressed**) when **remote** Yjs ops arrive so summaries and lookups stay in sync with other editors.

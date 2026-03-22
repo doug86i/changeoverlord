@@ -54,6 +54,7 @@ A **banner** appears at the top of the screen when the connection to the server 
 - **Defaults** — First act on an empty day: **1 hour** slot and **30 minutes** changeover. After each **Add**, the next row suggests the **same length** as the act you just added, and **changeover** only affects the gap before that next start (not saved on the performance).
 - **Changeover (min)** — Not saved on the performance. After **Add**, the next **Start** is this act’s **end + changeover**.
 - **Enter** — In **Band / act**, **Enter** submits **Add** (same as the button).
+- **Band / act name** — If you leave it blank or only spaces, the app saves **Untitled act** (keeps exports, duplicates, and patch pages consistent).
 - **Multi-user** — If someone else adds an act on another machine, the **next suggested start / end / length** updates to match the new last slot (same rules as after your own **Add**).
 
 On the **stage day page**, each performance supports:

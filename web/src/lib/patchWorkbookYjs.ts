@@ -42,7 +42,7 @@ function flushWorkbookFormulaRecalc(
     const sheets = wb.getAllSheets() as Sheet[];
     for (const sheet of sheets) {
       const sheetId = sheet.id;
-      if (sheetId == null) continue;
+      if (sheetId == null || sheetId === "") continue;
       const range = [fullDataRange(sheet)];
       const calls: FortuneBatchCall[] = [
         { name: "activateSheet", args: [{ sheetId }] },

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizePerformanceBandName } from "../lib/performance-band-name.js";
 
 export const uuidParam = z.object({
   id: z.string().uuid(),
@@ -59,7 +60,11 @@ export const patchStageDayBody = z.object({
 });
 
 export const createPerformanceBody = z.object({
-  bandName: z.string().max(500).default(""),
+  bandName: z
+    .string()
+    .max(500)
+    .default("")
+    .transform(normalizePerformanceBandName),
   notes: z.string().max(10000).optional().default(""),
   startTime: timeStr,
   endTime: timeStr.optional().nullable(),
@@ -67,7 +72,13 @@ export const createPerformanceBody = z.object({
 });
 
 export const patchPerformanceBody = z.object({
-  bandName: z.string().max(500).optional(),
+  bandName: z
+    .string()
+    .max(500)
+    .optional()
+    .transform((s) =>
+      s === undefined ? undefined : normalizePerformanceBandName(s),
+    ),
   notes: z.string().max(10000).optional(),
   startTime: timeStr.optional(),
   endTime: timeStr.optional().nullable(),

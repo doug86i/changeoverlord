@@ -191,6 +191,8 @@ FortuneSheet throws this (lowercase message) from **`getSheet()`** in **`@fortun
 
 **This project has also seen Excel-driven breakage** when **`config.colhidden`** hides columns the grid still needs for layout: the sheet can fail to render or hit internal errors that surface as **`sheet not found`**. Mitigation: **do not ship `colhidden`** in JSON for patch templates (the **DH v7** build script strips it); or **clear column hides** in Excel and re-upload.
 
+**Blank performance (band) names** were correlated with patch-page instability in the field. The API now normalizes empty / whitespace-only names to **Untitled act**, and the web client skips **empty sheet `id`s** during post-sync **`jfrefreshgrid`** so **`activateSheet`** is never called with `""`.
+
 **What to do**
 
 - Prefer **single-sheet** templates and **same-sheet** formulas only (see **`examples/OPERATOR_PATCH_REFERENCE_v1.json`**).
