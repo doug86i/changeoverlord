@@ -17,6 +17,8 @@ coverage/
 .idea/
 .vscode/
 docker-compose.override.yml
+# Local Docker build-input stamps (scripts/docker-build-gate.sh)
+.docker/
 # Scratch workbook extractions (not versioned)
 examples/*_live.json
 examples/*_corrected.json

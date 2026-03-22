@@ -124,10 +124,10 @@ make dev-fast
 
 # Classic: single app image (compiled SPA + API), same shape as production build
 make dev
-# same as: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# Runs compose `up -d` and only passes `--build` when Docker inputs changed (see docs/DEVELOPMENT.md).
 ```
 
-Use **`make dev-fresh`** if the **classic** image layers look stale. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
+Use **`make dev-rebuild`** / **`FORCE_DOCKER_REBUILD=1 make dev`** to force a classic image rebuild, or **`make dev-fresh`** if layers look corrupt. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
 
 Do not run **`make dev-fast`** and **`make dev`** together against the same **`DATA_DIR`** (Postgres data bind-mount conflict) — stop one stack before starting the other.
 

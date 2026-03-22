@@ -11,6 +11,19 @@ Changeoverlord supports **two** local Compose paths: a **fast** bind-mounted sta
 - **Changelog is part of the same contract** for code changes: update **`[Unreleased]`** in **[`CHANGELOG.md`](../CHANGELOG.md)** when your change ships or affects runtime — see **[`AGENTS.md`](../AGENTS.md)** and **`.cursor/rules/changelog.mdc`**.
 - **Git:** commit **each logical unit** separately as you go — see **§ Git commits** below and **`.cursor/rules/git-commits.mdc`**.
 
+## Smarter Docker rebuilds (stamps)
+
+**`make dev`** and **`make dev-fast`** skip **`docker compose --build`** when a hash of image inputs matches the last successful build (stored under **`.docker/`**, gitignored — see **`scripts/docker-build-gate.sh`**).
+
+| Stack | What is fingerprinted |
+|-------|------------------------|
+| **Fast** | **`Dockerfile.fast`** and **`docker-compose.fast.yml`** only. Edits under **`api/`** / **`web/`** are bind-mounted — **no image rebuild** for normal code changes. |
+| **Classic** | **`Dockerfile`**, compose files, **`package.json`** / **`package-lock.json`**, workspace **`package.json`**, **`patches/`**, and **git-tracked** **`api/`** + **`web/`** (excluding `node_modules`, `dist`, `.cache`). **Source changes still require a rebuild**; running **`make dev` again** without changing anything skips **`--build`**. |
+
+- **Force a rebuild:** **`FORCE_DOCKER_REBUILD=1 make dev`** (or **`make dev-fast`**) — still refreshes the stamp on success.
+- **Always rebuild (ignore stamp):** **`make dev-rebuild`** or **`make dev-fast-rebuild`**.
+- **After you build images outside Make** (e.g. raw **`docker compose build`**), run **`./scripts/docker-build-gate.sh classic stamp`** or **`fast stamp`** so the next **`make dev`** doesn’t skip **`--build`** incorrectly.
+
 ## Git commits
 
 Use **Git** to record work in **small, reviewable steps** — not one enormous commit at the end of a session.
@@ -60,6 +73,12 @@ Rebuild/restart **api** + **web** only:
 make dev-fast-app
 ```
 
+Rebuild fast images even when the stamp says they are current:
+
+```bash
+make dev-fast-rebuild
+```
+
 **Caveats:** This path is **not** identical to the single **`app`** container (different process layout, **development** `NODE_ENV` on the API). Use **`make dev`** before a release or when debugging image-only issues.
 
 **Do not** run **`make dev-fast`** and **`make dev`** at the same time with the same **`DATA_DIR`**: both stacks include a Postgres service that bind-mounts **`${DATA_DIR}/db`** — two containers must not use the same data directory. Stop one stack (`make dev-down` or **`make dev-fast-down`**) before starting the other. **Port 80:** both stacks default the UI to host port **80**; you cannot bind it twice — stop one stack first, or set **`FAST_WEB_PORT=5173`** (or **`HOST_PORT=8080`** for classic) in **`.env`**.
@@ -72,7 +91,9 @@ From the **repository root** (where `docker-compose.yml` lives):
 make dev
 ```
 
-This runs **`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`** — rebuilds the app image when **`Dockerfile`**, **`api/`**, **`web/`**, **`patches/`**, or workspace **`package.json`** / **`package-lock.json`** change, recreates the container if needed, and starts dependencies. The container serves **compiled** assets (`vite build`, `tsc`) from the image — **not** live-mounted source.
+This runs **`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d`**, adding **`--build`** only when build inputs changed (see **§ Smarter Docker rebuilds**) or on first run. The container serves **compiled** assets (`vite build`, `tsc`) from the image — **not** live-mounted source.
+
+To rebuild the **`app`** image unconditionally: **`make dev-rebuild`**.
 
 **Deploy / LAN installs** without building from source: use **only** **`docker-compose.yml`** — **`docker compose pull && docker compose up -d`** (see root **`README.md`**).
 

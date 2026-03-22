@@ -44,13 +44,15 @@ Rebuild/restart **api** + **web** only (Postgres unchanged):
 make dev-fast-app
 ```
 
+Force fast image rebuild (ignore stamp): **`make dev-fast-rebuild`**.
+
 **Classic stack**
 
 ```bash
 make dev
 ```
 
-Equivalent: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`. **Deploy** without building: `docker compose pull && docker compose up -d` (base **`docker-compose.yml`** only).
+Runs **`docker compose … up -d`** and adds **`--build`** only when **`scripts/docker-build-gate.sh`** sees changed inputs (or no stamp). **Deploy** without building: `docker compose pull && docker compose up -d` (base **`docker-compose.yml`** only). Force classic rebuild: **`make dev-rebuild`** or **`FORCE_DOCKER_REBUILD=1 make dev`**.
 
 If the classic stack was already up and you still see **stale UI or API** after **`make dev`**, Docker may have reused cached build layers. Run:
 
