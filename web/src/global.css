@@ -1737,6 +1737,13 @@ a.patch-sidebar-perf-link:hover {
 
 /* FortuneSheet — always light: pin light-theme tokens so toolbar icons, menus,
    and cell canvas stay readable regardless of the app's light/dark theme. */
+.patch-collab-banner {
+  margin: 0 0 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
 .patch-workbook-host {
   position: relative;
   isolation: isolate;

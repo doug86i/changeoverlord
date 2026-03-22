@@ -110,7 +110,8 @@ export function PatchPage() {
 
   const workbookReady = Boolean(performanceId && perfQ.isSuccess && perfQ.data);
 
-  const { wbRef, onOp, conn, workbookSheets, workbookHydrated } = usePatchWorkbookCollab({
+  const { wbRef, onOp, conn, workbookSheets, workbookHydrated, workbookDataRev } =
+    usePatchWorkbookCollab({
     roomId: performanceId,
     mode: "performance",
     workbookReady,
@@ -214,8 +215,20 @@ export function PatchPage() {
     </p>
   );
 
+  const collabSaveBanner =
+    workbookHydrated &&
+    workbookSheets != null &&
+    conn !== "connected" ? (
+      <p className="patch-collab-banner status-warn" role="status">
+        Edits may not save — reconnecting…
+      </p>
+    ) : null;
+
+  const workbookKey = `${performanceId}-${workbookDataRev}`;
+
   const workbookInner = (
     <>
+      {collabSaveBanner}
       {blockingWorkbook ? (
         <div
           className="patch-workbook-host__loading"
@@ -227,7 +240,7 @@ export function PatchPage() {
       ) : null}
       {workbookSheets != null && workbookHydrated ? (
         <PatchWorkbookErrorBoundary
-          key={performanceId}
+          key={workbookKey}
           roomId={performanceId}
           collabDebug={{
             conn,
@@ -235,7 +248,7 @@ export function PatchPage() {
           }}
         >
           <Workbook
-            key={performanceId}
+            key={workbookKey}
             ref={wbRef}
             data={workbookSheets}
             onOp={onOp}

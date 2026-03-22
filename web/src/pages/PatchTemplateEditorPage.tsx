@@ -22,7 +22,8 @@ export function PatchTemplateEditorPage() {
 
   const workbookReady = Boolean(templateId && tplQ.isSuccess && tplQ.data);
 
-  const { wbRef, onOp, conn, workbookSheets, workbookHydrated } = usePatchWorkbookCollab({
+  const { wbRef, onOp, conn, workbookSheets, workbookHydrated, workbookDataRev } =
+    usePatchWorkbookCollab({
     roomId: templateId,
     mode: "template",
     workbookReady,
@@ -40,9 +41,19 @@ export function PatchTemplateEditorPage() {
   }
 
   const tpl = tplQ.data.patchTemplate;
+  const workbookKey = `${templateId}-${workbookDataRev}`;
+  const collabSaveBanner =
+    workbookHydrated &&
+    workbookSheets != null &&
+    conn !== "connected" ? (
+      <p className="patch-collab-banner status-warn" role="status">
+        Edits may not save — reconnecting…
+      </p>
+    ) : null;
 
   return (
     <div>
+      {collabSaveBanner}
       <p className="muted" style={{ marginTop: 0 }}>
         <Link to="/settings">Settings</Link>
         {" · "}
@@ -98,7 +109,7 @@ export function PatchTemplateEditorPage() {
         ) : null}
         {workbookSheets != null && workbookHydrated ? (
           <PatchWorkbookErrorBoundary
-            key={templateId}
+            key={workbookKey}
             roomId={templateId}
             collabDebug={{
               conn,
@@ -106,7 +117,7 @@ export function PatchTemplateEditorPage() {
             }}
           >
             <Workbook
-              key={templateId}
+              key={workbookKey}
               ref={wbRef}
               data={workbookSheets}
               onOp={onOp}

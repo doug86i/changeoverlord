@@ -45,51 +45,6 @@ function sheetIdExists(wb: WorkbookInstance, id: string): boolean {
   );
 }
 
-/**
- * Drop addSheet ops for sheet ids already present, and skip duplicates within the same batch.
- * Tracks deleteSheet / full workbook replace so delete-then-add still works.
- * See docs/KNOWN_ISSUES.md §83 (structural ops are not idempotent in FortuneSheet).
- */
-function filterRedundantRemoteOps(wb: WorkbookInstance, ops: Op[]): Op[] {
-  const idSet = new Set(
-    (wb.getAllSheets() as Sheet[])
-      .map((s) => (s.id != null ? String(s.id).trim() : ""))
-      .filter((x) => x !== ""),
-  );
-  const out: Op[] = [];
-  for (const op of ops) {
-    if (op.op === "replace" && op.path?.[0] === "luckysheetfile" && Array.isArray(op.value)) {
-      idSet.clear();
-      for (const s of op.value as Sheet[]) {
-        if (s.id != null && String(s.id).trim() !== "") idSet.add(String(s.id));
-      }
-      out.push(op);
-      continue;
-    }
-    if (op.op === "addSheet" && op.value) {
-      const newSheet = op.value as Sheet;
-      const sid =
-        newSheet.id != null && String(newSheet.id).trim() !== ""
-          ? String(newSheet.id)
-          : "";
-      if (sid) {
-        if (idSet.has(sid)) continue;
-        idSet.add(sid);
-      }
-      out.push(op);
-      continue;
-    }
-    if (op.op === "deleteSheet" && op.value) {
-      const delId = String((op.value as { id: string }).id ?? "");
-      if (delId.trim() !== "") idSet.delete(delId);
-      out.push(op);
-      continue;
-    }
-    out.push(op);
-  }
-  return out;
-}
-
 /** After remote `applyOp`, refresh formulas without pushing ops to the server. */
 function flushRemoteFormulaRecalc(
   wb: WorkbookInstance,
@@ -168,6 +123,8 @@ export function usePatchWorkbookCollab(opts: {
   /** Sheets from server `fullState`; null until first message. */
   workbookSheets: Sheet[] | null;
   workbookHydrated: boolean;
+  /** Bump with `Workbook` `key` so mid-session `fullState` remounts the grid (structural collab). */
+  workbookDataRev: number;
 } {
   const { roomId, mode, workbookReady, onLocalOp, pauseWhenHidden = false, readOnly = false } =
     opts;
@@ -177,11 +134,14 @@ export function usePatchWorkbookCollab(opts: {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressLocalOpsRef = useRef(false);
   const intentionalDisconnectRef = useRef(false);
+  /** After first `fullState` of this WS session, further `fullState` messages bump {@link workbookDataRev}. */
+  const awaitingFirstFullStateRef = useRef(true);
   const pageVisible = usePageVisible();
 
   const [conn, setConn] = useState<"connecting" | "connected" | "error">("connecting");
   const [workbookSheets, setWorkbookSheets] = useState<Sheet[] | null>(null);
   const [workbookHydrated, setWorkbookHydrated] = useState(false);
+  const [workbookDataRev, setWorkbookDataRev] = useState(0);
 
   const clearReconnectTimer = useCallback(() => {
     if (reconnectTimerRef.current != null) {
@@ -205,6 +165,7 @@ export function usePatchWorkbookCollab(opts: {
 
       ws.onopen = () => {
         reconnectAttemptRef.current = 0;
+        awaitingFirstFullStateRef.current = true;
         setConn("connected");
         logDebug("patch-workbook-collab", "websocket open", { roomId, mode });
       };
@@ -218,6 +179,11 @@ export function usePatchWorkbookCollab(opts: {
         }
         if (msg.type === "fullState" && Array.isArray(msg.sheets)) {
           setWorkbookSheets(structuredClone(msg.sheets));
+          if (!awaitingFirstFullStateRef.current) {
+            setWorkbookDataRev((r) => r + 1);
+          } else {
+            awaitingFirstFullStateRef.current = false;
+          }
           setWorkbookHydrated(true);
           return;
         }
@@ -225,9 +191,9 @@ export function usePatchWorkbookCollab(opts: {
           const wb = wbRef.current;
           if (!wb) return;
           try {
-            const filtered = filterRedundantRemoteOps(wb, msg.data as Op[]);
-            if (filtered.length === 0) return;
-            wb.applyOp(filtered);
+            const batch = msg.data as Op[];
+            if (batch.length === 0) return;
+            wb.applyOp(batch);
             flushRemoteFormulaRecalc(wb, suppressLocalOpsRef);
           } catch (e) {
             logDebug("patch-workbook-collab", "applyOp failed for remote batch", e);
@@ -251,6 +217,8 @@ export function usePatchWorkbookCollab(opts: {
         setConn("connecting");
         setWorkbookHydrated(false);
         setWorkbookSheets(null);
+        awaitingFirstFullStateRef.current = true;
+        setWorkbookDataRev(0);
         const attempt = reconnectAttemptRef.current + 1;
         reconnectAttemptRef.current = attempt;
         const delay = Math.min(
@@ -311,5 +279,5 @@ export function usePatchWorkbookCollab(opts: {
     [readOnly, onLocalOp],
   );
 
-  return { wbRef, onOp, conn, workbookSheets, workbookHydrated };
+  return { wbRef, onOp, conn, workbookSheets, workbookHydrated, workbookDataRev };
 }
