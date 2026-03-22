@@ -437,30 +437,39 @@ Fix: add `flex-shrink: 0` (and `white-space: nowrap` where appropriate) to each 
 
 ### 83. Duplicate sheet tabs on remote peers after **Add sheet** *(open)*
 
-**Symptom:** User A adds a new sheet tab; user B (and other remotes) sometimes end up with **two** tabs for the same logical add (or extra empty tabs). The **authoritative** workbook in Postgres (**`sheets_json`**) and **Export JSON** can also reflect duplicates if the bad state was persisted before anyone notices.
+**Current architecture (2026):** Patch collab uses a **WebSocket JSON op relay** and Postgres **`sheets_json`** — **Yjs is not in the stack anymore** (removed in a large refactor to match FortuneSheet’s recommended pattern). This issue **survived that change**: it is not Yjs-specific, it is **structural-op idempotency** + duplicate batches.
+
+**Symptom:** User A adds a new sheet tab; user B (and other remotes) sometimes end up with **two** tabs for the same logical add (or extra empty tabs). The **authoritative** workbook in Postgres (**`sheets_json`**) and **Export JSON** can also reflect duplicates once the relay has applied duplicate batches and debounced persist has run.
+
+**Why a simple reload often does nothing:** On connect/reconnect the server sends **`fullState`** built from **`sheets_json`**. If duplicates are **already saved**, every refresh just **reloads the same duplicate sheets**. Reload only “fixes” transient **client-only** glitches — not persisted bad state.
 
 **Why it’s hard:** FortuneSheet **`addSheet`** / **`deleteSheet`** / row-column structural ops are **not idempotent**. Applying the **same** op batch twice appends twice. Cell-level **`replace`** patches are usually harmless when duplicated; structural ops are not.
 
-**What we’ve tried**
+**What we’ve tried (current stack)**
 
 | Attempt | Notes |
 |--------|--------|
-| **React 18 Strict Mode `onOp` dedup** (`lastPushedOpsRef`, drop identical consecutive batches) | Helped in **development** when `useState` updaters double-invoked and fired **`onOp`** twice with the same serialized ops. **Production** builds do not use Strict Mode double-invoke; duplicates can still occur from other causes. **Removed** when switching to the WebSocket relay — relay assumed server convergence would be enough; **it is not** if two batches still reach the server or peers. |
-| **Yjs opLog + client replay** (prior architecture) | Same underlying issue: duplicate pushes to the log → duplicate **`applyOp`** on peers. Compaction and bootstrap from **`sheets-export`** reduced some races; did not fully eliminate structural duplicates. |
-| **Skip client opLog drain when `sheets-export` bootstrap present** | Avoided double-applying history on first paint; irrelevant after relay (**`fullState`** replaces bootstrap). |
-| **`setAutoFreeze(false)`** (Immer) | Fixes **freeze / replay** crashes inside **`addSheet`** (`Unable to delete property`); does **not** stop duplicate tabs if two structural batches apply. |
-| **FortuneSheet fork** — guards on **`initSheetData`**, **`getSheetIndex`**, **`addSheet`** on read-only collab, etc. | Stops **crashes** when remotes apply **`addSheet`** with bad payloads; does **not** deduplicate duplicate **valid** **`addSheet`** batches. |
-| **WebSocket op relay** (`api/src/plugins/collab-ws-relay.ts`) | Server applies each client message once with **`applyOpBatchToSheets`** and broadcasts to **other** sockets only (`broadcastOp` excludes sender). **Does not** deduplicate if the **editor** sends two WebSocket messages (e.g. double **`onOp`**) or if separate batches both add sheets. |
+| **WebSocket op relay** (`collab-ws-relay.ts`) | Server applies each message with **`applyOpBatchToSheets`** and broadcasts to **other** sockets only. **Still vulnerable** if the **editor** sends **two** WebSocket messages for the same structural change (e.g. double **`onOp`**) — the server applies both and persists duplicates. |
+| **`setAutoFreeze(false)`** (Immer) | Fixes **freeze / replay** crashes inside **`addSheet`**; does **not** stop duplicate tabs. |
+| **FortuneSheet fork** — **`initSheetData`** / **`getSheetIndex`** / read-only **`addSheet`** guards | Stops **crashes** on bad payloads; does **not** dedupe two **valid** **`addSheet`** batches. |
+
+**Historical (removed with the Yjs → relay refactor)** — kept so we don’t repeat dead ends:
+
+| Attempt | Notes |
+|--------|--------|
+| **Yjs** + opLog + client replay | Duplicate pushes to the log → duplicate **`applyOp`** on peers; compaction / **`sheets-export`** bootstrap reduced some races; **did not** fix this class of bug. **Removed** for complexity and Strict Mode interaction, not because duplicates went away. |
+| **React Strict Mode `onOp` dedup** (`lastPushedOpsRef`) | Helped **dev** double-invoke only; **removed** with relay. **Production** never had that double-invoke; duplicates remain. Restoring this dedup **before `socket.send`** (production too) is a leading fix candidate. |
+| **Skip opLog drain when REST bootstrap** | Avoided double-apply on first paint in the Yjs era; superseded by **`fullState`**. |
 
 **Likely directions (not implemented)**
 
-- Restore **client-side** dedup: ignore **consecutive identical** serialized **`Op[]`** (or hash) for **`onOp`** before **`socket.send`**, at least for batches containing structural ops — same idea as the old **`lastPushedOpsRef`**, kept for **production** too.
-- **Server-side:** reject or merge duplicate structural batches (hard without stable op ids from the client).
-- **Upstream / fork:** make **`addSheet`** idempotent when a sheet with the same **`id`** already exists (spec change; needs careful testing).
+- Restore **client-side** dedup on **`onOp`**: drop **consecutive identical** serialized **`Op[]`** before **`socket.send`** (especially batches containing structural ops) — **production**, not only Strict Mode.
+- **Server-side:** dedupe or ignore duplicate structural batches (needs heuristics or client op ids).
+- **Fork:** idempotent **`addSheet`** when sheet **`id`** already exists.
 
-**Workaround for operators:** If tabs duplicate, **reload** the patch page (or **Import JSON** / **Export JSON** round-trip after fixing in one client). See [`docs/USER_GUIDE.md`](USER_GUIDE.md) (patch spreadsheet section).
+**Workaround for operators when duplicates are already saved:** **Export JSON** → remove the extra **`luckysheetfile`** entries in the file (or fix in an external editor) → **Import JSON** for that act/template so **`sheets_json`** is rewritten. **Reload alone will not remove** duplicates already in the database. If the product UI later supports deleting duplicate tabs cleanly, use that and wait for persist.
 
-**Code:** [`web/src/lib/patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts) (**`onOp`** → send), [`api/src/plugins/collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts) (receive → **`applyOpBatchToSheets`** → broadcast). History in root [`CHANGELOG.md`](../CHANGELOG.md) (search **Strict Mode**, **addSheet**, **Yjs**).
+**Code:** [`web/src/lib/patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts), [`api/src/plugins/collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts).
 
 ---
 
