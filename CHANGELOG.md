@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Docker:** **Fast stack** (`docker-compose.fast.yml`) — start **api** / **web** as root long enough to **`chown`** the **`node_modules`** named volumes, then **`su node`** so **`npm install`** / Vite are not blocked by **EACCES** on fresh or root-owned volumes.
+
 ### Added
 
 - **API / Web:** **Stage clock urgent message** — `stages.clock_message`, **`PATCH /api/v1/stages/:id/clock-message`**, synced to all clock UIs via existing **`stage`** SSE invalidation; flashing overlay on **kiosk** and stage-manager preview.

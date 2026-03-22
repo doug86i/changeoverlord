@@ -26,6 +26,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.fast
+    # Named volumes for node_modules are often root-owned; chown then run as `node` (see Dockerfile.fast).
+    user: "0:0"
     restart: unless-stopped
     working_dir: /app
     environment:
@@ -50,7 +52,9 @@ services:
     command:
       - sh
       - -c
-      - mkdir -p api/public && npm install && npm run dev -w @changeoverlord/api
+      - |
+          chown -R node:node /app/node_modules /app/api/node_modules /app/web/node_modules 2>/dev/null || true
+          su node -s /bin/sh -c "mkdir -p api/public && npm install && npm run dev -w @changeoverlord/api"
     healthcheck:
       test:
         [
@@ -66,6 +70,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.fast
+    user: "0:0"
     restart: unless-stopped
     working_dir: /app
     environment:
@@ -83,7 +88,9 @@ services:
     command:
       - sh
       - -c
-      - npm run dev -w @changeoverlord/web
+      - |
+          chown -R node:node /app/node_modules /app/api/node_modules /app/web/node_modules 2>/dev/null || true
+          su node -s /bin/sh -c "npm run dev -w @changeoverlord/web"
 
 volumes:
   fast_nm_root:
