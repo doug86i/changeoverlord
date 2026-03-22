@@ -11,6 +11,7 @@ import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Op, Sheet } from "@fortune-sheet/core";
 import { logClientDebugCollab, summarizeOpsForClientLog } from "./clientDebugLog";
 import { logDebug } from "./debug";
+import { normalizeSheetsForFortuneMount } from "./fortuneSheetMountNormalize";
 import { usePageVisible } from "../hooks/usePageVisible";
 
 const WS_INITIAL_BACKOFF_MS = 300;
@@ -207,7 +208,9 @@ export function usePatchWorkbookCollab(opts: {
             sheetCount: msg.sheets.length,
             midSessionRemount: midSession,
           });
-          setWorkbookSheets(structuredClone(msg.sheets));
+          setWorkbookSheets(
+            normalizeSheetsForFortuneMount(structuredClone(msg.sheets) as Sheet[]),
+          );
           if (midSession) {
             setWorkbookDataRev((r) => r + 1);
           } else {
