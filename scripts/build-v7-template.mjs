@@ -151,7 +151,107 @@ if (equipSheet && equipSheet.data[0]?.[0]) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  5.  Conditional formatting rules                                  */
+/*  5.  Make helper columns case-insensitive with UPPER()             */
+/* ------------------------------------------------------------------ */
+
+const clSheet = normalised.find((s) => s.name === "Channel List");
+
+/*
+ * Helper columns AA-AD on Channel List wrap values with UPPER() so
+ * cross-sheet lookups (Mic & DI List, SatBox Labels) match regardless
+ * of whether the user types "R1" or "r1" in SatBox#.
+ *
+ * AA (col 26): =IF(E2="","",UPPER(E2))   — Mic/DI (was plain E2)
+ * AB (col 27): =IF(G2="","",UPPER(G2))   — Stand  (was plain G2)
+ * AC (col 28): =IF(D2="","",UPPER(D2))   — Item   (was plain D2)
+ * AD (col 29): unchanged — running unique index
+ */
+if (clSheet) {
+  for (let r = 1; r <= 100; r++) {
+    const row = clSheet.data[r];
+    if (!row) continue;
+    // Col 26 (AA): wrap with UPPER
+    if (row[26]?.f) {
+      const origCol = String.fromCharCode(69); // E
+      const ref = `${origCol}${r + 1}`;
+      row[26].f = `=IF(${ref}="","",UPPER(${ref}))`;
+    }
+    // Col 27 (AB): wrap with UPPER
+    if (row[27]?.f) {
+      const origCol = String.fromCharCode(71); // G
+      const ref = `${origCol}${r + 1}`;
+      row[27].f = `=IF(${ref}="","",UPPER(${ref}))`;
+    }
+    // Col 28 (AC): wrap with UPPER
+    if (row[28]?.f) {
+      const origCol = String.fromCharCode(68); // D
+      const ref = `${origCol}${r + 1}`;
+      row[28].f = `=IF(${ref}="","",UPPER(${ref}))`;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  5b. Add stand count summary to Channel List (same-sheet = live)   */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Cross-sheet formulas don't update in real time in FortuneSheet.
+ * Moving stand count summaries to Channel List (same sheet as the data)
+ * ensures they update immediately when the user edits.
+ *
+ * Place summary in rows 103-106 (after the existing data in rows 1-101).
+ */
+if (clSheet) {
+  const sumStartRow = 102; // 0-indexed (= row 103 in spreadsheet)
+  const summaryData = [
+    // Row 103: header
+    { c: 0, v: "Summary", bold: true },
+    { c: 1, v: "Count", bold: true },
+    // Row 104: Tall stands
+    { r: 1, c: 0, v: "Tall Stands", formula: null },
+    { r: 1, c: 1, v: null, formula: '=COUNTIF($G$2:$G$101,"Tall*")+$C$99' },
+    // Row 105: Short stands
+    { r: 2, c: 0, v: "Short Stands", formula: null },
+    { r: 2, c: 1, v: null, formula: '=COUNTIF($G$2:$G$101,"Short*")+$C$100' },
+    // Row 106: Round bases
+    { r: 3, c: 0, v: "Round Bases", formula: null },
+    { r: 3, c: 1, v: null, formula: '=COUNTIF($G$2:$G$101,"Round*")+$C$101' },
+  ];
+
+  // Ensure data array is large enough
+  while (clSheet.data.length <= sumStartRow + 4) {
+    clSheet.data.push(new Array(clSheet.column).fill(null));
+  }
+  clSheet.row = Math.max(clSheet.row, sumStartRow + 5);
+
+  for (const entry of summaryData) {
+    const r = sumStartRow + (entry.r ?? 0);
+    const c = entry.c;
+    if (!clSheet.data[r]) clSheet.data[r] = new Array(clSheet.column).fill(null);
+    if (entry.formula) {
+      clSheet.data[r][c] = {
+        f: entry.formula,
+        v: 0,
+        m: "0",
+        ct: { fa: "General", t: "n" },
+      };
+    } else if (entry.v != null) {
+      clSheet.data[r][c] = {
+        v: entry.v,
+        m: String(entry.v),
+        ct: { fa: "General", t: "g" },
+        ...(entry.bold ? { bl: 1 } : {}),
+      };
+    }
+  }
+
+  // Rebuild calcChain to include the new formula cells
+  clSheet.calcChain = buildCalcChain(clSheet.data, clSheet.id);
+}
+
+/* ------------------------------------------------------------------ */
+/*  6.  Conditional formatting rules                                  */
 /* ------------------------------------------------------------------ */
 
 /*
@@ -180,17 +280,30 @@ const satboxColors = [
   { letter: "G", bg: "#C6EFCE", fc: "#006100" },
 ];
 
-const channelListCF = satboxColors.map(({ letter, bg, fc }) => ({
-  type: "default",
-  cellrange: [
-    { row: [1, 97], column: [1, 2] },
-    { row: [98, 100], column: [2, 2] },
-  ],
-  format: { textColor: fc, cellColor: bg },
-  conditionName: "textContains",
-  conditionRange: [],
-  conditionValue: [letter],
-}));
+const channelListCF = satboxColors.flatMap(({ letter, bg, fc }) => [
+  {
+    type: "default",
+    cellrange: [
+      { row: [1, 97], column: [1, 2] },
+      { row: [98, 100], column: [2, 2] },
+    ],
+    format: { textColor: fc, cellColor: bg },
+    conditionName: "textContains",
+    conditionRange: [],
+    conditionValue: [letter],
+  },
+  {
+    type: "default",
+    cellrange: [
+      { row: [1, 97], column: [1, 2] },
+      { row: [98, 100], column: [2, 2] },
+    ],
+    format: { textColor: fc, cellColor: bg },
+    conditionName: "textContains",
+    conditionRange: [],
+    conditionValue: [letter.toLowerCase()],
+  },
+]);
 
 /*
  * Channel List — Notes column (L = col 11) green highlight when non-empty.
@@ -225,14 +338,13 @@ const satboxLabelsCF = [
 ];
 
 /* Attach CF to the correct sheets. */
-const clSheet = normalised.find((s) => s.name === "Channel List");
 if (clSheet) clSheet.luckysheet_conditionformat_save = channelListCF;
 
 const sbSheet = normalised.find((s) => s.name === "SatBox Lables");
 if (sbSheet) sbSheet.luckysheet_conditionformat_save = satboxLabelsCF;
 
 /* ------------------------------------------------------------------ */
-/*  6.  Emit changeoverlordWorkbook envelope                          */
+/*  7.  Emit changeoverlordWorkbook envelope                          */
 /* ------------------------------------------------------------------ */
 
 const envelope = {

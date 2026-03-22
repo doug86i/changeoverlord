@@ -26,12 +26,25 @@ The app does **not** read this folder at runtime. **Blank** patch sheets are **n
 
 ### Conditional formatting
 
-- **Channel List** (B2:C98): SatBox prefix colour coding — **R** red, **G** green, **B** blue, **Y** yellow, **O** orange, **P** purple.
+- **Channel List** (B2:C98): SatBox prefix colour coding — **R** red, **G** green, **B** blue, **Y** yellow, **O** orange, **P** purple. Both upper and lowercase prefixes are matched (FortuneSheet's `textContains` is case-sensitive, so rules exist for both).
 - **SatBox Lables** (rows 4–46): Cells equal to `0` shown in grey text to hide empty lookup results.
 
 ### Cross-sheet formulas
 
-All formulas in Mic & DI List, SatBox Lables, and Equipment Pick List reference Channel List. FortuneSheet evaluates these live in the browser via `@formulajs/formulajs`. The `calcChain` array ensures formula recalculation triggers on edits.
+Mic & DI List, SatBox Lables, and Equipment Pick List contain formulas referencing Channel List. FortuneSheet evaluates these via `@formulajs/formulajs` with `calcChain`.
+
+**Limitation:** FortuneSheet's incremental recalculation only updates same-sheet formulas in real time. Cross-sheet formulas (e.g. Mic & DI List totals) may not refresh until the page is reloaded or a different sheet tab is visited. For this reason, the **stand count summary** (Tall/Short/Round) is duplicated on the Channel List sheet itself (rows 103–106) so it updates immediately during editing.
+
+### Case handling
+
+FortuneSheet does not support auto-uppercase on input. The template handles mixed case:
+- **Helper columns** (AA–AC) use `UPPER()` so cross-sheet lookups are case-insensitive
+- **CF rules** exist for both upper and lowercase SatBox prefixes
+- **COUNTIF / MATCH** in `@formulajs/formulajs` are case-insensitive by default
+
+### Template variability
+
+Users upload their **own** templates — sheet names, column layout, row count, and formula structure **will vary**. The DH v7 template is a reference for testing. The application treats template content as opaque FortuneSheet data; no application code depends on specific sheet names or column positions.
 
 ### Regenerating
 

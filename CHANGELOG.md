@@ -24,11 +24,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **API — Excel CF extraction:** Direct `.xlsx` template uploads now extract conditional formatting rules from the raw OOXML XML (`api/src/lib/excel-cf-extract.ts`). The `@zenmrp/fortune-sheet-excel` library does not support CF; the new module parses `conditionalFormatting` blocks, resolves dxf styles and theme colours, and maps `beginsWith`/`cellIs`/`expression` rules to FortuneSheet's `luckysheet_conditionformat_save` format.
 
-- **`examples/DH_Pick_Patch_TEMPLATE_v7.json`** — four-sheet DH Pick & Patch v7.0 starter built from the human-made Excel, with conditional formatting (SatBox colour coding, zero grey-out) and cross-sheet formulas (`changeoverlordWorkbook: 1` envelope).
+- **`examples/DH_Pick_Patch_TEMPLATE_v7.json`** — four-sheet DH Pick & Patch v7.0 starter built from the human-made Excel, with conditional formatting (SatBox colour coding for both upper/lowercase, zero grey-out), cross-sheet formulas, same-sheet stand count summary on Channel List (rows 103–106), and UPPER() helper columns for case-insensitive lookups (`changeoverlordWorkbook: 1` envelope).
 
 - **`scripts/build-v7-template.mjs`** — regenerates v7 JSON from the Excel source (`node scripts/build-v7-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v7.json`).
 
 - **Root `package.json` scripts:** **`build:test`** (api then web) and **`docker:build:app`** (`docker compose build app`).
+
+- **Docs:** Add **`docs/CODEBASE_REVIEW.md`** — canonical engineering audit backlog (code, infra, CSS, realtime, doc drift). Indexed from **`docs/README.md`**, **`docs/MAINTAINING_DOCS.md`**, **`AGENTS.md`**, and root **`README.md`** (also lists **`docs/PATCH_TEMPLATE_JSON.md`** in the root doc table).
 
 - **Web — patch / template workbook:** After the initial **Yjs opLog** replay, the grid runs **`calculateFormula`** twice (covers cross-sheet dependency order). **Imported** or **synced** workbooks with cross-sheet formulas (e.g. **SatBox** labels reading **Channel List**) now show evaluated values instead of staying stale. **`onOp`** is ignored during that pass so formula value patches are **not** appended to **Yjs**.
 

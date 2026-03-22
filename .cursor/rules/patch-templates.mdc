@@ -1,0 +1,26 @@
+---
+description: Rules for working with patch templates and FortuneSheet workbooks
+alwaysApply: true
+---
+
+# Patch templates (FortuneSheet workbooks)
+
+## Never patch the FortuneSheet editor
+
+- **Do NOT use `patch-package`** or any other mechanism to modify `@fortune-sheet/core`, `@fortune-sheet/react`, or `@zenmrp/fortune-sheet-excel` source code.
+- **Do NOT add runtime hooks** (e.g. `onOp` interceptors, mutation observers) that alter cell values after user input to work around FortuneSheet limitations. Cell data belongs to the user.
+- If FortuneSheet lacks a feature (e.g. auto-uppercase, data validation enforcement), handle it **in the template JSON** (formulas, helper columns, conditional formatting) or **document the limitation** — not by modifying the editor.
+- Upstream bugs that block core functionality should be reported upstream; only use `patches/` as a last resort for blocking regressions, and document in `docs/DECISIONS.md`.
+
+## Templates are user-controlled
+
+- Users upload their **own** Excel or JSON templates. The sheet names, column layout, row count, and formula structure **will vary** between operators.
+- **Do NOT hard-code** sheet names, column indexes, or cell addresses in application code. The app treats template content as opaque FortuneSheet data.
+- The **`examples/`** folder contains a reference DH template for testing and demonstration. It is **not** the only valid template shape.
+- Helper columns, conditional formatting rules, and cross-sheet formulas are part of the **template design**, not the application. Fix template issues in the **build script** (`scripts/build-v7-template.mjs`), not in API or web source code.
+
+## Cross-sheet formula limitations
+
+- FortuneSheet's `calculateFormula` does not reliably propagate edits across sheets in real time. Formulas on the **same sheet** as edited cells update via `calcChain`; **cross-sheet** formulas may require a sheet tab switch or page reload to refresh.
+- **Prefer same-sheet formulas** for values that must update immediately (e.g. stand counts, summary rows).
+- **Do NOT attempt** to fix cross-sheet recalculation by injecting synthetic ops or calling FortuneSheet internals outside the documented `onOp` / `applyOp` flow.

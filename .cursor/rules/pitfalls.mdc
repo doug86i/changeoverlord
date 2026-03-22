@@ -11,6 +11,7 @@ alwaysApply: true
 - **Do NOT attempt to reconstruct sheet state from the Yjs opLog on the server.** The opLog contains serialized FortuneSheet ops that only FortuneSheet's `applyOp` can replay. The Yjs snapshot in the DB is the source of truth. The `.xlsx` file on disk is only the original upload.
 - **Do NOT modify the FortuneSheet collaboration bridge** (the `onOp` → `yops.push` → `observe` → `applyOp` flow in `PatchPage.tsx` / `PatchTemplateEditorPage.tsx`) unless you deeply understand both FortuneSheet ops and Yjs transactions.
 - **Do NOT forget `ydoc.destroy()`** in cleanup effects when creating `Y.Doc` instances.
+- **Do NOT use `patch-package`** on FortuneSheet (`@fortune-sheet/core`, `@fortune-sheet/react`, `@zenmrp/fortune-sheet-excel`). Fix template issues in the **build script** or **JSON creator**, not by patching the editor. See **`.cursor/rules/patch-templates.mdc`**.
 
 ## Redis
 

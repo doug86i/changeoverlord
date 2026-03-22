@@ -186,10 +186,15 @@ function parseDxfStyles(
 /*  Map Excel CF rule types to FortuneSheet conditionName              */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Map a single Excel CF rule to FortuneSheet format.
+ * Returns an array because beginsWith rules emit both upper and lowercase
+ * variants (FortuneSheet textContains is case-sensitive).
+ */
 function mapExcelCfRule(
   ruleXml: string,
   dxfStyles: DxfStyle[],
-): FortuneSheetCfRule | null {
+): FortuneSheetCfRule[] | null {
   const ruleType = attr(ruleXml, "type");
   const dxfIdStr = attr(ruleXml, "dxfId");
   const operator = attr(ruleXml, "operator");
@@ -211,14 +216,14 @@ function mapExcelCfRule(
     else if (operator === "between") conditionName = "betweenness";
     else return null;
 
-    return {
+    return [{
       type: "default" as const,
       cellrange: [],
       format: { textColor: style.textColor, cellColor: style.cellColor },
       conditionName,
       conditionRange: [],
       conditionValue: formulas,
-    };
+    }];
   }
 
   if (ruleType === "beginsWith" && dxfIdStr != null) {
@@ -229,14 +234,19 @@ function mapExcelCfRule(
     const prefix =
       formulas[0]?.match(/LEN\("([^"]*)"\)/i)?.[1] ?? formulas[0] ?? "";
 
-    return {
+    const base = {
       type: "default" as const,
-      cellrange: [],
+      cellrange: [] as CfRange[],
       format: { textColor: style.textColor, cellColor: style.cellColor },
       conditionName: "textContains",
-      conditionRange: [],
+      conditionRange: [] as CfRange[],
       conditionValue: [prefix],
     };
+    const lower = prefix.toLowerCase();
+    if (lower !== prefix) {
+      return [base, { ...base, conditionValue: [lower] }];
+    }
+    return [base];
   }
 
   if (
@@ -252,14 +262,19 @@ function mapExcelCfRule(
     const prefix = formulas[0].match(/LEN\("([^"]*)"\)/i)?.[1] ?? "";
     if (!prefix) return null;
 
-    return {
+    const base = {
       type: "default" as const,
-      cellrange: [],
+      cellrange: [] as CfRange[],
       format: { textColor: style.textColor, cellColor: style.cellColor },
       conditionName: "textContains",
-      conditionRange: [],
+      conditionRange: [] as CfRange[],
       conditionValue: [prefix],
     };
+    const lower = prefix.toLowerCase();
+    if (lower !== prefix) {
+      return [base, { ...base, conditionValue: [lower] }];
+    }
+    return [base];
   }
 
   if (
@@ -280,11 +295,11 @@ function mapExcelCfRule(
       .map((c) => resolveColor(c, dxfStyles.length ? [] : []))
       .filter(Boolean) as string[];
     if (colors.length < 2) return null;
-    return {
+    return [{
       type: "colorGradation",
       cellrange: [],
       format: colors,
-    };
+    }];
   }
 
   if (ruleType === "dataBar") {
@@ -346,20 +361,22 @@ export async function extractConditionalFormatting(
 
       const cfRules = allMatches(cfBlock, "cfRule");
       for (const cfRule of cfRules) {
-        const mapped = mapExcelCfRule(cfRule, dxfStyles);
-        if (!mapped) continue;
+        const mappedArr = mapExcelCfRule(cfRule, dxfStyles);
+        if (!mappedArr) continue;
 
-        mapped.cellrange = cellrange;
+        for (const mapped of mappedArr) {
+          mapped.cellrange = cellrange;
 
-        const dedup = JSON.stringify({
-          cn: mapped.conditionName,
-          cv: mapped.conditionValue,
-          cr: mapped.cellrange,
-        });
-        if (seen.has(dedup)) continue;
-        seen.add(dedup);
+          const dedup = JSON.stringify({
+            cn: mapped.conditionName,
+            cv: mapped.conditionValue,
+            cr: mapped.cellrange,
+          });
+          if (seen.has(dedup)) continue;
+          seen.add(dedup);
 
-        rules.push(mapped);
+          rules.push(mapped);
+        }
       }
     }
 
