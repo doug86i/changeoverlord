@@ -9,6 +9,7 @@ import { PerformanceBandNav } from "../components/PerformanceBandNav";
 import { PatchPageSidebar } from "../components/PatchPageSidebar";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatDateShort } from "../lib/dateFormat";
+import { PHONE_MAX_MEDIA } from "../lib/breakpoints";
 import { usePatchWorkbookCollab } from "../lib/patchWorkbookCollab";
 
 const PATCH_SIDEBAR_COLLAPSED_KEY = "patch-sidebar-collapsed";
@@ -21,9 +22,7 @@ export function PatchPage() {
   const patchWorkbookHostRef = useRef<HTMLDivElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
-  const isPhone = useMediaQuery("(max-width: 767px)");
-  /** Read-only collab / no formula bar only on very narrow viewports (typical phones). iPad portrait (≥641px) stays editable. */
-  const patchCollabRestricted = useMediaQuery("(max-width: 640px)");
+  const isPhone = useMediaQuery(PHONE_MAX_MEDIA);
 
   useEffect(() => {
     try {
@@ -119,7 +118,7 @@ export function PatchPage() {
     workbookReady,
     onLocalOp: markDirty,
     pauseWhenHidden: isPhone,
-    readOnly: patchCollabRestricted,
+    readOnly: isPhone,
   });
 
   const blockingWorkbook =
@@ -254,9 +253,9 @@ export function PatchPage() {
             ref={wbRef}
             data={workbookSheets}
             onOp={onOp}
-            allowEdit={!patchCollabRestricted}
-            showToolbar={!patchCollabRestricted}
-            showFormulaBar={!patchCollabRestricted}
+            allowEdit={!isPhone}
+            showToolbar={!isPhone}
+            showFormulaBar={!isPhone}
             showSheetTabs
           />
         </PatchWorkbookErrorBoundary>
@@ -419,13 +418,9 @@ export function PatchPage() {
         {/* Workbook — always at child 3; survives phone↔desktop transitions */}
         <div
           ref={patchWorkbookHostRef}
-          className={[
-            "patch-workbook-host",
-            patchCollabRestricted && "patch-workbook-host--readonly",
-            isPhone && "patch-workbook-host--phone",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          className={
+            `patch-workbook-host${isPhone ? " patch-workbook-host--readonly patch-workbook-host--phone" : ""}`
+          }
           style={{
             border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)",
