@@ -83,7 +83,7 @@ Use **`make dev-fast`** (or classic stack) so the API and Vite proxy match **[`d
    Component **`collab-ws-relay`** logs each applied batch as **`relay op batch applied`** with:
    - **`broadcast`:** **`fullState-to-peers`** (structural: new/delete tab or whole-workbook replace) vs **`op`** (cell edits).
    - **`sheetCount`**, **`structural`**, **`opCount`**, **`kinds`** (op names, truncated), **`addSheetIds`** (including **`(no-id)`** when Fortune omitted an id — server cannot dedupe).
-   - **`workbook persisted`** (debug) after debounced flush; **`workbook persisted; follow-up flush scheduled (edits during write)`** (debug) when ops landed during the DB round-trip; **`skip persist: sheets failed minimum persist checks`** (warn) if tabs lack ids.
+   - **`workbook persisted`** (debug) after debounced flush — includes **`seqAtClone`** and, with **`LOG_LEVEL=debug`**, approximate **`serializedBytes`** of the JSON payload; **`workbook persisted; follow-up flush scheduled (edits during write)`** (debug) when ops landed during the DB round-trip; **`persist chain error`** (error) if a chained flush throws. **`skip persist: sheets failed minimum persist checks`** (warn) if tabs lack ids.
    - **`collab room closed with unsaved sheets; keeping in-memory room for reconnect`** (warn) — last client disconnected while **`dirty`** (persist not written yet); next **`fullState`** comes from memory, not Postgres.
    - **`collab ws: client json parse failed`** (debug) — malformed frame; **`collab ws: client message rejected`** (warn) — Zod shape mismatch (first few **`issues`** only); **`collab ws: op payload is not an array`** (warn).
 
@@ -93,6 +93,7 @@ Use **`make dev-fast`** (or classic stack) so the API and Vite proxy match **[`d
 3. **NDJSON file (two browsers / repro)**  
    Default fast stack: **`data/logs/client-debug.ndjson`** on the host (or **`$DATA_DIR/logs/…`**) with **`VITE_CLIENT_LOG_FILE=true`** and **`CLIENT_LOG_FILE`** on the API. **`logClientDebugCollab`** records:
    - **`onOp skipped: websocket not open`** / **`readOnly`** / **`suppressLocalOps`** — edits **not** sent to the relay (common “not saving” cause).
+   - **`collab ws closing (navigate or reload room)`** / **`collab ws closing (room idle — not ready)`** — browser closed the socket because the route/performance changed, **`workbookReady`** was false while the next row loaded, or the effect re-ran; server should flush that performance’s room (see **`persistTail`** in **`REALTIME.md`**).
    - **`outbound cell op batches (aggregated)`** — debounced summary of **cell** batches **after** a successful **`ws.send`** (no cell payloads); if edits “don’t save” and this line **never** appears, Fortune may not be emitting **`onOp`** or the socket never reached **OPEN**.
    - **`outbound structural op batch sent`** — includes **`addSheetIds`**.
    - **`fullState received`** — **`sheetCount`**, **`midSessionRemount`** when the grid key bumps. If **`roomId`** (from the hook) and **`path`** (URL at flush time) disagree for the same tab, suspect a **stale WebSocket** applying another performance’s **`fullState`** — fixed in **`patchWorkbookCollab`** by always closing the socket when **`workbookReady`** is false and by ignoring events from non-current sockets.

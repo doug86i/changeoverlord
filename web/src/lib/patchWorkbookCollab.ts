@@ -287,6 +287,13 @@ export function usePatchWorkbookCollab(opts: {
     if (!roomId || !workbookReady) {
       clearReconnectTimer();
       const w = wsRef.current;
+      if (w) {
+        logClientDebugCollab("patch-workbook-collab", "collab ws closing (room idle — not ready)", {
+          roomId: roomId ?? "none",
+          workbookReady,
+          hadSocket: true,
+        });
+      }
       wsRef.current = null;
       w?.close();
       setConn("connecting");
@@ -299,6 +306,11 @@ export function usePatchWorkbookCollab(opts: {
     connectWs();
     return () => {
       clearReconnectTimer();
+      logClientDebugCollab("patch-workbook-collab", "collab ws closing (navigate or reload room)", {
+        roomId,
+        workbookReady,
+        hadSocket: Boolean(wsRef.current),
+      });
       const w = wsRef.current;
       wsRef.current = null;
       w?.close();

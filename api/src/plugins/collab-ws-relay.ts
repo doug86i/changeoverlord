@@ -43,6 +43,8 @@ type RoomState = {
   dirty: boolean;
   /** Incremented on each successful in-memory mutation; used to avoid clearing `dirty` after a stale DB write. */
   sheetMutationSeq: number;
+  /** Serializes `persistRoom` so overlapping awaits cannot write an older snapshot last (timer + disconnect). */
+  persistTail: Promise<void>;
 };
 
 const rooms = new Map<string, RoomState>();
@@ -81,6 +83,7 @@ async function persistRoom(room: RoomState): Promise<void> {
   const storageKey = roomKey(room.kind, room.entityId);
   const seqAtClone = room.sheetMutationSeq;
   const payload = structuredClone(room.sheets) as unknown[];
+  let serializedBytes = 0;
   try {
     if (room.kind === "performance") {
       await db
@@ -101,16 +104,39 @@ async function persistRoom(room: RoomState): Promise<void> {
         .where(eq(patchTemplates.id, room.entityId));
       broadcastInvalidate([["patchTemplates"], ["patchTemplate"], ["events"]]);
     }
+    const logSizes =
+      process.env.LOG_LEVEL === "debug" || process.env.LOG_LEVEL === "trace";
+    if (logSizes) {
+      try {
+        serializedBytes = JSON.stringify(payload).length;
+      } catch {
+        serializedBytes = -1;
+      }
+    }
     if (room.sheetMutationSeq !== seqAtClone) {
       room.dirty = true;
       schedulePersist(storageKey, room);
       relayLog.debug(
-        { kind: room.kind, id: room.entityId },
+        {
+          kind: room.kind,
+          id: room.entityId,
+          seqAtClone,
+          sheetMutationSeq: room.sheetMutationSeq,
+          serializedBytes: serializedBytes > 0 ? serializedBytes : undefined,
+        },
         "workbook persisted; follow-up flush scheduled (edits during write)",
       );
     } else {
       room.dirty = false;
-      relayLog.debug({ kind: room.kind, id: room.entityId }, "workbook persisted");
+      relayLog.debug(
+        {
+          kind: room.kind,
+          id: room.entityId,
+          seqAtClone,
+          serializedBytes: serializedBytes > 0 ? serializedBytes : undefined,
+        },
+        "workbook persisted",
+      );
       if (room.sockets.size === 0) {
         rooms.delete(storageKey);
       }
@@ -120,14 +146,21 @@ async function persistRoom(room: RoomState): Promise<void> {
   }
 }
 
+/** Run `persistRoom` after all prior enqueued persists for this room finish (avoids stale last-writer wins). */
+function enqueuePersist(room: RoomState, key: string): Promise<void> {
+  const next = room.persistTail.then(() => persistRoom(room));
+  room.persistTail = next.catch((err) => {
+    relayLog.error({ err, key }, "persist chain error");
+  });
+  return next;
+}
+
 function schedulePersist(key: string, room: RoomState): void {
   room.dirty = true;
   if (room.persistTimer) clearTimeout(room.persistTimer);
   room.persistTimer = setTimeout(() => {
     room.persistTimer = null;
-    void persistRoom(room).catch((err) =>
-      relayLog.error({ err, key }, "debounced persist error"),
-    );
+    void enqueuePersist(room, key);
   }, PERSIST_DEBOUNCE_MS);
 }
 
@@ -252,7 +285,9 @@ export async function flushCollabRelayRooms(): Promise<void> {
   }
   const list = Array.from(rooms.values());
   rooms.clear();
-  await Promise.all(list.map((r) => persistRoom(r)));
+  await Promise.all(
+    list.map((r) => r.persistTail.then(() => persistRoom(r))),
+  );
   relayLog.info({ count: list.length }, "collab relay rooms flushed");
 }
 
@@ -291,6 +326,7 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
       persistTimer: null,
       dirty: seededDefault,
       sheetMutationSeq: 0,
+      persistTail: Promise.resolve(),
     };
     rooms.set(key, room);
     if (seededDefault) schedulePersist(key, room);
@@ -308,7 +344,7 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         clearTimeout(room.persistTimer);
         room.persistTimer = null;
       }
-      void persistRoom(room)
+      void enqueuePersist(room, key)
         .catch((err) => relayLog.error({ err, key }, "persistRoom rejected"))
         .finally(() => {
           if (room.sockets.size > 0) return;
