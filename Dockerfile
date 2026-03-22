@@ -37,8 +37,9 @@ WORKDIR /app
 # Runtime CLI tools — split from LibreOffice so smaller layers cache independently.
 # BuildKit cache mount: reuses Alpine package downloads across builds when this step re-runs.
 # Poppler `pdftoppm` — PDF page thumbnails; ImageMagick — images → PDF.
+# `libwebp-tools` supplies `dwebp`/`cwebp` so ImageMagick can read/write WebP (common phone uploads).
 RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache poppler-utils imagemagick
+    apk add --no-cache poppler-utils imagemagick libwebp-tools
 
 # LibreOffice + fonts — large dependency tree (most of the image size). Separate layer + cache mount
 # keeps `make dev` faster when only app code changes above this line.

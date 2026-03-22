@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **API — file download:** **`GET /files/:id/raw`** returns **404** when the DB row exists but the blob is missing on disk (**ENOENT**), with a **warn** log, instead of surfacing as **500**.
 
+- **API / Docker — Convert to PDF (images):** **WebP** (and other formats ImageMagick decodes via delegates) failed in the container because **`dwebp`** was not installed. The app image now includes **`libwebp-tools`**. **JPEG** and **PNG** are converted with **pdf-lib** first (single-page A4, scaled); ImageMagick errors include a short **stderr** snippet for debugging.
+
 - **API — database:** Postgres pool **`error`** events on idle clients are **logged** (`db-pool` component) instead of failing silently.
 
 - **Web — search / shortcuts:** **`g`** navigation prefix and search **debounce** timers are **cleared** on unmount / when the search dialog closes so callbacks cannot run after teardown; workbook JSON **download** revokes the blob URL on the **next macrotask** so the browser can start the save reliably.

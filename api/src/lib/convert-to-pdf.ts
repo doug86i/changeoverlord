@@ -104,20 +104,72 @@ async function textFileToPdfBytes(buf: Buffer): Promise<Buffer> {
   return Buffer.from(await pdf.save());
 }
 
+function execErrorDetail(e: unknown): string {
+  const err = e as NodeJS.ErrnoException & { stderr?: Buffer };
+  const tail = err.stderr?.toString("utf8").trim().slice(-800);
+  if (tail) return tail;
+  return err.message || String(e);
+}
+
 async function imageToPdfWithMagick(inputPath: string, outputPdf: string): Promise<void> {
+  const opts = { timeout: 120_000, maxBuffer: 50 * 1024 * 1024 } as const;
+  let magickErr: unknown;
   try {
-    await execFileAsync(
-      "magick",
-      [inputPath, outputPdf],
-      { timeout: 120_000, maxBuffer: 50 * 1024 * 1024 },
-    );
-  } catch {
-    await execFileAsync(
-      "convert",
-      [inputPath, outputPdf],
-      { timeout: 120_000, maxBuffer: 50 * 1024 * 1024 },
+    await execFileAsync("magick", [inputPath, outputPdf], opts);
+    return;
+  } catch (e) {
+    magickErr = e;
+  }
+  try {
+    await execFileAsync("convert", [inputPath, outputPdf], opts);
+  } catch (e2) {
+    throw new Error(
+      `ImageMagick could not create PDF (magick: ${execErrorDetail(magickErr)}; convert: ${execErrorDetail(e2)})`,
     );
   }
+}
+
+/**
+ * JPEG/PNG → single-page A4 PDF without ImageMagick (faster, no delegate issues).
+ * Returns null for other formats or if bytes are not a valid JPEG/PNG for pdf-lib.
+ */
+async function rasterImageToPdfWithPdfLib(
+  buf: Buffer,
+  mimeType: string,
+  ext: string,
+): Promise<Buffer | null> {
+  const m = (mimeType || "").toLowerCase();
+  const e = ext.toLowerCase();
+  const isJpeg =
+    m === "image/jpeg" ||
+    m === "image/jpg" ||
+    e === ".jpg" ||
+    e === ".jpeg";
+  const isPng = m === "image/png" || e === ".png";
+  if (!isJpeg && !isPng) return null;
+
+  let pdf: PDFDocument;
+  let image: Awaited<ReturnType<PDFDocument["embedJpg"]>>;
+  try {
+    pdf = await PDFDocument.create();
+    image = isJpeg ? await pdf.embedJpg(buf) : await pdf.embedPng(buf);
+  } catch {
+    return null;
+  }
+
+  const iw = image.width;
+  const ih = image.height;
+  const margin = 36;
+  const maxW = PAGE_W - 2 * margin;
+  const maxH = PAGE_H - 2 * margin;
+  const scale = Math.min(maxW / iw, maxH / ih, 1);
+  const w = iw * scale;
+  const h = ih * scale;
+  const x = (PAGE_W - w) / 2;
+  const y = (PAGE_H - h) / 2;
+  const page = pdf.addPage([PAGE_W, PAGE_H]);
+  page.drawImage(image, { x, y, width: w, height: h });
+  return Buffer.from(await pdf.save());
 }
 
 async function officeToPdfWithLibreOffice(
@@ -174,6 +226,14 @@ export async function convertFileToPdfBuffer(opts: {
 
   try {
     if (strategy === "imagemagick") {
+      const imageBuf = await fs.readFile(safeInput);
+      const fromPdfLib = await rasterImageToPdfWithPdfLib(
+        imageBuf,
+        opts.mimeType,
+        ext,
+      );
+      if (fromPdfLib) return fromPdfLib;
+
       const outPdf = path.join(outDir, "out.pdf");
       await imageToPdfWithMagick(safeInput, outPdf);
       return await fs.readFile(outPdf);
