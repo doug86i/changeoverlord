@@ -129,6 +129,7 @@ All tier-1 features from the original requirements are implemented:
 
 | ID | Feature | Notes |
 |----|---------|-------|
+| CH-1 | **Stage chat: sent vs received layout** — align **your** messages to the **right**, others' to the **left** (WhatsApp-style bubbles / threading) so long threads stay readable at a glance | **High priority**; chat is shipped but currently a single column |
 | B-1 | **Client logo upload** in Settings — PNG or SVG, displayed in the header | Not started |
 | B-2 | **Logo safe-area preview** — show how it will look before saving | |
 | M-1 | **Event dashboard** — each stage with current/next band and changeover status for today | |
