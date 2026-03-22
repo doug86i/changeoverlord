@@ -73,16 +73,6 @@ function isArenaFullscreen(el: HTMLElement | null): boolean {
   return document.fullscreenElement === el || doc.webkitFullscreenElement === el;
 }
 
-/** Full-viewport flash + message (above clock UI; server-synced urgent line). */
-function ClockUrgentViewportFlash({ message }: { message: string }) {
-  return (
-    <div className="clock-urgent-screen-flash" role="alert" aria-live="assertive">
-      <div className="clock-urgent-screen-flash-backdrop" aria-hidden />
-      <div className="clock-urgent-screen-flash-text">{message}</div>
-    </div>
-  );
-}
-
 export function ClockDayPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -441,6 +431,7 @@ export function ClockDayPage() {
     stage?.clockMessage?.trim() ? stage.clockMessage.trim() : null;
 
   const arenaProps = {
+    urgentMessage,
     dayLabel,
     stageName: stage?.name ?? "—",
     sorted,
@@ -497,33 +488,29 @@ export function ClockDayPage() {
 
   if (fillViewport) {
     return (
-      <>
-        {urgentMessage ? <ClockUrgentViewportFlash message={urgentMessage} /> : null}
-        <div
-          className="clock-day-fill-root"
-          style={{
-            minHeight: "100dvh",
-            display: "flex",
-            flexDirection: "column",
-            margin: 0,
-            padding: 0,
-            maxWidth: "none",
-          }}
-        >
-          <ClockArena
-            ref={arenaRef}
-            mode="fill"
-            {...arenaProps}
-            footerActions={kioskMode ? footerKiosk : footerManager}
-          />
-        </div>
-      </>
+      <div
+        className="clock-day-fill-root"
+        style={{
+          minHeight: "100dvh",
+          display: "flex",
+          flexDirection: "column",
+          margin: 0,
+          padding: 0,
+          maxWidth: "none",
+        }}
+      >
+        <ClockArena
+          ref={arenaRef}
+          mode="fill"
+          {...arenaProps}
+          footerActions={kioskMode ? footerKiosk : footerManager}
+        />
+      </div>
     );
   }
 
   return (
     <div className="clock-day-manager">
-      {urgentMessage ? <ClockUrgentViewportFlash message={urgentMessage} /> : null}
       <p className="muted" style={{ marginTop: 0 }}>
         {stage && (
           <>
@@ -558,7 +545,7 @@ export function ClockDayPage() {
               Urgent message
             </h2>
             <p className="muted" style={{ marginTop: 0, fontSize: "0.85rem" }}>
-              Shown on this stage’s clocks (here and kiosk). Flashes for visibility. Clear when done.
+              Flashes over the clock arena only (countdown area above — not this panel), here and on kiosk/fullscreen. Clear when done.
             </p>
             <textarea
               className="clock-day-message-input"

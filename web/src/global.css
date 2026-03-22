@@ -1155,29 +1155,29 @@ a.search-dialog-result:focus-visible {
   color: var(--clock-urgency-warn);
 }
 
-/* Urgent clock message: full viewport flash + centered text (stage manager + kiosk) */
-.clock-urgent-screen-flash {
-  position: fixed;
+/* Urgent message: flash fills .clock-arena only (stage controls stay clear; fullscreen = whole arena). */
+.clock-urgent-arena-flash {
+  position: absolute;
   inset: 0;
-  z-index: 10050;
+  z-index: 1100;
   pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(1rem, 4vmin, 2.5rem);
+  padding: clamp(0.75rem, 3vmin, 2rem);
 }
 
-.clock-urgent-screen-flash-backdrop {
+.clock-urgent-arena-flash-backdrop {
   position: absolute;
   inset: 0;
-  animation: clock-urgent-screen-flash-bg 0.85s ease-in-out infinite;
+  animation: clock-urgent-arena-flash-bg 0.85s ease-in-out infinite;
 }
 
-.clock-urgent-screen-flash-text {
+.clock-urgent-arena-flash-text {
   position: relative;
   z-index: 1;
-  max-width: min(42rem, 92vw);
-  max-height: 85vh;
+  max-width: min(42rem, 94%);
+  max-height: 88%;
   overflow: auto;
   color: var(--color-on-brand);
   background: var(--color-brand);
@@ -1185,31 +1185,31 @@ a.search-dialog-result:focus-visible {
   text-align: center;
   padding: clamp(1rem, 3vmin, 2rem);
   border-radius: var(--radius-md);
-  font-size: clamp(1.5rem, 5vmin, 3.25rem);
+  font-size: clamp(1.25rem, 4.5vmin, 3rem);
   line-height: 1.2;
   text-wrap: balance;
   box-shadow: 0 8px 32px var(--color-overlay);
   border: 3px solid color-mix(in srgb, var(--color-on-brand) 35%, var(--color-brand));
 }
 
-@keyframes clock-urgent-screen-flash-bg {
+@keyframes clock-urgent-arena-flash-bg {
   0%,
   100% {
-    background: color-mix(in srgb, var(--color-brand) 38%, var(--color-bg));
+    background: color-mix(in srgb, var(--color-brand) 38%, var(--clock-arena-bg));
   }
 
   50% {
-    background: color-mix(in srgb, var(--color-danger) 42%, var(--color-bg));
+    background: color-mix(in srgb, var(--color-danger) 42%, var(--clock-arena-bg));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clock-urgent-screen-flash-backdrop {
+  .clock-urgent-arena-flash-backdrop {
     animation: none;
-    background: color-mix(in srgb, var(--color-danger) 28%, var(--color-bg));
+    background: color-mix(in srgb, var(--color-danger) 28%, var(--clock-arena-bg));
   }
 
-  .clock-urgent-screen-flash-text {
+  .clock-urgent-arena-flash-text {
     outline: 3px solid var(--color-on-brand);
     outline-offset: 4px;
   }

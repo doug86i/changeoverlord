@@ -35,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Web:** **Stage day clock** — arena **above** full-width **controls** (no side-by-side); urgent message uses a **full-viewport** flashing backdrop plus centered text (**kiosk** and manager view).
+- **Web:** **Stage day clock** — arena **above** full-width **controls** (no side-by-side); urgent message flashes **inside the clock arena only** (controls stay usable); **fullscreen** / **kiosk** still show the flash across the full arena.
 - **API:** **`hasPassword`** checks in **`auth-guard`** and **`GET /auth/session`** use a short-TTL **`getCachedHasPassword()`** cache; password mutations call **`invalidatePasswordSettingsCache()`**.
 - **API:** **`GET /events/:id/export`** loads **stage days**, **performances**, and **Yjs snapshots** with **`inArray`** batch queries instead of nested per-row selects; **event delete** invalidation resolves **stage-day** ids in one query.
 - **API:** **Rate limits** — **`POST /files`** (120/min), **`POST /import`** (20/min), **`POST /patch-templates`** and **`POST /patch-templates/:id/replace`** (40/min each).
