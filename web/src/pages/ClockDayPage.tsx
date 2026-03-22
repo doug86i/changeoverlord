@@ -73,6 +73,16 @@ function isArenaFullscreen(el: HTMLElement | null): boolean {
   return document.fullscreenElement === el || doc.webkitFullscreenElement === el;
 }
 
+/** Full-viewport flash + message (above clock UI; server-synced urgent line). */
+function ClockUrgentViewportFlash({ message }: { message: string }) {
+  return (
+    <div className="clock-urgent-screen-flash" role="alert" aria-live="assertive">
+      <div className="clock-urgent-screen-flash-backdrop" aria-hidden />
+      <div className="clock-urgent-screen-flash-text">{message}</div>
+    </div>
+  );
+}
+
 export function ClockDayPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -427,10 +437,10 @@ export function ClockDayPage() {
     }
   }
 
-  const clockMessage = stage?.clockMessage ?? null;
+  const urgentMessage =
+    stage?.clockMessage?.trim() ? stage.clockMessage.trim() : null;
 
   const arenaProps = {
-    clockMessage,
     dayLabel,
     stageName: stage?.name ?? "—",
     sorted,
@@ -487,29 +497,33 @@ export function ClockDayPage() {
 
   if (fillViewport) {
     return (
-      <div
-        className="clock-day-fill-root"
-        style={{
-          minHeight: "100dvh",
-          display: "flex",
-          flexDirection: "column",
-          margin: 0,
-          padding: 0,
-          maxWidth: "none",
-        }}
-      >
-        <ClockArena
-          ref={arenaRef}
-          mode="fill"
-          {...arenaProps}
-          footerActions={kioskMode ? footerKiosk : footerManager}
-        />
-      </div>
+      <>
+        {urgentMessage ? <ClockUrgentViewportFlash message={urgentMessage} /> : null}
+        <div
+          className="clock-day-fill-root"
+          style={{
+            minHeight: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+            margin: 0,
+            padding: 0,
+            maxWidth: "none",
+          }}
+        >
+          <ClockArena
+            ref={arenaRef}
+            mode="fill"
+            {...arenaProps}
+            footerActions={kioskMode ? footerKiosk : footerManager}
+          />
+        </div>
+      </>
     );
   }
 
   return (
     <div className="clock-day-manager">
+      {urgentMessage ? <ClockUrgentViewportFlash message={urgentMessage} /> : null}
       <p className="muted" style={{ marginTop: 0 }}>
         {stage && (
           <>
@@ -538,6 +552,7 @@ export function ClockDayPage() {
             {stage ? `${stage.name} — ${dayLabel}` : dayLabel}
           </h1>
 
+          <div className="clock-day-controls-body">
           <section className="clock-day-section" aria-labelledby="clock-urgent-heading">
             <h2 id="clock-urgent-heading" className="clock-day-section-title">
               Urgent message
@@ -568,7 +583,7 @@ export function ClockDayPage() {
               <button
                 type="button"
                 className="icon-btn danger-text"
-                disabled={!stageId || clockMessageMut.isPending || !clockMessage}
+                disabled={!stageId || clockMessageMut.isPending || !urgentMessage}
                 onClick={() => {
                   setDraftClockMessage("");
                   void clockMessageMut.mutateAsync({ message: null });
@@ -584,28 +599,7 @@ export function ClockDayPage() {
             ) : null}
           </section>
 
-          <section className="clock-day-section" aria-labelledby="clock-nav-heading">
-            <h2 id="clock-nav-heading" className="clock-day-section-title">
-              Focus &amp; navigation
-            </h2>
-            <div className="clock-day-nav-buttons">
-              <button type="button" onClick={goPrev} disabled={focusIdx <= 0}>
-                ← Prev
-              </button>
-              <button type="button" onClick={goNext} disabled={focusIdx >= sorted.length - 1}>
-                Next →
-              </button>
-              <label className="clock-day-auto-label">
-                <input
-                  type="checkbox"
-                  checked={autoAdvance}
-                  onChange={(e) => setAutoAdvance(e.target.checked)}
-                />
-                Auto-advance
-              </label>
-            </div>
-          </section>
-
+          <div className="clock-day-controls-mid">
           <section className="clock-day-section" aria-labelledby="clock-focus-heading">
             <h2 id="clock-focus-heading" className="clock-day-section-title">
               {focusIdx === currentIdx ? "On stage" : focusIdx === nextIdx ? "Next up" : "Focus"}
@@ -657,7 +651,30 @@ export function ClockDayPage() {
             )}
           </section>
 
-          <section className="clock-day-section" aria-labelledby="clock-sched-heading">
+          <section className="clock-day-section" aria-labelledby="clock-nav-heading">
+            <h2 id="clock-nav-heading" className="clock-day-section-title">
+              Focus &amp; navigation
+            </h2>
+            <div className="clock-day-nav-buttons">
+              <button type="button" onClick={goPrev} disabled={focusIdx <= 0}>
+                ← Prev
+              </button>
+              <button type="button" onClick={goNext} disabled={focusIdx >= sorted.length - 1}>
+                Next →
+              </button>
+              <label className="clock-day-auto-label">
+                <input
+                  type="checkbox"
+                  checked={autoAdvance}
+                  onChange={(e) => setAutoAdvance(e.target.checked)}
+                />
+                Auto-advance
+              </label>
+            </div>
+          </section>
+          </div>
+
+          <section className="clock-day-section clock-day-schedule-section" aria-labelledby="clock-sched-heading">
             <h2 id="clock-sched-heading" className="clock-day-section-title">
               Schedule
             </h2>
@@ -688,6 +705,7 @@ export function ClockDayPage() {
               ))}
             </ul>
           </section>
+          </div>
         </aside>
       </div>
     </div>

@@ -553,21 +553,16 @@ a.search-dialog-result:focus-visible {
   padding: 0 1rem 2rem;
 }
 
+/* Stage clock: arena on top, full-width controls below (no cramped side-by-side). */
 .clock-day-split {
-  display: grid;
-  gap: 1rem;
-  align-items: start;
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 960px) {
-  .clock-day-split {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 22rem);
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: stretch;
 }
 
 .clock-day-arena-wrap {
-  min-height: min(70dvh, 40rem);
+  min-height: min(48dvh, 36rem);
   padding: 0;
   overflow: hidden;
   display: flex;
@@ -583,6 +578,32 @@ a.search-dialog-result:focus-visible {
   margin: 0 0 0.75rem;
   font-size: clamp(1.05rem, 2.2vw, 1.35rem);
   line-height: 1.25;
+}
+
+.clock-day-controls-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.clock-day-controls-body .clock-day-section {
+  margin-bottom: 0;
+}
+
+.clock-day-controls-mid {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 640px) {
+  .clock-day-controls-mid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 16rem);
+  }
+}
+
+.clock-day-schedule-section .clock-day-schedule {
+  max-height: min(60vh, 42rem);
 }
 
 .clock-day-section {
@@ -646,7 +667,6 @@ a.search-dialog-result:focus-visible {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: min(50vh, 28rem);
   overflow-y: auto;
 }
 
@@ -1135,55 +1155,63 @@ a.search-dialog-result:focus-visible {
   color: var(--clock-urgency-warn);
 }
 
-/* Urgent clock message (server-synced; stage manager + kiosk) */
-.clock-message-overlay {
-  position: absolute;
+/* Urgent clock message: full viewport flash + centered text (stage manager + kiosk) */
+.clock-urgent-screen-flash {
+  position: fixed;
   inset: 0;
-  z-index: 950;
+  z-index: 10050;
+  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(0.5rem, 2vmin, 1.5rem);
-  background: var(--color-overlay);
-  pointer-events: none;
+  padding: clamp(1rem, 4vmin, 2.5rem);
 }
 
-.clock-message-overlay-inner {
+.clock-urgent-screen-flash-backdrop {
+  position: absolute;
+  inset: 0;
+  animation: clock-urgent-screen-flash-bg 0.85s ease-in-out infinite;
+}
+
+.clock-urgent-screen-flash-text {
+  position: relative;
+  z-index: 1;
+  max-width: min(42rem, 92vw);
+  max-height: 85vh;
+  overflow: auto;
   color: var(--color-on-brand);
   background: var(--color-brand);
   font-weight: 800;
   text-align: center;
   padding: clamp(1rem, 3vmin, 2rem);
-  max-width: 95%;
-  max-height: 90%;
-  overflow: auto;
   border-radius: var(--radius-md);
-  font-size: clamp(1.25rem, 4vmin, 3rem);
+  font-size: clamp(1.5rem, 5vmin, 3.25rem);
   line-height: 1.2;
   text-wrap: balance;
-  animation: clock-message-flash 1.1s ease-in-out infinite;
-  box-shadow: 0 4px 24px var(--color-overlay);
+  box-shadow: 0 8px 32px var(--color-overlay);
+  border: 3px solid color-mix(in srgb, var(--color-on-brand) 35%, var(--color-brand));
 }
 
-@keyframes clock-message-flash {
+@keyframes clock-urgent-screen-flash-bg {
   0%,
   100% {
-    transform: scale(1);
-    opacity: 1;
+    background: color-mix(in srgb, var(--color-brand) 38%, var(--color-bg));
   }
 
   50% {
-    transform: scale(1.02);
-    opacity: 0.88;
+    background: color-mix(in srgb, var(--color-danger) 42%, var(--color-bg));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clock-message-overlay-inner {
+  .clock-urgent-screen-flash-backdrop {
     animation: none;
-    opacity: 1;
+    background: color-mix(in srgb, var(--color-danger) 28%, var(--color-bg));
+  }
+
+  .clock-urgent-screen-flash-text {
     outline: 3px solid var(--color-on-brand);
-    outline-offset: 2px;
+    outline-offset: 4px;
   }
 }
 

@@ -170,18 +170,18 @@ If the spreadsheet shows **`sheet not found`** (FortuneSheet error), the workboo
 
 On a stage day clock (`/clock/day/:stageDayId`):
 
-- **One clock face everywhere** — The **main panel** shows the same **arena** layout performers see on a TV: band / changeover context, **hero countdown** (sized to fit the panel), **local time**, and footer metadata (stage, date, pace, slot). A **sidebar** has controls, **urgent message**, focus card, and the full **schedule** list.
+- **One clock face everywhere** — The **top** of the page shows the same **arena** layout performers see on a TV: band / changeover context, **hero countdown** (sized to fit the panel), **local time**, and footer metadata (stage, date, pace, slot). **Below** that, a full-width **controls** area has **urgent message**, focus card, navigation, and the **schedule** list.
 - **Countdown** — The numbers **scale to fill** the available space as the label/text changes.
 - **Countdown colours** (high-contrast in both light and dark theme):
   - **Green** — more than 5 minutes
   - **Amber** — 1–5 minutes
   - **Red** — under 1 minute (the **last minute flashes** red/white for visibility)
-- **Auto-advance** — Focus in the sidebar follows the current act (toggle on/off).
-- **Changeover** — When the schedule is in a **gap between acts** (nobody on stage, next act not yet started), a **Changeover** banner appears — same condition and styling as on the **kiosk** view and the **patch** sidebar. The sidebar focus card can show **changeover duration** between the previous act’s end and the focused act’s start when applicable.
-- **Band navigation** — Click any band in the sidebar list, or use **← / →** arrow keys (when not typing in a field).
-- **Urgent message (synced)** — In the sidebar, type an **urgent message** and **Send to clocks**. It appears **on every display** for this **stage** (your preview and **kiosk** URLs), with a **flashing** treatment for visibility. **Clear** removes it for everyone. Updates use the API and **live refresh** on other browsers.
+- **Auto-advance** — Focus in the **controls** area follows the current act (toggle on/off).
+- **Changeover** — When the schedule is in a **gap between acts** (nobody on stage, next act not yet started), a **Changeover** banner appears — same condition and styling as on the **kiosk** view and the **patch** sidebar. The **focus** card can show **changeover duration** between the previous act’s end and the focused act’s start when applicable.
+- **Band navigation** — Click any band in the **schedule** list, or use **← / →** arrow keys (when not typing in a field).
+- **Urgent message (synced)** — In the controls section, type an **urgent message** and **Send to clocks**. It appears **on every display** for this **stage** (your preview and **kiosk** URLs): the **entire browser view** pulses with a high-contrast **full-screen flash** behind a large, centered message. **Clear** removes it for everyone. Updates use the API and **live refresh** on other browsers.
 - **Fullscreen** — Press **F** or **Fullscreen** so the arena uses the whole screen (browser fullscreen). **Exit fullscreen (F)** appears while fullscreen is active. If fullscreen fails or the browser leaves fullscreen on resize, **Exit large layout** returns to the split view.
-- **Kiosk view (performer / TV)** — **Open kiosk view** (or add **`?kiosk=1`** to the URL) for the **same arena** full-viewport, **no sidebar** and **no chat**. Use for bookmarks, home-screen shortcuts, or split-screen. **Full clock — controls & schedule** returns to the stage manager view.
+- **Kiosk view (performer / TV)** — **Open kiosk view** (or add **`?kiosk=1`** to the URL) for the **same arena** full-viewport, **no controls panel** and **no chat**. Use for bookmarks, home-screen shortcuts, or split-screen. **Full clock — controls & schedule** returns to the stage manager view.
 - **End of day** — After the **last performance finishes** on that stage day, for **up to one hour** an overlay appears for the crew: it looks ahead to the **next day on this stage** and lists that day’s **lineup** (when configured). **One hour after** the last finish, the clock **automatically switches** to that next day. After the **final** day on the stage, a **thank-you** screen stays up until you navigate away. If a slot has no end time, the clock treats its end as **one hour after start** for this timing only.
 
 ---

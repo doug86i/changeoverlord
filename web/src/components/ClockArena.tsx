@@ -22,8 +22,6 @@ export type ClockArenaHeroUrgency = {
 
 export type ClockArenaProps = {
   mode: "contained" | "fill";
-  /** Urgent line from stage (server-synced). */
-  clockMessage: string | null | undefined;
   dayLabel: string;
   stageName: string;
   sorted: PerformanceRow[];
@@ -48,7 +46,6 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
   function ClockArena(
     {
       mode,
-      clockMessage,
       dayLabel,
       stageName,
       sorted,
@@ -88,23 +85,12 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
 
     useFitCountdownInBox(countdownMeasureRef, countdownTextRef, countdownDisplay, true);
 
-    const msg = clockMessage?.trim() ? clockMessage.trim() : null;
-
     return (
       <div
         ref={ref}
         className={`clock-arena clock-arena--fill${mode === "contained" ? " clock-arena--contained" : ""}`}
       >
         {overlay}
-        {msg ? (
-          <div
-            className="clock-message-overlay"
-            role="alert"
-            aria-live="assertive"
-          >
-            <div className="clock-message-overlay-inner">{msg}</div>
-          </div>
-        ) : null}
         <div className="clock-arena-inner">
           <div className="clock-arena-top-meta">
             {isChangeover && (

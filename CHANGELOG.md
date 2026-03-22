@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Clock** picker (`ClockPage`) uses **`["events","allForClock"]`** so its list does not read **`useInfiniteQuery`** **`["events"]`** cache (fixes **`events.map is not a function`**).
 - **Docker:** **Fast stack** (`docker-compose.fast.yml`) — start **api** / **web** as root long enough to **`chown`** the **`node_modules`** named volumes, then **`su node`** so **`npm install`** / Vite are not blocked by **EACCES** on fresh or root-owned volumes.
 
 ### Added
@@ -34,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** **Stage day clock** — arena **above** full-width **controls** (no side-by-side); urgent message uses a **full-viewport** flashing backdrop plus centered text (**kiosk** and manager view).
 - **API:** **`hasPassword`** checks in **`auth-guard`** and **`GET /auth/session`** use a short-TTL **`getCachedHasPassword()`** cache; password mutations call **`invalidatePasswordSettingsCache()`**.
 - **API:** **`GET /events/:id/export`** loads **stage days**, **performances**, and **Yjs snapshots** with **`inArray`** batch queries instead of nested per-row selects; **event delete** invalidation resolves **stage-day** ids in one query.
 - **API:** **Rate limits** — **`POST /files`** (120/min), **`POST /import`** (20/min), **`POST /patch-templates`** and **`POST /patch-templates/:id/replace`** (40/min each).

@@ -12,8 +12,9 @@ export function ClockPage() {
   const { now, isLoading: timeLoading } = useServerTime({ tickIntervalMs: 250 });
   const todayStr = now.toISOString().slice(0, 10);
 
+  /** Own key — do not use `["events"]` (that cache holds `useInfiniteQuery` pages from Events). */
   const eventsQ = useQuery({
-    queryKey: ["events"],
+    queryKey: ["events", "allForClock"],
     queryFn: () => fetchAllEvents(),
   });
 
