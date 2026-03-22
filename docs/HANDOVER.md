@@ -10,7 +10,7 @@ Use this when **moving the project** to another machine or **onboarding** someon
 |-------------|--------|
 | **Git** | To clone the repository. |
 | **Docker** | Desktop or Engine with **Compose v2** (same as root **[`README.md`](../README.md)**). |
-| **Network** | First **`docker compose pull`** (deploy) or **`make dev`** (develop) may pull images (`postgres`, **`ghcr.io/.../app`**, or Node build bases). After that, local runs can be offline. |
+| **Network** | First **`docker compose pull`** (deploy) or **`make dev`** / **`make dev-fast`** (develop) may pull images (`postgres`, **`ghcr.io/.../app`**, or Node build bases). After that, local runs can be offline. |
 
 ---
 
@@ -33,7 +33,15 @@ Then from the **repository root**, choose one:
 docker compose pull && docker compose up -d
 ```
 
-**Develop** (build app image from this clone):
+**Develop — fast** (Postgres + hot reload — recommended for daily work):
+
+```bash
+make dev-fast
+```
+
+Open **`http://localhost:5173/`** (or **`http://localhost:<FAST_WEB_PORT>/`**). **Health:** `curl -s http://localhost:5173/api/v1/health`.
+
+**Develop — classic** (single `app` image, compiled SPA + API):
 
 ```bash
 make dev
@@ -41,7 +49,7 @@ make dev
 
 Open **`http://localhost/`** (or **`http://localhost:<HOST_PORT>/`** if you set `HOST_PORT`). The first run creates **`data/db/`** and **`data/uploads/`** under your `DATA_DIR` (default **`./data`**).
 
-**Health check:** `curl -s http://localhost/api/v1/health` should return JSON with `"ok":true`.
+**Health check (classic):** `curl -s http://localhost/api/v1/health` should return JSON with `"ok":true`.
 
 Canonical workflow detail: **[`DEVELOPMENT.md`](DEVELOPMENT.md)**.
 
@@ -53,7 +61,7 @@ Canonical workflow detail: **[`DEVELOPMENT.md`](DEVELOPMENT.md)**.
 1. On the old machine: stop the stack (`make dev-down` or `docker compose down`).  
 2. Copy the entire **`DATA_DIR`** tree (see **[`data/README.md`](../data/README.md)**).  
 3. On the new machine: put it at the same relative path, or set **`DATA_DIR`** in **`.env`** to that absolute path.  
-4. Start with **`make dev`**.
+4. Start with **`make dev-fast`** or **`make dev`**.
 
 **Option B — Logical export (schedules + patch snapshots)**  
 Use **Export event** in the app (event detail) to download a JSON package, then **Import event** on the new instance (see **[`USER_GUIDE.md`](USER_GUIDE.md)**). This does not replace a full DB file copy but is enough for many handovers.
@@ -62,7 +70,7 @@ Use **Export event** in the app (event detail) to download a JSON package, then 
 
 ## Development habits (same on any machine)
 
-- After changing **`api/`**, **`web/`**, **`Dockerfile`**, **`docker-compose.yml`**, **`patches/`**, or root **`package.json`** / **`package-lock.json`**, run **`make dev`** so the **image** rebuilds (no bind-mount of source). See **[`AGENTS.md`](../AGENTS.md)** and **[`DEVELOPMENT.md`](DEVELOPMENT.md)**.
+- After changing **`api/`**, **`web/`**, **`Dockerfile`**, **`docker-compose.yml`**, **`patches/`**, or root **`package.json`** / **`package-lock.json`**, use **`make dev-fast`** for quick feedback (bind-mounted source) or **`make dev`** to rebuild the **classic `app` image**. See **[`AGENTS.md`](../AGENTS.md)** and **[`DEVELOPMENT.md`](DEVELOPMENT.md)**.
 - **Do not** commit **`.env`** (secrets). **`.env.example`** is the template.
 
 ---

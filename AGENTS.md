@@ -13,12 +13,12 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | Phase | Requirement |
 |-------|----------------|
 | **Commits** | When the repo is **Git**: **`git commit`** after each **logical unit** of work (one feature slice, one bug, one refactor, one test batch) — **not** one giant commit at the end. Messages: **short**, **specific**, **imperative** (e.g. “Add…”, “Fix…”, “Refactor…”). See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** § *Git commits* and **[`.cursor/rules/git-commits.mdc`](.cursor/rules/git-commits.mdc)**. |
-| **Testing** | Local integration testing is **Docker Compose only** — same **`Dockerfile`** as production; **`make dev`** merges **`docker-compose.yml`** + **`docker-compose.dev.yml`** (`build: .`). Operators can run **`docker compose pull && docker compose up -d`** with the base compose only. After code changes that affect runtime, run **`make dev`**. Confirm **`GET /api/v1/health`** (or **`docker compose ps`**) succeeds. If the browser still shows old UI/API, run **`make dev-fresh`**. Rebuild when **`api/`**, **`web/`**, **`Dockerfile`**, **`docker-compose.yml`**, **`docker-compose.dev.yml`**, **`patches/`**, or root **`package.json`** / **`package-lock.json`** change — see **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** (*What gets exercised*, *Patches*, *Faster Docker rebuilds*). |
-| **Deployment** | There is **no** bind-mounted dev server: the app is **`web/dist` + `api/dist`** inside the image. Do **not** tell the user to “just refresh” without a rebuild unless the change is docs-only. Always give the **exact** base URL (**`http://localhost/`** or **`http://localhost:<HOST_PORT>/`**). |
+| **Testing** | Local integration testing uses **Docker Compose**. **Preferred day-to-day:** **`make dev-fast`** (**`docker-compose.fast.yml`**) — Postgres + **tsx** watch + **Vite**, bind-mounted source. **Production-like:** **`make dev`** merges **`docker-compose.yml`** + **`docker-compose.dev.yml`** and builds the same **`Dockerfile`** path operators can approximate via GHCR pulls. Operators can run **`docker compose pull && docker compose up -d`** with the base compose only (no source build). After code changes that affect runtime, run **`make dev-fast`** (or **`make dev`** when you need image parity). Confirm **`GET /api/v1/health`** (via **`http://localhost:5173/`** proxy in fast mode, or **`http://localhost/`** in classic) or **`docker compose ps`**. If the **classic** browser still shows old UI/API, run **`make dev-fresh`**. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** (*Fast local testing*, *Patches*, *Faster Docker rebuilds*). |
+| **Deployment** | **Fast path:** bind-mounted **`api/`** + **`web/`** with hot reload — not identical to the shipped **`app`** image. **Classic path:** no bind-mount; the container serves **`web/dist` + `api/dist`**. Do **not** tell the user to “just refresh” after **classic** changes without a rebuild. Always give the **exact** base URL (**`http://localhost:5173/`** for fast, or **`http://localhost/`** / **`http://localhost:<HOST_PORT>/`** for classic). |
 | **Logging** | Follow **[`docs/LOGGING.md`](docs/LOGGING.md)** for all new or changed server and client logging: **`req.log`** / **`createLogger`**, levels (**`debug`** for routine mutations with ids), **never** secrets or tokens. For local troubleshooting, **`LOG_LEVEL=debug`** in **`.env`** and **`docker compose logs -f app`** — see **DEVELOPMENT.md** and **LOGGING.md**. |
 | **Changelog** | For any change that affects **build output** or **runtime behaviour** (`api/`, `web/`, **`Dockerfile`**, **`docker-compose.yml`**, migrations, dependency changes that ship), add a bullet under **`[Unreleased]`** in **[`CHANGELOG.md`](CHANGELOG.md)** in the **same change**. See **[`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc)** for skip rules (docs-only / comment-only / no ship impact). |
 
-**Skip** `make dev` only for **docs-only** or **comment-only** changes with **zero** build or runtime effect.
+**Skip** **`make dev-fast`** / **`make dev`** only for **docs-only** or **comment-only** changes with **zero** build or runtime effect.
 
 **Skip** a changelog entry only when the change **cannot** affect what ships or how the app behaves (same bar as changelog rule — pure docs, comment-only, or non-shipping metadata).
 
@@ -37,15 +37,15 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Locked product + stack choices |
 | [`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md) | User-journey analysis, competitive research, prioritised feature requirements |
 | [`docs/REALTIME.md`](docs/REALTIME.md) | Authoritative realtime model: SSE vs Yjs, wire format, implementation checklist |
-| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local testing = **Compose only** (`make dev`); **Git commits** — small logical units, message style |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local testing — **`make dev-fast`** (hot reload) and **`make dev`** (image parity); **Git commits** — small logical units, message style |
 | [`docs/LOGGING.md`](docs/LOGGING.md) | **Structured logging:** `req.log` / `createLogger`, levels, no secrets, web `logDebug` |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | **Operator-facing** how-to (keep in sync when UX changes) |
 | [`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md) | **Doc ownership** — what to update when |
 | [`docs/CODEBASE_REVIEW.md`](docs/CODEBASE_REVIEW.md) | **Audit backlog** — known issues, doc drift, follow-ups (update when fixed) |
 | [`CHANGELOG.md`](CHANGELOG.md) | **Release notes** — **`[Unreleased]`** entries for fixes/features that ship |
-| [`.cursor/rules/agents-process.mdc`](.cursor/rules/agents-process.mdc) | **Default:** full **commit + `make dev` + health + changelog + USER_GUIDE + report URL** — do not wait for the user to say “follow the process” |
+| [`.cursor/rules/agents-process.mdc`](.cursor/rules/agents-process.mdc) | **Default:** full **commit + `make dev-fast` (or `make dev`) + health + changelog + USER_GUIDE + report URL** — do not wait for the user to say “follow the process” |
 | [`.cursor/rules/git-commits.mdc`](.cursor/rules/git-commits.mdc) | Commit **each logical unit** separately; **short, specific, imperative** messages |
-| [`.cursor/rules/local-docker-deploy.mdc`](.cursor/rules/local-docker-deploy.mdc) | After code changes, run **`make dev`** yourself |
+| [`.cursor/rules/local-docker-deploy.mdc`](.cursor/rules/local-docker-deploy.mdc) | After code changes, run **`make dev-fast`** or **`make dev`** yourself |
 | [`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc) | After notable code/build changes, update **`CHANGELOG.md`** |
 | [`.cursor/rules/logging.mdc`](.cursor/rules/logging.mdc) | Structured logging — **`req.log`**, **`createLogger`**, no secrets |
 | [`.cursor/rules/code-patterns.mdc`](.cursor/rules/code-patterns.mdc) | Concrete examples: new routes, pages, queries, CSS tokens |
@@ -55,14 +55,14 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 
 ## Local testing after each change (checklist)
 
-**Goal:** One process — **Docker Compose** rebuilds and runs the full stack. The human opens the same URL operators would use on a LAN.
+**Goal:** **Docker Compose** runs Postgres + app for local integration tests. Prefer **`make dev-fast`** so iteration does not wait on full image rebuilds; use **`make dev`** when you need the **compiled** SPA+API layout.
 
 **Agent checklist at end of a coding task** (skip only when [Development process](#development-process-agents--follow-end-to-end) says to skip):
 
-1. From the **repository root**, run **`make dev`** (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`) so the **app image** matches what ships. The image embeds **`web/dist`** and **`api/dist`** — there is no hot reload from host source; if the UI/API still looks stale after `make dev`, run **`make dev-fresh`** (no-cache rebuild of `app`). Rebuild after changes to **`patches/`** or root **`package.json`** / **`package-lock.json`** (not only **`api/`** / **`web/`**). Faster rebuild tips: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** → *Faster Docker rebuilds*.
-2. Confirm the stack is up (e.g. **`docker compose ps`**, or **`GET /api/v1/health`** on the app port).
-3. **Tell the user the exact base URL:** **`http://localhost/`** when **`HOST_PORT`** is unset or **80**; otherwise **`http://localhost:<HOST_PORT>/`** (from **`.env`**).
-4. If you changed **logging** or need to verify server behaviour, tail **`docker compose logs -f app`** with **`LOG_LEVEL=debug`** as needed — see **[`docs/LOGGING.md`](docs/LOGGING.md)**.
+1. From the **repository root**, run **`make dev-fast`** (recommended) or **`make dev`**. **`make dev-fast`** (`docker compose -f docker-compose.fast.yml up -d --build`) bind-mounts **`api/`** and **`web/`** with **tsx** + **Vite** hot reload. **`make dev`** rebuilds the **`app`** image (`web/dist` + `api/dist`); if the UI/API still looks stale after that, run **`make dev-fresh`**. Rebuild after changes to **`patches/`** or root **`package.json`** / **`package-lock.json`** when using the classic path; the fast stack runs **`npm install`** inside the mounted tree when containers start. Faster rebuild tips: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** → *Faster Docker rebuilds*.
+2. Confirm the stack is up (e.g. **`docker compose ps`** for the compose file you used, or **`GET /api/v1/health`** — in fast mode, through **`http://localhost:5173/api/v1/health`** or direct **`http://localhost:3000/api/v1/health`**).
+3. **Tell the user the exact base URL:** after **`make dev-fast`**, **`http://localhost:5173/`** (or **`FAST_WEB_PORT`**); after **`make dev`**, **`http://localhost/`** when **`HOST_PORT`** is unset or **80**, else **`http://localhost:<HOST_PORT>/`**.
+4. If you changed **logging** or need to verify server behaviour, tail **`docker compose -f docker-compose.fast.yml logs -f api`** or **`docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app`** with **`LOG_LEVEL=debug`** as needed — see **[`docs/LOGGING.md`](docs/LOGGING.md)**.
 5. If the task required a **changelog entry** (see [Development process](#development-process-agents--follow-end-to-end)), confirm **`CHANGELOG.md`** has an **`[Unreleased]`** bullet — do not finish without it.
 6. If the workspace is a **Git** repo: **`git commit`** after each **logical unit** of work completed in the session (see **Commits** in [Development process](#development-process-agents--follow-end-to-end)); do not leave a large uncommitted diff unless the user asked to hold commits.
 
@@ -236,8 +236,8 @@ web/
 **Last consolidated commit:** patch workbook export replay, **`calcChain`** generation, blank-template **`data`** matrices, DH v6 example + builder script, root **`build:test`** / **`docker:build:app`** scripts.
 
 1. **Verify end-to-end** (Docker must be running — `docker info`):
-   - **`make dev`** or **`npm run docker:build:app`** then **`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app`** (or **`make dev-app`**).
-   - **`GET /api/v1/health`**, open **`http://localhost/`** (or **`HOST_PORT`**).
+   - **`make dev-fast`** (quick) or **`make dev`** / **`npm run docker:build:app`** then **`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app`** (or **`make dev-app`**).
+   - **`GET /api/v1/health`** (fast: via **`http://localhost:5173/...`** or **`http://localhost:3000/...`**), open the UI at **`http://localhost:5173/`** or **`http://localhost/`** (or **`HOST_PORT`**).
 2. **Blank template:** Create **Settings → Create blank template**, edit cells, reload editor — edits should persist (depends on **`data`** + Yjs; see **`api/src/lib/default-patch-sheets.ts`**, **`web/src/lib/patchWorkbookCollab.ts`** **`WORKBOOK_PLACEHOLDER`**).
 3. **DH starter:** Import **`examples/DH_Pick_Patch_TEMPLATE_v6.json`** via **Import workbook JSON** or **`PUT /api/v1/patch-templates/:id/sheets-import`** to refresh a library template; confirm cross-sheet formulas and **Export JSON** match live state.
 4. **Regenerate v6:** **`node scripts/build-dh-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v6.json`** — then commit if structure changes.
@@ -252,7 +252,7 @@ Project rules live in **`.cursor/rules/`**:
 - **`pitfalls.mdc`** — things that will break the app (read first)
 - **`code-patterns.mdc`** — concrete examples to copy
 - **`git-commits.mdc`** — one commit per logical unit; short, specific, imperative messages
-- **`local-docker-deploy.mdc`** — run `make dev` after changes
+- **`local-docker-deploy.mdc`** — run `make dev-fast` or `make dev` after changes
 - **`changelog.mdc`** — update `CHANGELOG.md` for notable code/build changes
 - **`realtime-and-data-sync.mdc`** — SSE vs Yjs split
 - **`logging.mdc`** — structured logging

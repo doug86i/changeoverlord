@@ -29,7 +29,7 @@ In **`.env`** next to **`docker-compose.yml`**:
 LOG_LEVEL=debug
 ```
 
-Then **`make dev`**. Inspect with **`docker compose logs -f app`**.
+Then **`make dev-fast`** or **`make dev`**. Inspect with **`docker compose -f docker-compose.fast.yml logs -f api`** or **`docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app`**.
 
 ---
 

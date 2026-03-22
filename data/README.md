@@ -21,7 +21,7 @@ Create these automatically: they appear the first time you run Compose (Docker c
 
 ## Backup
 
-1. Prefer **quiet traffic** or **stop** the stack: `docker compose down` (or `make dev-down`).
+1. Prefer **quiet traffic** or **stop** the stack: `docker compose down`, **`make dev-down`**, or **`make dev-fast-down`** (whichever stack you started).
 2. Copy or archive the **entire** `DATA_DIR` directory (e.g. `tar czf changeoverlord-data.tgz -C /parent data` if `DATA_DIR=/parent/data`).
 
 Restoring: extract into the same paths, fix ownership if needed (`chown` for Postgres UIDs on Linux), then start Compose again.

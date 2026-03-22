@@ -15,13 +15,13 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 | **[`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md)** | Competitive research, detailed feature requirements for completion |
 | **[`DECISIONS.md`](DECISIONS.md)** | Locked product and engineering choices (stack, API, limits) |
 | **[`DESIGN.md`](DESIGN.md)** | Visual design — themes, tokens |
-| **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing via **Compose only** (`make dev`), **`patches/`** + **`patch-package`**, **faster Docker rebuilds** (layer + **apk** cache), DB resets, optional **`npm run build`** for CI |
+| **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing — **`make dev-fast`** (hot reload) and **`make dev`** (classic image), **`patches/`** + **`patch-package`**, **faster Docker rebuilds** (layer + **apk** cache), DB resets, optional **`npm run build`** for CI |
 | **[`CODEBASE_REVIEW.md`](CODEBASE_REVIEW.md)** | **Engineering audit backlog** — known code issues, doc drift, infra/CSS/realtime follow-ups (update as items are fixed) |
 | **[`REALTIME.md`](REALTIME.md)** | Live schedule updates (SSE) vs patch grid collaboration (Yjs + WebSockets) |
 | **[`PATCH_TEMPLATE_JSON.md`](PATCH_TEMPLATE_JSON.md)** | **FortuneSheet JSON** patch template upload — file shape, preserved fields, API |
 | **[`LOGGING.md`](LOGGING.md)** | **Structured logging** — API Pino / `req.log`, web `logDebug`, `LOG_LEVEL`, no secrets |
 | **[`LICENSING.md`](LICENSING.md)** | Repository and dependency licences |
-| **[`HANDOVER.md`](HANDOVER.md)** | **New machine / teammate** — clone, `make dev`, moving data |
+| **[`HANDOVER.md`](HANDOVER.md)** | **New machine / teammate** — clone, `make dev-fast` / `make dev`, moving data |
 | **[`../CHANGELOG.md`](../CHANGELOG.md)** | **Release notes** — unreleased work and version history |
 | **[`../data/README.md`](../data/README.md)** | Host `DATA_DIR` layout (Postgres, uploads) |
 

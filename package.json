@@ -9,6 +9,7 @@
     "build": "npm run build -w web && npm run build -w api",
     "build:test": "npm run build -w api && npm run build -w web",
     "docker:build:app": "docker compose -f docker-compose.yml -f docker-compose.dev.yml build app",
+    "docker:dev-fast": "docker compose -f docker-compose.fast.yml up -d --build",
     "dev": "npm run dev -w api & npm run dev -w web",
     "postinstall": "patch-package"
   },

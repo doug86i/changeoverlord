@@ -13,14 +13,15 @@ Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, *
 | Goal | Command |
 |------|---------|
 | **Deploy** pre-built app (typical show / LAN) | See **[Deployment](#deployment)** below — `docker compose pull && docker compose up -d` |
-| **Develop** from source (rebuild API + web) | `make dev` (merges **`docker-compose.dev.yml`**) |
+| **Develop** from source (fast — hot reload) | `make dev-fast` (**`docker-compose.fast.yml`**) — UI at **`http://localhost:5173/`** |
+| **Develop** from source (classic — same `app` image as ship) | `make dev` (merges **`docker-compose.dev.yml`**) |
 
 After install, open **http://\<this-machine\>/** — default **port 80**. If port 80 is busy, set **`HOST_PORT`** in **`.env`** (from **`.env.example`**) and use **http://\<this-machine\>:\<HOST_PORT\>/**.
 
 - **`.env`** is optional and **infrastructure-only** (paths, port, log level, secrets). Schedules, optional shared password, etc. are set in the **app UI**.
-- After the first **`docker compose pull`** (deploy) or **`make dev`** (develop), you can run **offline** if images are already local.
+- After the first **`docker compose pull`** (deploy) or **`make dev`** / **`make dev-fast`** (develop), you can run **offline** if images are already local.
 
-**Fresh DB during development:** stop Compose, remove **`data/db/`** under **`DATA_DIR`** (throwaway data only), then **`make dev`** again. **Back up `DATA_DIR`** before wiping real prep data.
+**Fresh DB during development:** stop Compose, remove **`data/db/`** under **`DATA_DIR`** (throwaway data only), then **`make dev-fast`** or **`make dev`** again. **Back up `DATA_DIR`** before wiping real prep data.
 
 More detail: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** · moving data: **[`docs/HANDOVER.md`](docs/HANDOVER.md)**.
 
@@ -118,11 +119,17 @@ Data under **`DATA_DIR`** is kept. To remove containers **and** named volumes (i
 From the repo root, with Docker:
 
 ```bash
+# Fast: Postgres + tsx watch + Vite (bind mounts)
+make dev-fast
+
+# Classic: single app image (compiled SPA + API), same shape as production build
 make dev
 # same as: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
-Use **`make dev-fresh`** if the image layers look stale. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
+Use **`make dev-fresh`** if the **classic** image layers look stale. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
+
+Do not run **`make dev-fast`** and **`make dev`** together against the same **`DATA_DIR`** (Postgres data bind-mount conflict) — stop one stack before starting the other.
 
 ---
 
@@ -167,7 +174,7 @@ The API lives at **`/api/v1`**. The browser loads the SPA from the **same origin
 
 ## Build only (CI / sanity check)
 
-The interactive app is always tested via **Docker** above. To compile **`web/`** + **`api/`** without Compose (e.g. CI), from the repo root: **`npm install`** then **`npm run build`**. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
+Interactive testing uses **`make dev-fast`** or **`make dev`** above. To compile **`web/`** + **`api/`** without Compose (e.g. CI), from the repo root: **`npm install`** then **`npm run build`**. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
 
 ---
 
@@ -191,7 +198,9 @@ Persistent data defaults to **`./data`** on the host (`data/db/`, `data/uploads/
 |------|------|
 | `docker-compose.yml` | Postgres + app (**GHCR** image; `docker compose pull` + `up`) |
 | `docker-compose.dev.yml` | Adds **`build: .`** — merged by **`make dev`** |
+| `docker-compose.fast.yml` | Postgres + dev **api** + **web** — merged by **`make dev-fast`** |
 | `Dockerfile` | Build `web/` + `api/`, run Fastify |
+| `Dockerfile.fast` | Base image for **`make dev-fast`** (Node + PDF/convert tools) |
 | `api/` | REST API, Drizzle schema, migrations |
 | `web/` | Vite React SPA |
 | `docs/` | Documentation — start at **[`docs/README.md`](docs/README.md)** |

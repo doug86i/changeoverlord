@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Docker / dev workflow:** **`make dev-fast`** + **`docker-compose.fast.yml`** / **`Dockerfile.fast`** — Postgres with bind-mounted **`api/`** + **`web/`**, **tsx** watch + **Vite** on **`5173`** (proxies **`/api`** and **`/ws`**). **`Makefile`** targets **`dev-fast`**, **`dev-fast-app`**, **`dev-fast-down`**; **`web/vite.config.ts`** reads **`VITE_API_PROXY`** for containerized Vite. Classic **`make dev`** remains for production-like image testing. Docs and agent rules updated so **`make dev`** is no longer the only supported local integration path.
+
 - **API / Web — stage & event chat:** `GET/POST /api/v1/chat/messages` with `stage_chat_messages` table; SSE payloads may include optional **`chat`** (see **`docs/REALTIME.md`**) so the bottom-right **Chat** dock opens and highlights on new messages. Messages can target **one stage** or the **whole event**; shown on event, stage, day, patch, and performance-files routes (**not** on Clock screens).
 
 ### Changed

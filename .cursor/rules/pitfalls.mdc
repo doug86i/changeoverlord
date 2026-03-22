@@ -25,8 +25,9 @@ alwaysApply: true
 
 ## Docker and testing
 
-- **Changes are NOT live** until you run `make dev`. There is no bind-mount — the running app is compiled code inside the Docker image.
-- **Do NOT use `npm run dev`** or run the API/web outside Docker for integration testing. Compose is the only supported path.
+- **Classic (`make dev`):** changes are **not** live until you rebuild the **`app`** image — there is no bind-mount; the container serves **`web/dist`** + **`api/dist`**.
+- **Fast (`make dev-fast`):** source is bind-mounted; **tsx** / **Vite** reload. Use this compose file for routine integration tests.
+- **Do NOT** rely on **host-only** `npm run dev` against a non-Docker Postgres unless you know how to point **`DATABASE_URL`** at a running DB — the supported paths are **`make dev-fast`** and **`make dev`**.
 - **Do NOT open saved HTML files** (`file://`) to test — they can't reach the API.
 
 ## Styling

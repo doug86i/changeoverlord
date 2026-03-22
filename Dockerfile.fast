@@ -1,0 +1,13 @@
+# Fast local dev image: Node + same Alpine CLI stack as the production runner
+# (PDF thumbnails, ImageMagick, LibreOffice). Used by docker-compose.fast.yml only.
+FROM node:22-alpine
+WORKDIR /app
+
+RUN apk add --no-cache poppler-utils imagemagick libwebp-tools \
+  && apk add --no-cache libreoffice ttf-dejavu
+
+# Empty tree for Fastify static when only /api and /ws are used (UI is Vite).
+RUN mkdir -p /srv/empty-static
+ENV WEB_PUBLIC_DIR=/srv/empty-static
+
+EXPOSE 3000 5173

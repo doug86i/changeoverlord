@@ -2,11 +2,11 @@
 
 **See also:** **[`docs/README.md`](README.md)** (documentation index for this folder).
 
-Changeoverlord is developed **against the same path we ship**: **`docker compose`** builds the **API + SPA** image and runs it with **Postgres**, so local testing always matches what operators would run.
+Changeoverlord supports **two** local Compose paths: a **fast** bind-mounted stack (**`make dev-fast`**) for day-to-day iteration, and a **classic** path (**`make dev`**) that builds the **same monolithic `app` image** shape used in production (compiled **`web/dist`** + **`api/dist`**). Operators on show laptops typically **`docker compose pull`** the pre-built image only — see root **[`README.md`](../README.md)**.
 
 ## Goal
 
-- **No manual deploy steps** to the local test environment: one repeatable command brings the stack up with a fresh build.
+- **No manual deploy steps** to the local test environment: one repeatable command brings the stack up.
 - **Compose is the contract**: if it works in `docker compose up`, we trust it for LAN installs.
 - **Changelog is part of the same contract** for code changes: update **`[Unreleased]`** in **[`CHANGELOG.md`](../CHANGELOG.md)** when your change ships or affects runtime — see **[`AGENTS.md`](../AGENTS.md)** and **`.cursor/rules/changelog.mdc`**.
 - **Git:** commit **each logical unit** separately as you go — see **§ Git commits** below and **`.cursor/rules/git-commits.mdc`**.
@@ -30,11 +30,41 @@ Use **Git** to record work in **small, reviewable steps** — not one enormous c
 | `Fix bulk add range when event dates shown` | `fixes` |
 | `Refactor stage day time helpers` | `wip` |
 
-See **[`.cursor/rules/git-commits.mdc`](../.cursor/rules/git-commits.mdc)** for examples and **[`AGENTS.md`](../AGENTS.md)** for how this fits with **`make dev`** and **`CHANGELOG.md`**.
+See **[`.cursor/rules/git-commits.mdc`](../.cursor/rules/git-commits.mdc)** for examples and **[`AGENTS.md`](../AGENTS.md)** for how this fits with **`make dev-fast`** / **`make dev`** and **`CHANGELOG.md`**.
 
-## Deploy to local testing (every time)
+## Fast local testing (hot reload)
 
-**There is no separate “dev server” path** — local testing **is** Compose: you always exercise the **same Dockerfile + `docker-compose.yml`** you would ship.
+**Preferred** for iterating on **`api/`** and **`web/`** without rebuilding the production-style image.
+
+From the **repository root**:
+
+```bash
+make dev-fast
+```
+
+This uses **`docker-compose.fast.yml`** + **`Dockerfile.fast`**: **Postgres**, an **api** container running **`npm install`** (first start can be slow) then **`tsx watch`**, and a **web** container running **Vite** on **`0.0.0.0:5173`**. Source is **bind-mounted**; **`node_modules`** for the repo live in **named volumes** so the host tree is not overwritten.
+
+- **Open the UI:** **`http://localhost:5173/`** (or **`FAST_WEB_PORT`** in **`.env`**).
+- **Health (direct API):** **`http://localhost:3000/api/v1/health`** (or **`FAST_API_PORT`**).
+- **Health (through Vite proxy):** **`http://localhost:5173/api/v1/health`**.
+
+Stop:
+
+```bash
+make dev-fast-down
+```
+
+Rebuild/restart **api** + **web** only:
+
+```bash
+make dev-fast-app
+```
+
+**Caveats:** This path is **not** identical to the single **`app`** container (different process layout, **development** `NODE_ENV` on the API). Use **`make dev`** before a release or when debugging image-only issues.
+
+**Do not** run **`make dev-fast`** and **`make dev`** at the same time with the same **`DATA_DIR`**: both stacks include a Postgres service that bind-mounts **`${DATA_DIR}/db`** — two containers must not use the same data directory. Stop one stack (`make dev-down` or **`make dev-fast-down`**) before starting the other.
+
+## Classic local testing (production-like image)
 
 From the **repository root** (where `docker-compose.yml` lives):
 
@@ -42,11 +72,11 @@ From the **repository root** (where `docker-compose.yml` lives):
 make dev
 ```
 
-This runs **`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`** — rebuilds the app image when **`Dockerfile`**, **`api/`**, **`web/`**, **`patches/`**, or workspace **`package.json`** / **`package-lock.json`** change, recreates the container if needed, and starts dependencies. Use this **after each meaningful code change** so what you see in the browser matches production.
+This runs **`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`** — rebuilds the app image when **`Dockerfile`**, **`api/`**, **`web/`**, **`patches/`**, or workspace **`package.json`** / **`package-lock.json`** change, recreates the container if needed, and starts dependencies. The container serves **compiled** assets (`vite build`, `tsc`) from the image — **not** live-mounted source.
 
 **Deploy / LAN installs** without building from source: use **only** **`docker-compose.yml`** — **`docker compose pull && docker compose up -d`** (see root **`README.md`**).
 
-The container serves **compiled** assets (`vite build`, `tsc`) from the image — **not** live-mounted source. If you change code and the browser still shows the old app, rebuild without cache:
+If you change code and the browser still shows the old app, rebuild without cache:
 
 ```bash
 make dev-fresh
@@ -72,7 +102,9 @@ make dev-down
 |-------|------|
 | `docker-compose.yml` | Ports, `DATABASE_URL`, `WEB_PUBLIC_DIR`, healthchecks, GHCR **`image`** |
 | `docker-compose.dev.yml` | **`build: .`** — merged by **`make dev`** |
+| `docker-compose.fast.yml` | **Postgres + api (tsx watch) + web (Vite)** — merged by **`make dev-fast`** |
 | `Dockerfile` | Multi-stage build: Vite → `public/`, `tsc` → `api/dist`; **`patches/`** is copied before **`npm install`** in the builder so **`patch-package`** applies (FortuneSheet fixes); the runner uses **`npm install --ignore-scripts`** so production does not need **`patch-package`**. |
+| `Dockerfile.fast` | **Node + Alpine PDF/convert tools** for **`make dev-fast`** containers only |
 | Postgres | Real DB for all persistent state |
 | SSE (`/api/v1/realtime`) | Live TanStack invalidation after REST mutations — see [`REALTIME.md`](REALTIME.md) |
 
@@ -94,7 +126,7 @@ Adding or changing a patch: edit **`node_modules`**, run **`npx patch-package <p
 
 ## CI / compile check without running containers
 
-To verify TypeScript and Vite builds locally (e.g. in CI), **`npm install`** at the repo root then **`npm run build`** — that is what the **Dockerfile** runs. It does **not** replace **`make dev`** for interactive testing. Use this for a **fast compile-only** loop when you do not need Postgres/browser integration.
+To verify TypeScript and Vite builds locally (e.g. in CI), **`npm install`** at the repo root then **`npm run build`** — that is what the **Dockerfile** runs. It does **not** replace **`make dev-fast`** / **`make dev`** for interactive testing. Use this for a **fast compile-only** loop when you do not need Postgres/browser integration.
 
 ## Faster Docker rebuilds
 
@@ -127,7 +159,7 @@ What usually costs time:
 
 **What this repo does *not* do**
 
-- No bind-mounted **`web/src`** / **`api/src`** in the production image path — that would diverge from what operators run. Fast iteration without Docker remains **`npm run build`** (or per-workspace dev servers if you add them locally — not part of the shipped Compose contract).
+- No bind-mounted **`web/src`** / **`api/src`** in the **classic** **`app`** image — that is what operators run from GHCR. **Fast** mode (**`make dev-fast`**) intentionally bind-mounts for developer speed. Host-only **`npm run dev`** without a reachable Postgres is not a supported integration path — use Compose.
 
 ## UI: compact action buttons
 
@@ -144,7 +176,7 @@ What usually costs time:
 
 ## AI / Cursor workflow
 
-**Agent development process** (commits, testing, deployment, changelog, logging): **[`../AGENTS.md`](../AGENTS.md)** → *Development process (agents)*. Rules: **`.cursor/rules/git-commits.mdc`**, **`.cursor/rules/local-docker-deploy.mdc`**, **`.cursor/rules/changelog.mdc`**, **`.cursor/rules/logging.mdc`**. After implementation, **`make dev`** keeps the local stack aligned with production.
+**Agent development process** (commits, testing, deployment, changelog, logging): **[`../AGENTS.md`](../AGENTS.md)** → *Development process (agents)*. Rules: **`.cursor/rules/git-commits.mdc`**, **`.cursor/rules/local-docker-deploy.mdc`**, **`.cursor/rules/changelog.mdc`**, **`.cursor/rules/logging.mdc`**. After implementation, **`make dev-fast`** (or **`make dev`** for image parity) exercises the local stack.
 
 ## Database resets
 

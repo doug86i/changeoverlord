@@ -35,7 +35,7 @@ If a session touches several unrelated concerns, use **several commits** so hist
 
 ## Scope with other project rules
 
-- Pair commits with **`CHANGELOG.md`** / **`make dev`** / docs as **[`AGENTS.md`](../AGENTS.md)** requires — a single logical commit may include the matching changelog line and user-guide tweak in the **same** commit when they belong together.
+- Pair commits with **`CHANGELOG.md`** / **`make dev-fast`** or **`make dev`** / docs as **[`AGENTS.md`](../AGENTS.md)** requires — a single logical commit may include the matching changelog line and user-guide tweak in the **same** commit when they belong together.
 
 ## If Git is unavailable
 

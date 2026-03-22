@@ -1,0 +1,91 @@
+# Fast local iteration: Postgres + API (tsx watch) + Vite dev server (bind mounts).
+# Open http://localhost:5173/ — Vite proxies /api and /ws to the api service.
+#
+#   make dev-fast
+#   make dev-fast-down
+#
+# Production-like single image: make dev (docker-compose.yml + docker-compose.dev.yml).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stageops
+      POSTGRES_PASSWORD: stageops
+      POSTGRES_DB: stageops
+    volumes:
+      - ${DATA_DIR:-./data}/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stageops -d stageops"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.fast
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgresql://stageops:stageops@db:5432/stageops
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-generate-a-long-random-string}
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      NODE_ENV: development
+      UPLOADS_DIR: /var/changeoverlord/uploads
+    volumes:
+      - .:/app
+      - fast_nm_root:/app/node_modules
+      - fast_nm_api:/app/api/node_modules
+      - fast_nm_web:/app/web/node_modules
+      - ${DATA_DIR:-./data}/uploads:/var/changeoverlord/uploads
+    ports:
+      - "${FAST_API_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - mkdir -p api/public && npm install && npm run dev -w @changeoverlord/api
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 180s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.fast
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      VITE_API_PROXY: http://api:3000
+    volumes:
+      - .:/app
+      - fast_nm_root:/app/node_modules
+      - fast_nm_api:/app/api/node_modules
+      - fast_nm_web:/app/web/node_modules
+    ports:
+      - "${FAST_WEB_PORT:-5173}:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - npm run dev -w @changeoverlord/web
+
+volumes:
+  fast_nm_root:
+  fast_nm_api:
+  fast_nm_web:

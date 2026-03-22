@@ -7,13 +7,42 @@ alwaysApply: true
 
 When you **finish implementing or fixing** something that affects the running app, **deploy it to the local test environment yourself** — do not ask the user to run commands unless Docker is unavailable or the command fails after a retry.
 
-## Why “changes aren’t live”
+## Two supported local paths
 
-The **running app is the built image** (`web/dist` + `api/dist` copied into the container). There is **no bind-mount** of `api/src` or `web/src`. Edits on disk do nothing until you **rebuild** that image and restart the `app` container.
+| Path | Command | What runs | Typical URL |
+|------|---------|-----------|-------------|
+| **Fast (hot reload)** | **`make dev-fast`** | **`docker-compose.fast.yml`**: Postgres + **tsx** watch + **Vite**; repo bind-mounted; named volumes for **`node_modules`** | **`http://localhost:5173/`** (or **`FAST_WEB_PORT`**) |
+| **Classic (production-like image)** | **`make dev`** | **`docker-compose.yml`** + **`docker-compose.dev.yml`**: one **`app`** image with **`web/dist`** + **`api/dist`** | **`http://localhost/`** or **`http://localhost:<HOST_PORT>/`** |
 
-## Command (repo root)
+Prefer **`make dev-fast`** for routine integration testing. Use **`make dev`** when validating the **shipped image** layout (static SPA + compiled API) or before a release if you need that parity.
 
-Run:
+## Why “changes aren’t live” (classic path)
+
+With **`make dev`**, the **running app is the built image** (`web/dist` + `api/dist` copied into the container). There is **no bind-mount** of `api/src` or `web/src`. Edits on disk do nothing until you **rebuild** that image and restart the **`app`** container.
+
+With **`make dev-fast`**, **`api/`** and **`web/`** source on the host is mounted into containers; **tsx** and **Vite** pick up changes without rebuilding the **`Dockerfile`**.
+
+## Commands (repo root)
+
+**Fast stack**
+
+```bash
+make dev-fast
+```
+
+Stop:
+
+```bash
+make dev-fast-down
+```
+
+Rebuild/restart **api** + **web** only (Postgres unchanged):
+
+```bash
+make dev-fast-app
+```
+
+**Classic stack**
 
 ```bash
 make dev
@@ -21,13 +50,11 @@ make dev
 
 Equivalent: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`. **Deploy** without building: `docker compose pull && docker compose up -d` (base **`docker-compose.yml`** only).
 
-If the stack was already up and you still see **stale UI or API** after `make dev`, Docker may have reused cached build layers. Run:
+If the classic stack was already up and you still see **stale UI or API** after **`make dev`**, Docker may have reused cached build layers. Run:
 
 ```bash
 make dev-fresh
 ```
-
-(`docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache app && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app`)
 
 Use the **same working directory** as the repo root (path may contain spaces — quote or `cd` correctly).
 
@@ -35,39 +62,47 @@ Use the **same working directory** as the repo root (path may contain spaces —
 
 Run after changes to any of:
 
-- `api/`, `web/`, `Dockerfile`, `docker-compose.yml`
+- `api/`, `web/`, `Dockerfile`, `Dockerfile.fast`, `docker-compose.yml`, `docker-compose.fast.yml`
 - Root `package.json` / `package-lock.json`, workspace packages
-- `patches/` (patch-package fixes applied at `npm install` — must be in the Docker build context)
+- `patches/` (patch-package fixes applied at `npm install` — must be in the Docker build context; the fast stack runs **`npm install`** in the bind-mounted tree on first start)
 - `api/drizzle/` migrations or `api/src/db/schema.ts`
 
 Skip only for **docs-only** or **comment-only** edits with zero effect on build/runtime.
 
 ## If it fails
 
-- Read **`docker compose logs app`** (or the failing service) and fix the underlying issue, then **run `make dev` again**.
-- Do not leave “you should run docker compose” as the only outcome when the environment can run shell commands.
+- **Fast:** **`docker compose -f docker-compose.fast.yml logs -f api web`**
+- **Classic:** **`docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app`**
+- Fix the underlying issue, then bring the stack up again. Do not leave “you should run docker compose” as the only outcome when the environment can run shell commands.
 
 ## Principles
 
 - **Compose is the source of truth** for local integration testing — avoid ad-hoc `docker run` unless debugging an image issue the user requested.
 - **Goal**: zero manual steps for the human to see changes on a **live local URL** after your work.
+- **Do not** run **`make dev-fast`** and **`make dev`** at once with the same **`DATA_DIR`** — both Postgres services bind-mount the same **`db/`** tree; stop one stack before starting the other.
 
 ## Logging while testing
 
 - Follow **[`docs/LOGGING.md`](../docs/LOGGING.md)** for any new/changed logs (`req.log`, `createLogger`, levels, no secrets).
-- To inspect the running API: **`docker compose logs -f app`**. Set **`LOG_LEVEL=debug`** in **`.env`** for verbose structured logs (see **DEVELOPMENT.md**).
+- **Classic:** **`docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app`**
+- **Fast:** **`docker compose -f docker-compose.fast.yml logs -f api`**
+- Set **`LOG_LEVEL=debug`** in **`.env`** for verbose structured logs (see **DEVELOPMENT.md**).
 
 ## End-of-task checklist (same as [`AGENTS.md`](../../AGENTS.md) “Local testing”)
 
-1. **`make dev`** from repo root (skip only for docs-only / comment-only with no build effect).
-2. **Verify** the stack: e.g. **`curl -sS http://127.0.0.1/api/v1/health`** → `200` with `{"ok":true,...}`, or **`docker compose ps`** → `app` running.
-3. **Tell the user the exact base URL** (below). If UI/API still looks stale, **`make dev-fresh`**.
+1. From repo root, run **`make dev-fast`** or **`make dev`** (skip only for docs-only / comment-only with no build effect).
+2. **Verify** the stack: e.g. **`curl -sS http://127.0.0.1:5173/api/v1/health`** (fast, via Vite proxy) or **`curl -sS http://127.0.0.1/api/v1/health`** (classic, port 80), or **`docker compose ps`** for the file you used.
+3. **Tell the user the exact base URL** (below). If the **classic** UI/API still looks stale, **`make dev-fresh`**.
 4. **`CHANGELOG.md`**: if the task changed shipped code, Docker, or migrations, add an **`[Unreleased]`** entry — see **[`changelog.mdc`](changelog.mdc)** (skip pure docs/comment-only).
 5. **`git commit`**: during the session, commit **each logical unit** with a clear message — see **[`git-commits.mdc`](git-commits.mdc)** (skip if not a Git repo or the user asked to defer commits).
 
 ## Tell the user where to click
 
-After **`make dev`**, state the **exact** base URL:
+After **`make dev-fast`**:
+
+- **`http://localhost:5173/`** (default). If **`.env`** sets **`FAST_WEB_PORT`**, use that port instead.
+
+After **`make dev`**:
 
 - Default: **`http://localhost/`** (port **80** — no `:port` in the address bar).
 - If **`.env`** sets **`HOST_PORT`** (e.g. `8080`): **`http://localhost:8080/`**.
