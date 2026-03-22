@@ -128,9 +128,20 @@ function scheduleFlush(): void {
 export function summarizeOpsForClientLog(ops: Op[]): {
   count: number;
   head: string;
+  /** `addSheet` target ids — `(no-id)` when missing (server cannot dedupe duplicates). */
+  addSheetIds: string[];
 } {
   const count = ops?.length ?? 0;
-  if (count === 0) return { count: 0, head: "empty" };
+  const addSheetIds: string[] = [];
+  if (count === 0) return { count: 0, head: "empty", addSheetIds };
+  for (const raw of ops) {
+    const o = raw as Record<string, unknown>;
+    if (o.op === "addSheet" && o.value && typeof o.value === "object") {
+      const id = (o.value as { id?: unknown }).id;
+      const s = id == null ? "" : String(id).trim();
+      addSheetIds.push(s === "" ? "(no-id)" : s);
+    }
+  }
   const bits = ops.slice(0, 8).map((raw) => {
     const o = raw as Record<string, unknown>;
     if (typeof o.op === "string") return o.op;
@@ -141,7 +152,7 @@ export function summarizeOpsForClientLog(ops: Op[]): {
     if (typeof o.t === "string") return o.t;
     return "?";
   });
-  return { count, head: bits.join("|") };
+  return { count, head: bits.join("|"), addSheetIds };
 }
 
 /**

@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **API / Web / Docs:** **`LOG_LEVEL=debug`** — **`collab-ws-relay`** logs **`relay op batch applied`** (broadcast mode, sheet count, **`addSheetIds`**, op kinds). **`patchWorkbookCollab`** uses **`logClientDebugCollab`** for **`onOp` skipped** reasons, **`fullState received`**, structural outbound batches, and failed remote **`applyOp`**. **`summarizeOpsForClientLog`** includes **`addSheetIds`** ( **`(no-id)`** when missing). Playbook: **`docs/LOGGING.md`** (*Investigating patch collab*).
+
 - **Web:** **Patch & RF** and **Edit patch template** show a short **Edits may not save — reconnecting…** banner when the collab WebSocket is not connected while the grid is loaded (e.g. phone tab backgrounded).
 
 - **API / Web / Docker (fast):** **`POST /api/v1/debug/client-log`** (when **`CLIENT_LOG_FILE`** is set) appends **NDJSON** lines from the browser; **`logClientDebugCollab`** batches patch-workbook sender/receiver events. **`make dev-fast`** mounts **`./logs`**, defaults **`CLIENT_LOG_FILE=/app/logs/client-debug.ndjson`** and **`VITE_CLIENT_LOG_FILE=true`**. See **`docs/LOGGING.md`** (*Client debug log file*).

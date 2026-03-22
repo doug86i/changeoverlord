@@ -137,6 +137,29 @@ function batchHasStructuralOps(ops: Op[]): boolean {
   return false;
 }
 
+/** Compact summary for `LOG_LEVEL=debug` (no cell payloads). */
+function collabOpBatchSummary(ops: Op[]): {
+  opCount: number;
+  kinds: string;
+  addSheetIds: string[];
+} {
+  const kinds: string[] = [];
+  const addSheetIds: string[] = [];
+  for (const op of ops) {
+    if (typeof op.op === "string") kinds.push(op.op);
+    if (op.op === "addSheet" && op.value && typeof op.value === "object") {
+      const id = (op.value as { id?: unknown }).id;
+      const s = id == null ? "" : String(id).trim();
+      addSheetIds.push(s === "" ? "(no-id)" : s.length > 24 ? `${s.slice(0, 24)}…` : s);
+    }
+  }
+  return {
+    opCount: ops.length,
+    kinds: kinds.slice(0, 14).join(","),
+    addSheetIds,
+  };
+}
+
 function broadcastFullStateToPeers(
   room: RoomState,
   exclude: { send: (s: string) => void },
@@ -318,12 +341,24 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
           }
           return;
         }
-        if (batchHasStructuralOps(ops)) {
+        const structural = batchHasStructuralOps(ops);
+        if (structural) {
           broadcastFullStateToPeers(room, sock, room.sheets);
         } else {
           broadcastOp(room, sock, ops);
         }
         schedulePersist(key, room);
+        relayLog.debug(
+          {
+            performanceId: id,
+            peers: room.sockets.size,
+            broadcast: structural ? "fullState-to-peers" : "op",
+            sheetCount: room.sheets.length,
+            structural,
+            ...collabOpBatchSummary(ops),
+          },
+          "relay op batch applied",
+        );
       });
 
       socket.on("close", () => {
@@ -383,12 +418,24 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
           }
           return;
         }
-        if (batchHasStructuralOps(ops)) {
+        const structural = batchHasStructuralOps(ops);
+        if (structural) {
           broadcastFullStateToPeers(room, sock, room.sheets);
         } else {
           broadcastOp(room, sock, ops);
         }
         schedulePersist(key, room);
+        relayLog.debug(
+          {
+            templateId: id,
+            peers: room.sockets.size,
+            broadcast: structural ? "fullState-to-peers" : "op",
+            sheetCount: room.sheets.length,
+            structural,
+            ...collabOpBatchSummary(ops),
+          },
+          "relay op batch applied",
+        );
       });
 
       socket.on("close", () => {

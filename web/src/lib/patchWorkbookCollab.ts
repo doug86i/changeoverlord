@@ -9,6 +9,7 @@ import {
 import { flushSync } from "react-dom";
 import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Op, Sheet } from "@fortune-sheet/core";
+import { logClientDebugCollab, summarizeOpsForClientLog } from "./clientDebugLog";
 import { logDebug } from "./debug";
 import { usePageVisible } from "../hooks/usePageVisible";
 
@@ -43,6 +44,14 @@ function sheetIdExists(wb: WorkbookInstance, id: string): boolean {
   return (wb.getAllSheets() as Sheet[]).some(
     (s) => s.id != null && String(s.id) === id,
   );
+}
+
+function batchHasStructuralOps(ops: Op[]): boolean {
+  for (const o of ops) {
+    if (o.op === "addSheet" || o.op === "deleteSheet") return true;
+    if (o.op === "replace" && o.path?.[0] === "luckysheetfile") return true;
+  }
+  return false;
 }
 
 /** After remote `applyOp`, refresh formulas without pushing ops to the server. */
@@ -178,8 +187,14 @@ export function usePatchWorkbookCollab(opts: {
           return;
         }
         if (msg.type === "fullState" && Array.isArray(msg.sheets)) {
+          const midSession = !awaitingFirstFullStateRef.current;
+          logClientDebugCollab("patch-workbook-collab", "fullState received", {
+            roomId,
+            sheetCount: msg.sheets.length,
+            midSessionRemount: midSession,
+          });
           setWorkbookSheets(structuredClone(msg.sheets));
-          if (!awaitingFirstFullStateRef.current) {
+          if (midSession) {
             setWorkbookDataRev((r) => r + 1);
           } else {
             awaitingFirstFullStateRef.current = false;
@@ -193,10 +208,20 @@ export function usePatchWorkbookCollab(opts: {
           try {
             const batch = msg.data as Op[];
             if (batch.length === 0) return;
+            if (batchHasStructuralOps(batch)) {
+              logClientDebugCollab("patch-workbook-collab", "remote op batch (structural)", {
+                roomId,
+                ...summarizeOpsForClientLog(batch),
+              });
+            }
             wb.applyOp(batch);
             flushRemoteFormulaRecalc(wb, suppressLocalOpsRef);
           } catch (e) {
             logDebug("patch-workbook-collab", "applyOp failed for remote batch", e);
+            logClientDebugCollab("patch-workbook-collab", "applyOp failed for remote batch", {
+              roomId,
+              ...summarizeOpsForClientLog((msg.data as Op[]) ?? []),
+            });
           }
         }
       };
@@ -265,18 +290,42 @@ export function usePatchWorkbookCollab(opts: {
 
   const onOp = useCallback(
     (ops: Op[]) => {
-      if (readOnly) return;
-      if (suppressLocalOpsRef.current) return;
+      if (readOnly) {
+        logClientDebugCollab("patch-workbook-collab", "onOp skipped: readOnly", { roomId });
+        return;
+      }
+      if (suppressLocalOpsRef.current) {
+        logClientDebugCollab("patch-workbook-collab", "onOp skipped: suppressLocalOps", {
+          roomId,
+        });
+        return;
+      }
       const ws = wsRef.current;
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        logClientDebugCollab("patch-workbook-collab", "onOp skipped: websocket not open", {
+          roomId,
+          readyState: ws?.readyState ?? -1,
+        });
+        return;
+      }
       onLocalOp?.();
       try {
         ws.send(JSON.stringify({ type: "op", data: ops }));
+        if (batchHasStructuralOps(ops)) {
+          logClientDebugCollab("patch-workbook-collab", "outbound structural op batch sent", {
+            roomId,
+            ...summarizeOpsForClientLog(ops),
+          });
+        }
       } catch (e) {
         logDebug("patch-workbook-collab", "send op failed", e);
+        logClientDebugCollab("patch-workbook-collab", "send op failed", {
+          roomId,
+          ...summarizeOpsForClientLog(ops),
+        });
       }
     },
-    [readOnly, onLocalOp],
+    [readOnly, onLocalOp, roomId],
   );
 
   return { wbRef, onOp, conn, workbookSheets, workbookHydrated, workbookDataRev };

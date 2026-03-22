@@ -74,6 +74,31 @@ Browsers do not persist console output. For **patch workbook** troubleshooting, 
 2. **Client:** open DevTools → Network → **WS** — confirm **`/ws/v1/collab/…`** (or **`collab-template/…`**) connects (**101**) and is not **401** (password session).
 3. **Saved HTML** (`file://`): the SPA will not load assets or WebSockets — use **`http://localhost/`** (see **[`DEVELOPMENT.md`](DEVELOPMENT.md)**).
 
+### Investigating patch collab (saving / duplicate tabs)
+
+Use **`make dev-fast`** (or classic stack) so the API and Vite proxy match **[`docs/DEVELOPMENT.md`](DEVELOPMENT.md)**.
+
+1. **Server (`LOG_LEVEL=debug` in `.env`)**  
+   Tail: **`docker compose -f docker-compose.fast.yml logs -f api`**.  
+   Component **`collab-ws-relay`** logs each applied batch as **`relay op batch applied`** with:
+   - **`broadcast`:** **`fullState-to-peers`** (structural: new/delete tab or whole-workbook replace) vs **`op`** (cell edits).
+   - **`sheetCount`**, **`structural`**, **`opCount`**, **`kinds`** (op names, truncated), **`addSheetIds`** (including **`(no-id)`** when Fortune omitted an id — server cannot dedupe).
+   - **`workbook persisted`** (debug) after debounced flush; **`skip persist: sheets failed minimum persist checks`** (warn) if tabs lack ids.
+
+2. **Browser console**  
+   Set **`VITE_LOG_DEBUG=true`** for the **web** service in **`docker-compose.fast.yml`** (or local **`.env`**) and rebuild/restart **web** so **`logDebug("patch-workbook-collab", …)`** appears in DevTools.
+
+3. **NDJSON file (two browsers / repro)**  
+   Default fast stack: **`./logs/client-debug.ndjson`** (host) with **`VITE_CLIENT_LOG_FILE=true`** and **`CLIENT_LOG_FILE`** on the API. **`logClientDebugCollab`** records:
+   - **`onOp skipped: websocket not open`** / **`readOnly`** / **`suppressLocalOps`** — edits **not** sent to the relay (common “not saving” cause).
+   - **`outbound structural op batch sent`** — includes **`addSheetIds`**.
+   - **`fullState received`** — **`sheetCount`**, **`midSessionRemount`** when the grid key bumps.
+   - **`applyOp failed for remote batch`** — client could not apply peer ops.  
+   Sort by time or filter by **`tabId`** (see table above).
+
+4. **Network → WS**  
+   Confirm **`/ws/v1/collab/…`** or **`/ws/v1/collab-template/…`** stays **101** (not **401** when a password is set).
+
 ---
 
 ## Consistency checklist (agents)
