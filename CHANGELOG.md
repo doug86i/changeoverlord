@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Process / agents:** **`AGENTS.md`** and Cursor rules (**`agents-process`**, **`local-docker-deploy`**) state that agents **always** run **`make dev-fast`** / **`make dev`** after code changes when Docker is available (not optional hand-off text only).
+
 - **Docker / dev:** Fast stack (**`make dev-fast`**) maps the Vite UI to host port **80** by default (**`FAST_WEB_PORT`** default **`80`** in **`docker-compose.fast.yml`** and **`.env.example`**), matching classic **`HOST_PORT`**. Set **`FAST_WEB_PORT=5173`** if port 80 is busy or the classic stack already uses it.
 
 ### Added
