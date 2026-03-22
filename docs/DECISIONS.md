@@ -111,9 +111,12 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 
 *Rationale: one language end-to-end, strong typing, Fastify is fast and simple, Drizzle keeps migrations SQL-first.*
 
-### FortuneSheet — `patch-package` (touch pan)
+### FortuneSheet — `patch-package` (core)
 
-- **`patches/@fortune-sheet+core+1.0.4.patch`**: upstream overlay **`touchmove`** applied **cumulative** finger delta to **current** `scrollTop` / `scrollLeft` on every frame, so panning felt **much faster than the finger** on mobile. Patched to anchor scroll to **`initialScrollLeft` / `initialScrollTop`** captured at **`touchstart`** (`initial − delta` each move) for **1:1** tracking. Prefer an **upstream PR** to **ruilisi/fortune-sheet** when practical; remove the patch after merge.
+- **`patches/@fortune-sheet+core+1.0.4.patch`** includes:
+  - **Touch pan:** upstream overlay **`touchmove`** applied **cumulative** finger delta to **current** `scrollTop` / `scrollLeft` on every frame, so panning felt **much faster than the finger** on mobile. Patched to anchor scroll to **`initialScrollLeft` / `initialScrollTop`** captured at **`touchstart`** (`initial − delta` each move) for **1:1** tracking.
+  - **`getSheetIndex`:** strict **`===`** on sheet **`id`** breaks after **Yjs** / JSON round-trips when one path uses a **string** id and another a **number**; **`@fortune-sheet/react`** then calls **`initSheetData`** with a **null** index and can throw (**“Something went wrong”** when adding a sheet on a collab client). Patched to compare **`String(sheet.id)`** and to return **null** when **`id`** is nullish.
+- Prefer **upstream PRs** to **ruilisi/fortune-sheet** when practical; remove the patch after merge.
 
 ---
 

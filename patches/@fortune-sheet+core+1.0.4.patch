@@ -1,5 +1,5 @@
 diff --git a/node_modules/@fortune-sheet/core/dist/index.esm.js b/node_modules/@fortune-sheet/core/dist/index.esm.js
-index 5c9820b..5946980 100644
+index 5c9820b..3acb2af 100644
 --- a/node_modules/@fortune-sheet/core/dist/index.esm.js
 +++ b/node_modules/@fortune-sheet/core/dist/index.esm.js
 @@ -70187,6 +70187,8 @@ function handleOverlayTouchStart(ctx, e, globalCache) {
@@ -24,8 +24,24 @@ index 5c9820b..5946980 100644
      scrollbarY.scrollTop = scrollTop;
      globalCache.touchMoveStartPos.vy_y = slideY;
      globalCache.touchMoveStartPos.scrollTop = scrollTop;
+@@ -75960,9 +75960,14 @@ function escapeHTMLTag(str) {
+   return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+ }
+ function getSheetIndex(ctx, id) {
++  if (id == null) {
++    return null;
++  }
++  var idStr = String(id);
+   for (var i = 0; i < ctx.luckysheetfile.length; i += 1) {
+     var _ctx$luckysheetfile$i;
+-    if (((_ctx$luckysheetfile$i = ctx.luckysheetfile[i]) === null || _ctx$luckysheetfile$i === void 0 ? void 0 : _ctx$luckysheetfile$i.id) === id) {
++    var sid = (_ctx$luckysheetfile$i = ctx.luckysheetfile[i]) === null || _ctx$luckysheetfile$i === void 0 ? void 0 : _ctx$luckysheetfile$i.id;
++    if (sid != null && String(sid) === idStr) {
+       return i;
+     }
+   }
 diff --git a/node_modules/@fortune-sheet/core/dist/index.js b/node_modules/@fortune-sheet/core/dist/index.js
-index 04113a1..d893d4e 100644
+index 04113a1..dfda5a1 100644
 --- a/node_modules/@fortune-sheet/core/dist/index.js
 +++ b/node_modules/@fortune-sheet/core/dist/index.js
 @@ -70197,6 +70197,8 @@ function handleOverlayTouchStart(ctx, e, globalCache) {
@@ -50,3 +66,19 @@ index 04113a1..d893d4e 100644
      scrollbarY.scrollTop = scrollTop;
      globalCache.touchMoveStartPos.vy_y = slideY;
      globalCache.touchMoveStartPos.scrollTop = scrollTop;
+@@ -75970,9 +75970,14 @@ function escapeHTMLTag(str) {
+   return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+ }
+ function getSheetIndex(ctx, id) {
++  if (id == null) {
++    return null;
++  }
++  var idStr = String(id);
+   for (var i = 0; i < ctx.luckysheetfile.length; i += 1) {
+     var _ctx$luckysheetfile$i;
+-    if (((_ctx$luckysheetfile$i = ctx.luckysheetfile[i]) === null || _ctx$luckysheetfile$i === void 0 ? void 0 : _ctx$luckysheetfile$i.id) === id) {
++    var sid = (_ctx$luckysheetfile$i = ctx.luckysheetfile[i]) === null || _ctx$luckysheetfile$i === void 0 ? void 0 : _ctx$luckysheetfile$i.id;
++    if (sid != null && String(sid) === idStr) {
+       return i;
+     }
+   }

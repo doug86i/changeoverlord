@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Patch (phone)** — **reset document / main scroll** on entering the patch route so the layout is not offset by **scroll position from the previous page** (React Router).
+- **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — **`getSheetIndex`** now matches sheet **`id`** with **`String(...)`** so **string vs number** ids after **Yjs** sync no longer yield a **null** index; fixes **add-sheet** crashes on mobile collab viewers (**`initSheetData`** after **`addSheet`**).
 - **Web:** **Patch / RF workbook** — harden post-sync **`flushWorkbookFormulaRecalc`** (safe **`fullDataRange`**, per-sheet **`try/catch`**, restore active tab with the sheet’s **native `id`**, swallow remote recalc failures so Yjs does not wedge); **Patch workbook error** UI adds **Try again** to reset the boundary without a full reload.
 - **Web:** **Patch (phone)** — lock **`html` / `body` / `#root` / `.app-shell`** to the viewport with **`overscroll-behavior: none`** so **iOS** does not **rubber-band scroll the page** while panning the sheet; workbook host uses **flex** height inside the locked shell instead of **`100dvh`** math that could exceed the layout.
 - **Web:** **Patch / RF collab** — after **remote** Yjs updates, formula recalc cycled **`activateSheet`** across every tab and left all users on the **last** sheet; restoring the **previously active** sheet after recalc fixes **random tab jumps** when someone **adds or renames sheets**.

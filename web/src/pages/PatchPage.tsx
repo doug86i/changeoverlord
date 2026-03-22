@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Workbook } from "@fortune-sheet/react";
 import { apiGet, apiSend, downloadWorkbookJson, readFileAsText } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
@@ -50,6 +50,24 @@ export function PatchPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isPhone, phoneMenuOpen]);
+
+  /** Phone: React Router keeps document scroll from the previous route; reset so the patch layout isn't offset. */
+  useLayoutEffect(() => {
+    if (!isPhone || !performanceId) return;
+    const resetScroll = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.documentElement.scrollLeft = 0;
+      document.body.scrollTop = 0;
+      document.body.scrollLeft = 0;
+      document.getElementById("main-content")?.scrollTo(0, 0);
+    };
+    resetScroll();
+    const raf = requestAnimationFrame(() => {
+      resetScroll();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isPhone, performanceId]);
 
   const perfQ = useQuery({
     queryKey: ["performance", performanceId],
