@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **API — Yjs persist:** Persisting a performance workbook snapshot no longer **crashes the process** when the **performance row was deleted** but a collab WebSocket was still open (PostgreSQL **FK** `23503`). The flush is skipped with a **warn** log; **`writeState`** errors are caught so disconnect handlers cannot kill the server.
 
-- **Web — stage chat:** Chat dock is **`createPortal`’d to `document.body`** (avoids stacking traps under **`#root`** / spreadsheet hosts) and **`right`** uses **`--app-scrollbar-width`** (set by **`ViewportScrollbarVar`**) so it clears classic viewport scrollbars. **`z-index`** remains **`999`** (**`--z-stage-chat-dock`**); modals (**1000**) and toasts stay on top.
+- **Web — stage chat:** Chat dock is **`createPortal`’d to `document.body`** (avoids stacking traps under **`#root`** / spreadsheet hosts) and **`right`** uses **`--app-scrollbar-width`** (set by **`ViewportScrollbarVar`**) so it clears classic viewport scrollbars. **`z-index`** remains **`999`** (**`--z-stage-chat-dock`**); modals (**1000**) and toasts stay on top. **`isolation: isolate`** on **`.patch-workbook-host`** contains FortuneSheet's internal z-indexes (up to 100 003) so spreadsheet scrollbars no longer paint above the chat dock.
 
 - **Web — patch sidebar:** **Rider PDF** quick link no longer falls back to a **stage-wide** rider; only a file marked **Rider** on **this act’s** Files page is linked (matches stage-plot behaviour and avoids showing another band’s rider).
 
