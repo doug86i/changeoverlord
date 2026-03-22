@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Docs
 
-- **KNOWN_ISSUES #83**, **USER_GUIDE** (patch collab), **DECISIONS** — document duplicate sheet tabs on remote peers after **Add sheet**, workarounds, and mitigations tried (Strict Mode `onOp` dedup, Yjs path, relay, fork guards).
+- **KNOWN_ISSUES #83**, **USER_GUIDE** (patch collab), **DECISIONS** — duplicate sheet tabs (survived Yjs → relay refactor); **reload does not fix** persisted **`sheets_json`**; workarounds and split **current vs historical** mitigations.
 
 ### Changed
 
