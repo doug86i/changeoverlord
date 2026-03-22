@@ -22,6 +22,8 @@ export function PatchPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
   const isPhone = useMediaQuery("(max-width: 767px)");
+  /** Read-only collab / no formula bar only on very narrow viewports (typical phones). iPad portrait (≥641px) stays editable. */
+  const patchCollabRestricted = useMediaQuery("(max-width: 640px)");
 
   useEffect(() => {
     try {
@@ -117,7 +119,7 @@ export function PatchPage() {
     workbookReady,
     onLocalOp: markDirty,
     pauseWhenHidden: isPhone,
-    readOnly: isPhone,
+    readOnly: patchCollabRestricted,
   });
 
   const blockingWorkbook =
@@ -252,9 +254,9 @@ export function PatchPage() {
             ref={wbRef}
             data={workbookSheets}
             onOp={onOp}
-            allowEdit={!isPhone}
-            showToolbar={!isPhone}
-            showFormulaBar={!isPhone}
+            allowEdit={!patchCollabRestricted}
+            showToolbar={!patchCollabRestricted}
+            showFormulaBar={!patchCollabRestricted}
             showSheetTabs
           />
         </PatchWorkbookErrorBoundary>
@@ -417,9 +419,13 @@ export function PatchPage() {
         {/* Workbook — always at child 3; survives phone↔desktop transitions */}
         <div
           ref={patchWorkbookHostRef}
-          className={
-            `patch-workbook-host${isPhone ? " patch-workbook-host--readonly patch-workbook-host--phone" : ""}`
-          }
+          className={[
+            "patch-workbook-host",
+            patchCollabRestricted && "patch-workbook-host--readonly",
+            isPhone && "patch-workbook-host--phone",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           style={{
             border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)",
