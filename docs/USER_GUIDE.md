@@ -142,7 +142,7 @@ If the spreadsheet shows **`sheet not found`** (FortuneSheet error), the workboo
 
 On **Settings** and on the **stage** template picker you can:
 
-- **Edit spreadsheet** — Open the full **FortuneSheet** editor for that template; changes save automatically to the library (same tech as performance patch sheets).
+- **Edit spreadsheet** — Open the full **FortuneSheet** editor; edits persist automatically to this template’s snapshot on the server (same WebSocket path as band patch sheets). **New** performances copy that snapshot only **when they are created** if this template is the stage’s default then — **existing** band patch workbooks are not updated.
 - **Preview** — See a sample of sheets/cells without opening the full editor.
 - **Edit name** — Change the **display name** of a template in the library.
 - **Duplicate** — Copy a template to a new library entry (name becomes **"… (copy)"**; rename if you like).

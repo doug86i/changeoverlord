@@ -67,12 +67,16 @@ export function PatchTemplateEditorPage() {
               ? "Syncing…"
               : !workbookHydrated
                 ? "Loading workbook…"
-                : "Live (saved to library)"}
+                : "Live — edits save automatically"}
         </span>
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        Changes are saved automatically and apply to <strong>new</strong>{" "}
-        performances that use this template. Close this tab when done.
+        While you are connected, edits persist to this template’s snapshot on the
+        server (same real-time path as band patch sheets).{" "}
+        <strong>New</strong> performances only copy that snapshot{" "}
+        <strong>when they are created</strong> — if this template is the stage’s
+        default at that moment. Existing band patch workbooks are already separate
+        copies and are <strong>not</strong> updated when you edit here.
       </p>
       <div
         className="patch-workbook-host"
