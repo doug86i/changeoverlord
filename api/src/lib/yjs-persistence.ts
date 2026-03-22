@@ -9,6 +9,7 @@ import { broadcastInvalidate } from "./realtime-bus.js";
 import { createLogger } from "./log.js";
 import {
   replayOpLogStringEntries,
+  replayYjsSnapshotToSheets,
   sheetsLookUsableAfterOpLogReplay,
 } from "./yjs-oplog-replay.js";
 
@@ -23,6 +24,9 @@ const docTimers = new Map<string, ReturnType<typeof setTimeout>>();
  * op built from the replayed current state, preventing unbounded growth.
  */
 const OPLOG_COMPACT_THRESHOLD = 200;
+
+/** If Postgres already holds at least this many bytes, refuse to replace with a decoded-unusable snapshot (empty opLog / headless replay gaps). */
+const MIN_EXISTING_SNAPSHOT_BYTES_TO_GUARD = 256;
 
 const uuidRe =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -134,6 +138,32 @@ async function persistSnapshot(
 
   try {
     if (target.kind === "performance") {
+      const [existingRow] = await db
+        .select({ snapshot: performanceYjsSnapshots.snapshot })
+        .from(performanceYjsSnapshots)
+        .where(eq(performanceYjsSnapshots.performanceId, target.id))
+        .limit(1);
+      const prevSnap = existingRow?.snapshot;
+      if (
+        prevSnap &&
+        prevSnap.length >= MIN_EXISTING_SNAPSHOT_BYTES_TO_GUARD
+      ) {
+        const decoded = replayYjsSnapshotToSheets(new Uint8Array(snapshot));
+        if (!sheetsLookUsableAfterOpLogReplay(decoded)) {
+          ylog.warn(
+            {
+              performanceId: target.id,
+              docname,
+              prevBytes: prevSnap.length,
+              newBytes: snapshot.length,
+              decodedSheets: decoded.length,
+            },
+            "refuse performance Yjs persist: new snapshot decodes to unusable workbook; keeping DB snapshot (check logs for load/persist races)",
+          );
+          return;
+        }
+      }
+
       await db
         .insert(performanceYjsSnapshots)
         .values({
@@ -146,6 +176,29 @@ async function persistSnapshot(
           set: { snapshot, updatedAt: new Date() },
         });
       return;
+    }
+
+    const [tplRow] = await db
+      .select({ snapshot: patchTemplates.snapshot })
+      .from(patchTemplates)
+      .where(eq(patchTemplates.id, target.id))
+      .limit(1);
+    const prevTpl = tplRow?.snapshot;
+    if (prevTpl && prevTpl.length >= MIN_EXISTING_SNAPSHOT_BYTES_TO_GUARD) {
+      const decoded = replayYjsSnapshotToSheets(new Uint8Array(snapshot));
+      if (!sheetsLookUsableAfterOpLogReplay(decoded)) {
+        ylog.warn(
+          {
+            templateId: target.id,
+            docname,
+            prevBytes: prevTpl.length,
+            newBytes: snapshot.length,
+            decodedSheets: decoded.length,
+          },
+          "refuse template Yjs persist: new snapshot decodes to unusable workbook; keeping DB snapshot",
+        );
+        return;
+      }
     }
 
     await db
@@ -228,6 +281,7 @@ export function createYjsPersistence() {
        * state — common when DB latency is higher (e.g. prod / remote disk).
        */
       void (async () => {
+        let scheduleCatchUpPersist = true;
         try {
           if (target.kind === "performance") {
             const [row] = await db
@@ -262,14 +316,21 @@ export function createYjsPersistence() {
             ylog.debug({ templateId: target.id }, "no template snapshot; empty doc");
           }
         } catch (err) {
+          scheduleCatchUpPersist = false;
           ylog.error({ err, docname }, "load snapshot failed");
         } finally {
           const onUpdate = () => {
             schedulePersist(docname, doc);
           };
           doc.on("update", onUpdate);
-          // Catch-up persist if WebSocket merged updates before the listener existed.
-          schedulePersist(docname, doc);
+          /**
+           * Only schedule debounced persist after a successful load. If the DB read
+           * failed, the in-memory doc may still be empty while `schedulePersist` would
+           * overwrite a good Postgres row (see `refuse … unusable workbook` guard).
+           */
+          if (scheduleCatchUpPersist) {
+            schedulePersist(docname, doc);
+          }
         }
       })();
     },

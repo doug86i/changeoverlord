@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API — Yjs persist (lost patch workbook):** **(1)** If loading the DB snapshot in **`bindState`** fails, the server no longer runs the immediate debounced catch-up persist (only real **`update`** events schedule saves), avoiding an **empty doc** overwriting a good row after a transient DB error. **(2)** Before replacing an existing performance or template snapshot **≥ 256 bytes**, the new encoded state is **headless-replayed**; if the result is not **structurally usable** (same bar as opLog compaction), the write is **skipped** with a **warn** log and the previous snapshot is kept.
+
 - **API — Yjs persist:** Persisting a performance workbook snapshot no longer **crashes the process** when the **performance row was deleted** but a collab WebSocket was still open (PostgreSQL **FK** `23503`). The flush is skipped with a **warn** log; **`writeState`** errors are caught so disconnect handlers cannot kill the server.
 
 - **Web — stage chat:** Chat dock is **`createPortal`’d to `document.body`** (avoids stacking traps under **`#root`** / spreadsheet hosts) and **`right`** uses **`--app-scrollbar-width`** (set by **`ViewportScrollbarVar`**) so it clears classic viewport scrollbars. **`z-index`** remains **`999`** (**`--z-stage-chat-dock`**); modals (**1000**) and toasts stay on top.
