@@ -10,6 +10,35 @@ import { logDebug } from "./debug";
 /** Must match `ydoc.transact(..., origin)` in onOp handlers for patch/template workbooks. */
 export const PATCH_WORKBOOK_Y_ORIGIN = "fortune-local";
 
+/**
+ * When the workbook was bootstrapped from `sheets-export` (server-side opLog replay), the initial
+ * `data` prop already contains all sheets created by historical `addSheet` ops. Replaying those
+ * same ops during `drainOpLogWithQuietFrames` would push duplicate sheets. This helper detects
+ * structural ops that are already reflected in the current workbook state and returns `true` when
+ * the batch should be silently skipped.
+ */
+function shouldSkipAlreadyAppliedStructuralOps(
+  wb: WorkbookInstance,
+  ops: Op[],
+): boolean {
+  const raw = ops as Array<Record<string, unknown>>;
+  for (const o of raw) {
+    if (o.op === "addSheet" && typeof o.id === "string" && o.id !== "") {
+      const sheets = wb.getAllSheets() as Sheet[];
+      if (sheets.some((s) => String(s.id) === o.id)) return true;
+    }
+    if (o.op === "deleteSheet") {
+      const payload = o.value as Record<string, unknown> | undefined;
+      const delId = payload?.id ?? o.id;
+      if (typeof delId === "string" && delId !== "") {
+        const sheets = wb.getAllSheets() as Sheet[];
+        if (!sheets.some((s) => String(s.id) === delId)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 /** Compact, non-secret summary of an `Op[]` batch for logs when replay fails. */
 function summarizeOpsForDebug(ops: Op[]): { count: number; head: string } {
   const count = ops?.length ?? 0;
@@ -228,6 +257,7 @@ async function drainOpLogWithQuietFrames(opts: {
   let idleFrames = 0;
   /** Wall-clock start of “caught up to yops.length” streak (reset whenever new ops arrive). */
   let quietStart: number | null = null;
+  logDebug("patch-workbook-yjs", "drain START", { startIndex, yopsLength: yops.length, sheets: (wb.getAllSheets() as unknown[])?.length, roomId });
   while (idleFrames < idleFramesRequired) {
     if (cancelled() || runId !== hydrationRunIdRef.current) {
       return { index: i, aborted: false };
@@ -242,6 +272,10 @@ async function drainOpLogWithQuietFrames(opts: {
       let ops: Op[] = [];
       try {
         ops = JSON.parse(item) as Op[];
+        if (shouldSkipAlreadyAppliedStructuralOps(wb, ops)) {
+          logDebug("patch-workbook-yjs", "drain SKIP already-applied structural op", { batchIndex });
+          continue;
+        }
         wb.applyOp(ops);
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -390,6 +424,10 @@ export function usePatchWorkbookOpLogEffects(
           let ops: Op[] = [];
           try {
             ops = JSON.parse(item) as Op[];
+            if (wbRef.current && shouldSkipAlreadyAppliedStructuralOps(wbRef.current, ops)) {
+              logDebug("patch-workbook-yjs", "observe SKIP already-applied structural op");
+              continue;
+            }
             wbRef.current?.applyOp(ops);
             appliedRemote = true;
           } catch (e) {
