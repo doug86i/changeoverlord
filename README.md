@@ -52,7 +52,7 @@ Schedules, the optional shared password, and other show settings are configured 
 git pull && docker compose pull && docker compose up -d
 ```
 
-Database migrations run automatically on startup.
+Database migrations run automatically on startup. **Pushing code or pulling a new image does not erase your data** — your **`DATA_DIR`** (Postgres files + uploads) stays on disk unless you explicitly remove it. See **`docs/DEVELOPMENT.md`** § *Database resets* if you ever need a deliberate clean Postgres (throwaway / dev only).
 
 ### Stop
 

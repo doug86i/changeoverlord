@@ -158,8 +158,9 @@ The project consumes **`@fortune-sheet/core`** and **`@fortune-sheet/react`** fr
 
 ## Migrations & upgrades
 
-- **Drizzle** (or chosen tool) **migrations** run **automatically** on API container start (`migrate` then `listen`) — documented in README.
-- **Operators**: **backup `DATA_DIR`** before upgrading **image tag**; release notes call out breaking DB changes.
+- **Drizzle** **migrations** run **automatically** on API container start (`migrate` then `listen`) — documented in README. They apply **incremental SQL**; they do **not** wipe the database.
+- **CI / `git push`** publishes container images only — **no** database reset is performed in the pipeline.
+- **Operators**: **backup `DATA_DIR`** before upgrading **image tag**; release notes call out breaking DB changes. Optional full reset (delete Postgres data dir / volume) is a **manual** decision on a given host, not something that happens on every deploy.
 
 ---
 

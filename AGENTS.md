@@ -118,6 +118,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 
 ## Known constraints (read before making changes)
 
+- **Database:** **Do not** treat deleting **`DATA_DIR`** / Postgres volumes as part of normal releases or agent checklists. Migrations on API boot upgrade schema in place. Full wipes are **operator opt-in** (throwaway dev or intentional clean start) — see **`docs/DEVELOPMENT.md`** § *Database resets*.
 - **FortuneSheet**: Core spreadsheet dependency. Collaboration uses **`onOp` → WebSocket → `applyOp`** (same pattern FortuneSheet documents). The server keeps **`Sheet[]`** in memory per collab room and persists **`sheets_json`** to Postgres (debounced). **Server-side** import/export and relay use **`applyOpBatchToSheets`** in **`api/src/lib/workbook-ops.ts`** (direct JSON mutation — not Immer `applyPatches`). The **`.xlsx`** / **`.json`** on disk is the upload artifact only until replaced. **Upstream bugs** are fixed in the **source-level fork** (`vendor/` tarballs — see **Docker image: FortuneSheet fork and dependencies** above); prefer **upstream PRs** when practical.
 - **In-process EventEmitter**: SSE invalidation uses an in-process bus. The app is designed for a single API instance. Adding a second replica requires Redis pub/sub or Postgres `LISTEN/NOTIFY` — see [`docs/REALTIME.md`](docs/REALTIME.md).
 - **No Redis**: Redis is not in the stack. Do not attempt to use Redis clients without first adding the service to `docker-compose.yml`.

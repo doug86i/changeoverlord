@@ -204,7 +204,9 @@ What usually costs time:
 
 ## Database resets
 
-Schema changes use **Drizzle migrations**. If a dev database is in a bad state, stop Compose, remove **`data/db/`** (only on throwaway data), then `make dev` again. **Never delete production `DATA_DIR` without a backup.**
+**Routine deploys and pushes do not reset the database.** `git push` / GitHub Actions only build and publish the **app image** — they never touch Postgres or **`DATA_DIR`**. On your server, `docker compose pull && docker compose up -d` (or equivalent) restarts containers; the API runs **`drizzle` migrations** on startup and **keeps existing data** in the mounted volume.
+
+Schema changes ship as **forward migrations** in **`api/drizzle/`**. Wiping **`data/db/`** (or removing the Postgres volume with **`docker compose down -v`**) is **only** for intentional throwaway resets — e.g. a dev machine you are happy to empty, or a one-off choice to start clean after a **breaking** migration when you have no data to keep. It is **not** part of normal upgrades. **Never delete production `DATA_DIR` without a backup.**
 
 ## New machine or teammate
 
