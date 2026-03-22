@@ -75,6 +75,8 @@ export const stages = pgTable("stages", {
     () => patchTemplates.id,
     { onDelete: "set null" },
   ),
+  /** Urgent line shown on all clock displays for this stage (stage manager; SSE-synced). */
+  clockMessage: text("clock_message"),
 });
 
 export const stageDays = pgTable("stage_days", {

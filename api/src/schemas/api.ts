@@ -49,6 +49,11 @@ export const patchStageBody = z.object({
   defaultPatchTemplateId: z.string().uuid().optional(),
 });
 
+/** Set or clear the urgent line on stage clocks (`null` or empty clears). */
+export const patchStageClockMessageBody = z.object({
+  message: z.union([z.string().max(500), z.null()]),
+});
+
 export const createStageDayBody = z.object({
   dayDate: dateStr,
   sortOrder: z.number().int().optional(),

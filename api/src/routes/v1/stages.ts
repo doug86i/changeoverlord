@@ -6,6 +6,7 @@ import { events, patchTemplates, stageDays, stages } from "../../db/schema.js";
 import {
   createStageBody,
   patchStageBody,
+  patchStageClockMessageBody,
   eventIdParam,
   uuidParam,
 } from "../../schemas/api.js";
@@ -16,6 +17,7 @@ const stageCols = {
   name: stages.name,
   sortOrder: stages.sortOrder,
   defaultPatchTemplateId: stages.defaultPatchTemplateId,
+  clockMessage: stages.clockMessage,
 };
 
 const stageColsWithTemplate = {
@@ -67,6 +69,29 @@ export const stagesRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(stages.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
     return { stage: row };
+  });
+
+  app.patch("/stages/:id/clock-message", async (req, reply) => {
+    const { id } = uuidParam.parse(req.params);
+    const body = patchStageClockMessageBody.parse(req.body);
+    const normalized =
+      body.message === null || body.message.trim() === "" ? null : body.message.trim();
+    const [row] = await db
+      .update(stages)
+      .set({ clockMessage: normalized })
+      .where(eq(stages.id, id))
+      .returning(stageCols);
+    if (!row) return reply.code(404).send({ error: "NotFound" });
+    broadcastInvalidate([
+      ["stages", row.eventId],
+      ["stage", id],
+      ["allStagesForClock"],
+    ]);
+    req.log.debug(
+      { stageId: id, cleared: normalized === null, messageLen: normalized?.length ?? 0 },
+      "clock message updated",
+    );
+    return { stage: { ...row, hasPatchTemplate: row.defaultPatchTemplateId != null } };
   });
 
   app.patch("/stages/:id", async (req, reply) => {
