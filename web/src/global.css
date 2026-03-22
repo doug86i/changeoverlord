@@ -1959,6 +1959,7 @@ a.patch-sidebar-perf-link:hover {
     flex-direction: column;
     min-height: 0;
     padding: 0.25rem 0.35rem 0.5rem;
+    overflow: hidden;
   }
 }
 
@@ -1968,11 +1969,13 @@ a.patch-sidebar-perf-link:hover {
   flex: 1 1 auto;
   min-height: 0;
   gap: 0.35rem;
+  overflow: hidden;
 }
 
 .patch-page-phone-content {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -2048,6 +2051,12 @@ a.patch-sidebar-perf-link:hover {
 .patch-workbook-host--phone {
   height: calc(100dvh - 8rem);
   min-height: 200px;
+  overflow: hidden;
+}
+
+.patch-workbook-host--phone .luckysheet-grid-window {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* ── Stage / event chat dock ───────────────────────────────── */

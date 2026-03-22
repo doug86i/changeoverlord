@@ -1,0 +1,52 @@
+diff --git a/node_modules/@fortune-sheet/core/dist/index.esm.js b/node_modules/@fortune-sheet/core/dist/index.esm.js
+index 5c9820b..5946980 100644
+--- a/node_modules/@fortune-sheet/core/dist/index.esm.js
++++ b/node_modules/@fortune-sheet/core/dist/index.esm.js
+@@ -70187,6 +70187,8 @@ function handleOverlayTouchStart(ctx, e, globalCache) {
+   globalCache.touchMoveStartPos = {
+     x: touch.pageX,
+     y: touch.pageY,
++    initialScrollLeft: ctx.scrollLeft,
++    initialScrollTop: ctx.scrollTop,
+     vy: 0,
+     moveType: "y"
+   };
+@@ -70198,10 +70200,8 @@ function handleOverlayTouchMove(ctx, e, globalCache, scrollbarX, scrollbarY) {
+     if (!globalCache.touchMoveStartPos) return;
+     var slideX = touch.pageX - globalCache.touchMoveStartPos.x;
+     var slideY = touch.pageY - globalCache.touchMoveStartPos.y;
+-    var scrollLeft = ctx.scrollLeft;
+-    var scrollTop = ctx.scrollTop;
+-    scrollLeft -= slideX;
+-    scrollTop -= slideY;
++    var scrollLeft = globalCache.touchMoveStartPos.initialScrollLeft - slideX;
++    var scrollTop = globalCache.touchMoveStartPos.initialScrollTop - slideY;
+     scrollbarY.scrollTop = scrollTop;
+     globalCache.touchMoveStartPos.vy_y = slideY;
+     globalCache.touchMoveStartPos.scrollTop = scrollTop;
+diff --git a/node_modules/@fortune-sheet/core/dist/index.js b/node_modules/@fortune-sheet/core/dist/index.js
+index 04113a1..d893d4e 100644
+--- a/node_modules/@fortune-sheet/core/dist/index.js
++++ b/node_modules/@fortune-sheet/core/dist/index.js
+@@ -70197,6 +70197,8 @@ function handleOverlayTouchStart(ctx, e, globalCache) {
+   globalCache.touchMoveStartPos = {
+     x: touch.pageX,
+     y: touch.pageY,
++    initialScrollLeft: ctx.scrollLeft,
++    initialScrollTop: ctx.scrollTop,
+     vy: 0,
+     moveType: "y"
+   };
+@@ -70208,10 +70210,8 @@ function handleOverlayTouchMove(ctx, e, globalCache, scrollbarX, scrollbarY) {
+     if (!globalCache.touchMoveStartPos) return;
+     var slideX = touch.pageX - globalCache.touchMoveStartPos.x;
+     var slideY = touch.pageY - globalCache.touchMoveStartPos.y;
+-    var scrollLeft = ctx.scrollLeft;
+-    var scrollTop = ctx.scrollTop;
+-    scrollLeft -= slideX;
+-    scrollTop -= slideY;
++    var scrollLeft = globalCache.touchMoveStartPos.initialScrollLeft - slideX;
++    var scrollTop = globalCache.touchMoveStartPos.initialScrollTop - slideY;
+     scrollbarY.scrollTop = scrollTop;
+     globalCache.touchMoveStartPos.vy_y = slideY;
+     globalCache.touchMoveStartPos.scrollTop = scrollTop;

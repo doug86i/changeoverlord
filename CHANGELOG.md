@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — overlay **`touchmove`** used cumulative finger delta against **already-updated** scroll each frame (pan felt **much faster** than the finger on iOS). Patched to anchor scroll to **`touchstart`**; phone patch CSS drops **`touch-action: pan`** on the grid window so programmatic pan is not doubled with native scrolling.
 - **Web:** **Patch page** — resizing between phone and desktop breakpoints no longer destroys the FortuneSheet workbook; single render path keeps the `<Workbook>` mounted across breakpoint transitions, and the visibility-aware collab reconnects when `pauseWhenHidden` is disabled.
 - **Web:** **Stage day clock** — **Fullscreen (F)** no longer toggles a separate “fill” layout (that remounted the arena and **ended fullscreen** immediately); fullscreen runs on the same **arena** node while the manager layout stays mounted. **Dedicated kiosk** (`?kiosk=1`) is **removed**; that query **redirects** to the normal clock URL.
 - **Web:** **Clock** picker (`ClockPage`) uses **`["events","allForClock"]`** so its list does not read **`useInfiniteQuery`** **`["events"]`** cache (fixes **`events.map is not a function`**).
