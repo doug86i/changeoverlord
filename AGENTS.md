@@ -100,7 +100,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 |-------|--------|-------|
 | CRUD (events → stages → days → performances) | **Done** | Full REST API + SSE invalidation, inline edit/delete all entities |
 | Auth (optional shared password) | **Done** | Session cookie, `@fastify/cookie` |
-| Stage clocks | **Done** | Day clock, distance layout (fullscreen or `?kiosk=1`), band nav, auto-advance, message overlay, warning colours |
+| Stage clocks | **Done** | Day clock, arena + controls layout, **F** fullscreen, band nav, auto-advance, message overlay, warning colours |
 | Collaborative patch/RF workbook (Yjs + FortuneSheet) | **Done** | WebSocket sync, Yjs persistence, template cloning, band-to-band nav, patch **sidebar** (changeover, clock, now/next, rider/plot, collapsible), theme-aligned **toolbar / sheet chrome**; **cell selection / editor** use **FortuneSheet defaults** |
 | Global patch template library | **Done** | Upload OOXML Excel (`.xlsx`, `.xltx`, `.xlsm`, `.xltm`, …); **blank** patch = no stored template (stage **None**); optional **`examples/`** starters; in-app edit, preview, rename, replace, duplicate, delete |
 | DHSL footer branding | **Done** | Fixed "Powered by" footer |
@@ -210,7 +210,7 @@ web/
       KeyboardShortcuts.tsx       # ? help overlay + useGlobalShortcuts hook
       PerformanceBandNav.tsx      # prev/next/jump band navigation
       ClockEndOfDayOverlay.tsx    # post-last-act / next-day crew messaging on clock
-      ClockArena.tsx              # unified stage clock face (contained + kiosk/fullscreen)
+      ClockArena.tsx              # unified stage clock face (contained + fullscreen)
       FileAttachments.tsx         # drag-drop upload, inline PDF viewer, extract
       PerformanceFilesPanel.tsx   # wraps FileAttachments for performance scope (Files route + clock)
       PatchPageSidebar.tsx        # patch page sticky context (clock, changeover, files)

@@ -58,7 +58,7 @@ function formatChatTime(iso: string): string {
 export function StageChatDock() {
   const qc = useQueryClient();
   const { pathname } = useLocation();
-  /** Fullscreen / kiosk clock — no chat (even when a stage day is in the URL). */
+  /** Stage clock routes — no chat (keeps performer / fullscreen displays clear). */
   const onClockScreen =
     pathname === "/clock" || pathname.startsWith("/clock/");
 

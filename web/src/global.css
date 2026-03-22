@@ -545,7 +545,7 @@ a.search-dialog-result:focus-visible {
   border: 1px solid var(--color-brand);
 }
 
-/* ── Stage clock (unified arena — contained preview or fill / kiosk / fullscreen) ─ */
+/* ── Stage clock (unified arena — contained preview + browser fullscreen) ─ */
 
 .clock-day-manager {
   max-width: 120rem;

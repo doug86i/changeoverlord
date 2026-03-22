@@ -8,15 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **Web:** **Stage day clock** — **Fullscreen (F)** no longer toggles a separate “fill” layout (that remounted the arena and **ended fullscreen** immediately); fullscreen runs on the same **arena** node while the manager layout stays mounted (**kiosk** **`?kiosk=1`** is unchanged).
+- **Web:** **Stage day clock** — **Fullscreen (F)** no longer toggles a separate “fill” layout (that remounted the arena and **ended fullscreen** immediately); fullscreen runs on the same **arena** node while the manager layout stays mounted. **Dedicated kiosk** (`?kiosk=1`) is **removed**; that query **redirects** to the normal clock URL.
 - **Web:** **Clock** picker (`ClockPage`) uses **`["events","allForClock"]`** so its list does not read **`useInfiniteQuery`** **`["events"]`** cache (fixes **`events.map is not a function`**).
 - **Docker:** **Fast stack** (`docker-compose.fast.yml`) — start **api** / **web** as root long enough to **`chown`** the **`node_modules`** named volumes, then **`su node`** so **`npm install`** / Vite are not blocked by **EACCES** on fresh or root-owned volumes.
 
 ### Added
 
 - **Web:** **`PerformanceFilesPanel`** — shared performance-scoped **`FileAttachments`** wrapper; **stage clock** focus section embeds the same file management as the performance **Files** route (collapsed by default).
-- **API / Web:** **Stage clock urgent message** — `stages.clock_message`, **`PATCH /api/v1/stages/:id/clock-message`**, synced to all clock UIs via existing **`stage`** SSE invalidation; flashing overlay on **kiosk** and stage-manager preview.
-- **Web:** **`ClockArena`** — single responsive arena layout for **`ClockDayPage`** (split view + kiosk + fullscreen).
+- **API / Web:** **Stage clock urgent message** — `stages.clock_message`, **`PATCH /api/v1/stages/:id/clock-message`**, synced to all clock UIs via existing **`stage`** SSE invalidation; flashing overlay on the **clock arena** for all viewers.
+- **Web:** **`ClockArena`** — single responsive arena layout for **`ClockDayPage`** (arena + controls + fullscreen).
 
 ### Security
 
@@ -37,7 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Web:** **Stage day clock** — arena **above** full-width **controls** (no side-by-side); urgent message flashes **inside the clock arena only** (controls stay usable); **fullscreen** / **kiosk** still show the flash across the full arena.
+- **Web:** **Stage day clock** — arena **above** full-width **controls** (no side-by-side); urgent message flashes **inside the clock arena only** (controls stay usable); **fullscreen** shows the flash across the full arena. Footer shows **Fullscreen** or **Exit fullscreen**, not both at once.
 - **API:** **`hasPassword`** checks in **`auth-guard`** and **`GET /auth/session`** use a short-TTL **`getCachedHasPassword()`** cache; password mutations call **`invalidatePasswordSettingsCache()`**.
 - **API:** **`GET /events/:id/export`** loads **stage days**, **performances**, and **Yjs snapshots** with **`inArray`** batch queries instead of nested per-row selects; **event delete** invalidation resolves **stage-day** ids in one query.
 - **API:** **Rate limits** — **`POST /files`** (120/min), **`POST /import`** (20/min), **`POST /patch-templates`** and **`POST /patch-templates/:id/replace`** (40/min each).
@@ -288,7 +288,7 @@ First integrated release: festival sound-ops web app (schedules, changeovers, pa
 - **Scaffold & deploy:** Docker Compose, GHCR image workflow, single `DATA_DIR` tree for Postgres and uploads, `HOST_PORT` / `APP_IMAGE_TAG` / `LOG_LEVEL` / `SESSION_SECRET` in Compose, multi-stage `Dockerfile` serving built SPA + Fastify API.
 - **API:** Fastify + TypeScript, Drizzle ORM + PostgreSQL migrations, REST under `/api/v1` for events → stages → stage-days → performances; health and server time; optional shared-password auth (`@fastify/cookie`, HMAC session, bcrypt); settings routes; structured logging (`req.log`, `LOG_LEVEL`).
 - **Realtime:** SSE `GET /api/v1/realtime` with TanStack Query invalidation after mutations; WebSocket Yjs collaboration for patch/RF workbooks (performances and templates).
-- **Domain features:** Patch template library (upload OOXML Excel, presets, stage defaults), file attachments with PDF viewer and page extract, global search, event JSON export/import, performance overlap hints, swap/shift scheduling, stage clocks (including distance/fullscreen/kiosk-style views), “My stage today”, keyboard shortcuts, connection status banner, offline-first TanStack network mode.
+- **Domain features:** Patch template library (upload OOXML Excel, presets, stage defaults), file attachments with PDF viewer and page extract, global search, event JSON export/import, performance overlap hints, swap/shift scheduling, stage clocks (arena + fullscreen), “My stage today”, keyboard shortcuts, connection status banner, offline-first TanStack network mode.
 - **Web:** Vite + React + TypeScript, responsive shell and navigation, FortuneSheet-based workbook UI, light/dark themes.
 - **Docs & tooling:** `USER_GUIDE`, `REALTIME`, `LOGGING`, `DESIGN`, `PLAN`, `HANDOVER`, `AGENTS.md`, Cursor rules for deploy and patterns.
 

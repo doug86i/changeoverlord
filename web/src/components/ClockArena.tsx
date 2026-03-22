@@ -37,7 +37,7 @@ export type ClockArenaProps = {
   heroUrgency: ClockArenaHeroUrgency;
   /** End-of-day / loading overlay (optional). */
   overlay?: ReactNode;
-  /** Footer links / buttons (fullscreen exit, kiosk link, etc.). */
+  /** Footer actions inside the arena (e.g. fullscreen toggle). */
   footerActions?: ReactNode;
 };
 

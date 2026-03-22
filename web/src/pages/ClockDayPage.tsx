@@ -81,7 +81,13 @@ export function ClockDayPage() {
   const navigatedRef = useRef(false);
   const { stageDayId } = useParams<{ stageDayId: string }>();
   const [searchParams] = useSearchParams();
-  const kioskMode = searchParams.get("kiosk") === "1";
+
+  /** Legacy `?kiosk=1` bookmarks → normal clock (kiosk mode removed). */
+  useEffect(() => {
+    if (searchParams.get("kiosk") === "1" && stageDayId) {
+      navigate({ pathname: `/clock/day/${stageDayId}`, search: "" }, { replace: true });
+    }
+  }, [searchParams, stageDayId, navigate]);
 
   const arenaRef = useRef<HTMLDivElement>(null);
   const [isFs, setIsFs] = useState(false);
@@ -304,9 +310,6 @@ export function ClockDayPage() {
   const goPrev = useCallback(() => setFocusIdx((i) => Math.max(0, i - 1)), []);
   const goNext = useCallback(() => setFocusIdx((i) => Math.min(sorted.length - 1, i + 1)), [sorted.length]);
 
-  /** Kiosk URL only — do not tie to fullscreen intent or `isFs`; switching layout unmounts the arena and kills fullscreen. */
-  const fillViewport = kioskMode;
-
   useEffect(() => {
     const onFs = () => {
       const el = arenaRef.current;
@@ -338,7 +341,6 @@ export function ClockDayPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === "INPUT" || (e.target as HTMLElement).tagName === "TEXTAREA") return;
-      if (kioskMode) return;
       if (e.key === "ArrowLeft") goPrev();
       if (e.key === "ArrowRight") goNext();
       if (e.key === "f" || e.key === "F") {
@@ -348,7 +350,7 @@ export function ClockDayPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goPrev, goNext, toggleFullscreen, kioskMode]);
+  }, [goPrev, goNext, toggleFullscreen]);
 
   const heroUrgency = urgencyFromSeconds(heroSeconds);
   const dayLabel = formatDateShort(dayDate);
@@ -381,8 +383,6 @@ export function ClockDayPage() {
     currentDayLabel: dayLabel,
   };
 
-  const overlayAnchored = !fillViewport;
-
   let endOfDayOverlay: ReactNode = null;
   if (hasSchedule && lastEndMs !== null && advanceAtMs !== null) {
     const t = now.getTime();
@@ -390,11 +390,11 @@ export function ClockDayPage() {
       if (t < advanceAtMs) {
         if (nextStageDay === undefined) {
           endOfDayOverlay = (
-            <ClockEndOfDayOverlay mode="grace_next" {...commonEnd} nextDayLoading anchored={overlayAnchored} />
+            <ClockEndOfDayOverlay mode="grace_next" {...commonEnd} nextDayLoading anchored />
           );
         } else if (nextStageDay === null) {
           endOfDayOverlay = (
-            <ClockEndOfDayOverlay mode="grace_final" {...commonEnd} anchored={overlayAnchored} />
+            <ClockEndOfDayOverlay mode="grace_final" {...commonEnd} anchored />
           );
         } else {
           endOfDayOverlay = (
@@ -404,14 +404,14 @@ export function ClockDayPage() {
               nextDayLabel={formatDateShort(nextStageDay.dayDate)}
               nextPerformances={nextSorted}
               nextDayLoading={nextDayPerfQ.isLoading}
-              anchored={overlayAnchored}
+              anchored
             />
           );
         }
       } else if (nextStageDay === undefined) {
         endOfDayOverlay = (
           <div
-            className={`clock-end-overlay${overlayAnchored ? " clock-end-overlay--anchored" : ""}`}
+            className="clock-end-overlay clock-end-overlay--anchored"
             role="status"
           >
             <div className="clock-end-overlay-inner">
@@ -422,7 +422,7 @@ export function ClockDayPage() {
         );
       } else if (nextStageDay === null) {
         endOfDayOverlay = (
-          <ClockEndOfDayOverlay mode="thank_you" {...commonEnd} anchored={overlayAnchored} />
+          <ClockEndOfDayOverlay mode="thank_you" {...commonEnd} anchored />
         );
       }
     }
@@ -447,58 +447,19 @@ export function ClockDayPage() {
     overlay: endOfDayOverlay,
   };
 
-  const footerKiosk = (
-    <Link
-      to={`/clock/day/${stageDayId}`}
-      className="icon-btn"
-      title="Return to the stage manager clock with controls"
-    >
-      Full clock — controls &amp; schedule
-    </Link>
-  );
-
   const footerManager = (
     <>
-      {isFs && (
+      {isFs ? (
         <button type="button" className="primary" onClick={toggleFullscreen}>
           Exit fullscreen (F)
         </button>
+      ) : (
+        <button type="button" className="primary" onClick={toggleFullscreen}>
+          Fullscreen (F)
+        </button>
       )}
-      <button type="button" className="primary" onClick={toggleFullscreen}>
-        Fullscreen (F)
-      </button>
-      <Link
-        to={`/clock/day/${stageDayId}?kiosk=1`}
-        className="icon-btn"
-        title="Performer / TV view — same clock face, no controls"
-      >
-        Open kiosk view
-      </Link>
     </>
   );
-
-  if (fillViewport) {
-    return (
-      <div
-        className="clock-day-fill-root"
-        style={{
-          minHeight: "100dvh",
-          display: "flex",
-          flexDirection: "column",
-          margin: 0,
-          padding: 0,
-          maxWidth: "none",
-        }}
-      >
-        <ClockArena
-          ref={arenaRef}
-          mode="fill"
-          {...arenaProps}
-          footerActions={kioskMode ? footerKiosk : footerManager}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="clock-day-manager">
@@ -536,7 +497,7 @@ export function ClockDayPage() {
               Urgent message
             </h2>
             <p className="muted" style={{ marginTop: 0, fontSize: "0.85rem" }}>
-              Flashes over the clock arena only (countdown area above — not this panel), here and on kiosk/fullscreen. Clear when done.
+              Flashes over the clock arena only (countdown area above — not this panel); in fullscreen the arena fills the display. Clear when done.
             </p>
             <textarea
               className="clock-day-message-input"

@@ -102,7 +102,7 @@ All tier-1 features from the original requirements are implemented:
 | Mini clock + countdown in patch sidebar | **Done** |
 | Running order: inline editing, delete, now/next, changeover durations, time colours | **Done** |
 | Duplicate performance, swap/shift scheduling | **Done** |
-| Stage clock: warning colours, changeover countdown, auto-advance, message overlay, kiosk/distance view, end-of-day | **Done** |
+| Stage clock: warning colours, changeover countdown, auto-advance, message overlay, fullscreen arena, end-of-day | **Done** |
 | Global search (Ctrl+K, /) | **Done** |
 | Confirmation dialogs on all deletes | **Done** |
 | Responsive layouts (desktop, tablet, phone) | **Done** |
