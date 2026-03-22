@@ -1539,13 +1539,27 @@ a.patch-sidebar-perf-link:hover {
 .stage-chat-dock {
   position: fixed;
   right: 1rem;
-  bottom: 1rem;
+  bottom: calc(var(--stage-chat-dock-bottom) + env(safe-area-inset-bottom, 0px));
   z-index: 90;
   max-width: min(420px, calc(100vw - 2rem));
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 0.35rem;
+}
+
+.stage-chat-dock--minimized {
+  max-width: none;
+  align-items: flex-end;
+}
+
+.stage-chat-dock--minimized > .icon-btn {
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+
+.stage-chat-dock__hide-btn {
+  margin-left: auto;
 }
 
 .stage-chat-dock__bar {

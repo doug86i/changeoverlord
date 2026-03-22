@@ -15,6 +15,7 @@ import {
 } from "../realtime/chatPush";
 
 const CHAT_NAME_KEY = "changeoverlord_chat_display_name";
+const CHAT_DOCK_HIDDEN_KEY = "changeoverlord_chat_dock_hidden";
 
 function formatChatTime(iso: string): string {
   try {
@@ -117,6 +118,24 @@ export function StageChatDock() {
   const contextStageId =
     sid ?? (eventIdFromRoute ? pickedStageId : null) ?? null;
 
+  const [dockHidden, setDockHiddenState] = useState(() => {
+    try {
+      return sessionStorage.getItem(CHAT_DOCK_HIDDEN_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const setDockHidden = useCallback((hidden: boolean) => {
+    setDockHiddenState(hidden);
+    try {
+      if (hidden) sessionStorage.setItem(CHAT_DOCK_HIDDEN_KEY, "1");
+      else sessionStorage.removeItem(CHAT_DOCK_HIDDEN_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const [expanded, setExpanded] = useState(false);
   const [flash, setFlash] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -132,6 +151,7 @@ export function StageChatDock() {
 
   const lastSentIdRef = useRef<string | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const messagesQ = useQuery({
     queryKey: ["chatMessages", eventId, contextStageId],
@@ -187,11 +207,12 @@ export function StageChatDock() {
         lastSentIdRef.current = null;
         return;
       }
+      setDockHidden(false);
       setExpanded(true);
       setFlash(true);
       window.setTimeout(() => setFlash(false), 1600);
     },
-    [eventId, contextStageId],
+    [eventId, contextStageId, setDockHidden],
   );
 
   useEffect(() => {
@@ -210,6 +231,30 @@ export function StageChatDock() {
     listEndRef.current?.scrollIntoView({ block: "end" });
   }, [messagesQ.data?.chatMessages]);
 
+  useEffect(() => {
+    if (!expanded || dockHidden) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root || root.contains(e.target as Node)) return;
+      setExpanded(false);
+      setSettingsOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [expanded, dockHidden]);
+
+  useEffect(() => {
+    if (!expanded || dockHidden) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setExpanded(false);
+        setSettingsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [expanded, dockHidden]);
+
   const showStagePicker = Boolean(eventIdFromRoute && stagesQ.data?.stages.length);
 
   const panelClass = useMemo(
@@ -222,13 +267,34 @@ export function StageChatDock() {
     return null;
   }
 
-  const messages = messagesQ.data?.chatMessages ?? [];
   const stageLabel =
     stagesQ.data?.stages.find((s) => s.id === contextStageId)?.name ??
     "This stage";
 
+  if (dockHidden) {
+    return (
+      <div
+        ref={rootRef}
+        className="stage-chat-dock stage-chat-dock--minimized"
+        role="region"
+        aria-label="Stage chat"
+      >
+        <button
+          type="button"
+          className="icon-btn"
+          title={`Show chat — ${stageLabel}`}
+          onClick={() => setDockHidden(false)}
+        >
+          Chat
+        </button>
+      </div>
+    );
+  }
+
+  const messages = messagesQ.data?.chatMessages ?? [];
+
   return (
-    <div className={panelClass} role="region" aria-label="Stage chat">
+    <div ref={rootRef} className={panelClass} role="region" aria-label="Stage chat">
       <div className="stage-chat-dock__bar">
         <button
           type="button"
@@ -259,6 +325,19 @@ export function StageChatDock() {
             </select>
           </label>
         ) : null}
+        <button
+          type="button"
+          className="icon-btn stage-chat-dock__hide-btn"
+          aria-label="Hide chat"
+          title="Hide chat (new messages will show it again)"
+          onClick={() => {
+            setDockHidden(true);
+            setExpanded(false);
+            setSettingsOpen(false);
+          }}
+        >
+          Hide
+        </button>
       </div>
       {expanded ? (
         <div className="stage-chat-dock__panel card">

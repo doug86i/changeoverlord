@@ -82,7 +82,8 @@ While you are inside an **event** (event detail, a **stage**, a **stage day**, *
 
 - **Stage context** — You see messages for **that stage** plus anything sent to the **whole event**. On the **event** detail page, use the **Stage** dropdown in the bar to pick which stage thread you are viewing.
 - **Sending** — **Enter** sends the message; **Shift+Enter** adds a new line. Open **Options** to set your **display name** (stored in **this browser only**) and choose **This stage only** vs **Whole event**.
-- **New messages** — When someone else sends a message you should see, the chat **opens** and the bar **flashes** briefly so you notice it. Your own sends do not flash the dock.
+- **Hide** — **Hide** in the bar tucks chat away to a small **Chat** button (for this browser tab until you show it again). **New messages** still **re-open** chat and flash so you do not miss them.
+- **Click away** — With the message panel open, **click outside** it or press **Escape** to close the panel (the bar stays). **New messages** open the panel again and flash the bar. Your own sends do not flash the dock.
 
 Chat is meant for **short coordination** on the LAN; there is no private DM or edit/delete.
 
