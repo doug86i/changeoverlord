@@ -78,12 +78,11 @@ Typical URL shape as you drill in: `/events/:eventId` → `/stages/:stageId` →
 
 ### Stage and event chat
 
-While you are inside an **event** (event detail, a **stage**, a **stage day**, **patch / RF** for a band, or **performance files**), a **Chat** bar appears at the **bottom-right** of the screen. It does **not** appear on **Clock** pages (including clock day URLs), so fullscreen displays stay clear.
+While you are inside an **event** (event detail, a **stage**, a **stage day**, **patch / RF** for a band, or **performance files**), **Chat** appears at the **bottom-right**: either a small **Chat** button (closed) or the full panel (open). It does **not** appear on **Clock** pages (including clock day URLs), so fullscreen displays stay clear.
 
 - **Stage context** — You see messages for **that stage** plus anything sent to the **whole event**. On the **event** detail page, open **Options** and use **Stage** there to pick which thread you are viewing.
 - **Sending** — **Enter** sends; **Shift+Enter** adds a new line (also noted in the message box placeholder). **Options** holds **Name**, **Stage** (when you opened the event from its detail page), and **This stage** vs **Whole event**.
-- **Hide** — **Hide** in the bar tucks chat away to a small **Chat** button (for this browser tab until you show it again). **New messages** still **re-open** chat and flash so you do not miss them.
-- **Click away** — With the message panel open, **click outside** it or press **Escape** to close the panel (the bar stays). **New messages** open the panel again and flash the bar. Your own sends do not flash the dock.
+- **Open / minimize** — Tap **Chat** to open the full window; **Minimize** (or **click outside** / **Escape** after closing **Options**) returns to the small **Chat** button. **New messages** open the panel and flash so you do not miss them. Your own sends do not flash the dock.
 
 Chat is meant for **short coordination** on the LAN; there is no private DM or edit/delete.
 

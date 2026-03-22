@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web — stage chat:** Only two states — compact **Chat** button or **full panel** with **Minimize** (removed the extra bar + **Hide** + session “tucked” state).
+
 - **Web — stage chat:** Wider dock (**`--stage-chat-dock-max-width`**, default **36rem**) and slightly taller message panel.
 
 - **Process / agents:** **`AGENTS.md`** and Cursor rules (**`agents-process`**, **`local-docker-deploy`**) state that agents **always** run **`make dev-fast`** / **`make dev`** after code changes when Docker is available (not optional hand-off text only).

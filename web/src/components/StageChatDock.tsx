@@ -15,7 +15,6 @@ import {
 } from "../realtime/chatPush";
 
 const CHAT_NAME_KEY = "changeoverlord_chat_display_name";
-const CHAT_DOCK_HIDDEN_KEY = "changeoverlord_chat_dock_hidden";
 
 function formatChatTime(iso: string): string {
   try {
@@ -118,24 +117,7 @@ export function StageChatDock() {
   const contextStageId =
     sid ?? (eventIdFromRoute ? pickedStageId : null) ?? null;
 
-  const [dockHidden, setDockHiddenState] = useState(() => {
-    try {
-      return sessionStorage.getItem(CHAT_DOCK_HIDDEN_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-
-  const setDockHidden = useCallback((hidden: boolean) => {
-    setDockHiddenState(hidden);
-    try {
-      if (hidden) sessionStorage.setItem(CHAT_DOCK_HIDDEN_KEY, "1");
-      else sessionStorage.removeItem(CHAT_DOCK_HIDDEN_KEY);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
+  /** Open = full panel; closed = compact Chat button only. */
   const [expanded, setExpanded] = useState(false);
   const [flash, setFlash] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -212,12 +194,11 @@ export function StageChatDock() {
         lastSentIdRef.current = null;
         return;
       }
-      setDockHidden(false);
       setExpanded(true);
       setFlash(true);
       window.setTimeout(() => setFlash(false), 1600);
     },
-    [eventId, contextStageId, setDockHidden],
+    [eventId, contextStageId],
   );
 
   useEffect(() => {
@@ -237,11 +218,10 @@ export function StageChatDock() {
   }, [messagesQ.data?.chatMessages]);
 
   useEffect(() => {
-    if (!expanded || dockHidden) return;
+    if (!expanded) return;
     const onPointerDown = (e: PointerEvent) => {
       const root = rootRef.current;
       if (!root || root.contains(e.target as Node)) return;
-      // First dismiss Options (e.g. after using the stage <select>), then the panel.
       if (settingsOpenRef.current) {
         setSettingsOpen(false);
       } else {
@@ -250,10 +230,10 @@ export function StageChatDock() {
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [expanded, dockHidden]);
+  }, [expanded]);
 
   useEffect(() => {
-    if (!expanded || dockHidden) return;
+    if (!expanded) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (settingsOpenRef.current) {
@@ -264,13 +244,13 @@ export function StageChatDock() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [expanded, dockHidden]);
+  }, [expanded]);
 
   const showStagePicker = Boolean(eventIdFromRoute && stagesQ.data?.stages.length);
 
   const panelClass = useMemo(
     () =>
-      `stage-chat-dock${flash ? " stage-chat-dock--flash" : ""}${expanded ? " stage-chat-dock--open" : ""}`,
+      `stage-chat-dock${flash ? " stage-chat-dock--flash" : ""}${expanded ? " stage-chat-dock--open" : " stage-chat-dock--collapsed"}`,
     [flash, expanded],
   );
 
@@ -282,56 +262,46 @@ export function StageChatDock() {
     stagesQ.data?.stages.find((s) => s.id === contextStageId)?.name ??
     "This stage";
 
-  if (dockHidden) {
-    return (
-      <div
-        ref={rootRef}
-        className="stage-chat-dock stage-chat-dock--minimized"
-        role="region"
-        aria-label="Stage chat"
-      >
-        <button
-          type="button"
-          className="icon-btn"
-          title={`Show chat — ${stageLabel}`}
-          onClick={() => setDockHidden(false)}
-        >
-          Chat
-        </button>
-      </div>
-    );
-  }
-
   const messages = messagesQ.data?.chatMessages ?? [];
 
   return (
     <div ref={rootRef} className={panelClass} role="region" aria-label="Stage chat">
-      <div className="stage-chat-dock__bar">
+      {!expanded ? (
         <button
           type="button"
-          className="stage-chat-dock__toggle"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((e) => !e)}
+          className="icon-btn stage-chat-dock__peek-btn"
+          title={`Open chat — ${stageLabel}`}
+          aria-expanded={false}
+          aria-haspopup="dialog"
+          onClick={() => setExpanded(true)}
         >
           Chat
         </button>
-        <button
-          type="button"
-          className="icon-btn stage-chat-dock__hide-btn"
-          aria-label="Hide chat"
-          title="Hide chat (new messages will show it again)"
-          onClick={() => {
-            setDockHidden(true);
-            setExpanded(false);
-            setSettingsOpen(false);
-          }}
+      ) : (
+        <div
+          id="stage-chat-dock-panel"
+          className="stage-chat-dock__panel card"
+          role="dialog"
+          aria-modal="false"
+          aria-label={`Chat — ${stageLabel}`}
         >
-          Hide
-        </button>
-      </div>
-      {expanded ? (
-        <div className="stage-chat-dock__panel card">
-          <div className="stage-chat-dock__panel-title muted">{stageLabel}</div>
+          <div className="stage-chat-dock__panel-header">
+            <div className="stage-chat-dock__panel-title muted" id="stage-chat-dock-panel-title">
+              {stageLabel}
+            </div>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Minimize chat"
+              title="Minimize"
+              onClick={() => {
+                setExpanded(false);
+                setSettingsOpen(false);
+              }}
+            >
+              Minimize
+            </button>
+          </div>
           <div className="stage-chat-dock__messages" role="log" aria-live="polite">
             {messagesQ.isLoading ? (
               <p className="muted">Loading…</p>
@@ -458,7 +428,7 @@ export function StageChatDock() {
             ) : null}
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
