@@ -99,7 +99,8 @@ export async function downloadWorkbookJson(
   a.href = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  // Defer revoke so the browser can start the download before the blob URL is torn down.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export async function apiSendForm<T>(

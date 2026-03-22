@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 const SHORTCUTS = [
   { key: "/", desc: "Search" },
@@ -68,7 +68,8 @@ export function useGlobalShortcuts({
   /** When set (e.g. last-viewed stage day), `g c` uses this instead of `/clock`. */
   onClockNavigate?: () => void;
 }) {
-  const [gPending, setGPending] = useState(false);
+  const gPendingRef = useRef(false);
+  const gTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -90,8 +91,10 @@ export function useGlobalShortcuts({
         onHelp();
         return;
       }
-      if (gPending) {
-        setGPending(false);
+      if (gPendingRef.current) {
+        gPendingRef.current = false;
+        clearTimeout(gTimeoutRef.current);
+        gTimeoutRef.current = undefined;
         if (e.key === "e") { navigate("/"); return; }
         if (e.key === "m" && onMyStageToday) {
           e.preventDefault();
@@ -107,11 +110,19 @@ export function useGlobalShortcuts({
         return;
       }
       if (e.key === "g" && !e.ctrlKey && !e.metaKey) {
-        setGPending(true);
-        setTimeout(() => setGPending(false), 1000);
+        gPendingRef.current = true;
+        clearTimeout(gTimeoutRef.current);
+        gTimeoutRef.current = setTimeout(() => {
+          gPendingRef.current = false;
+          gTimeoutRef.current = undefined;
+        }, 1000);
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onSearch, onHelp, navigate, onMyStageToday, onClockNavigate, gPending]);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      clearTimeout(gTimeoutRef.current);
+      gTimeoutRef.current = undefined;
+    };
+  }, [onSearch, onHelp, navigate, onMyStageToday, onClockNavigate]);
 }

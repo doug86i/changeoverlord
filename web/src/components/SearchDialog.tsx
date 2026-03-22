@@ -17,11 +17,15 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    if (open) {
-      setQ("");
-      setResults(null);
-      setTimeout(() => inputRef.current?.focus(), 50);
+    if (!open) {
+      clearTimeout(timer.current);
+      timer.current = undefined;
+      return;
     }
+    setQ("");
+    setResults(null);
+    const focusId = setTimeout(() => inputRef.current?.focus(), 50);
+    return () => clearTimeout(focusId);
   }, [open]);
 
   useEffect(() => {

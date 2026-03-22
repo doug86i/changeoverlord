@@ -12,18 +12,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Web — patch / template workbook:** Post–Yjs-hydration recalc called **`activateSheet`** with **`{ sheetId }`**, but FortuneSheet’s **`getSheet`** only reads **`options.id`**, so it fell back to the stale **`placeholder`** tab id after **`luckysheetfile`** replace. That broke **`jfrefreshgrid` / `calculateFormula`** (e.g. **#REF!** in **A1**, **sheet not found** on edit until reload). Recalc now passes **`{ id: sheetId }`**. **API:** Excel → sheets normalisation assigns a **UUID** when a sheet’s **`id` is `""`** (library quirk) and aligns **`calcChain`** ids so incremental recalc stays consistent.
 
-### Changed
-
-- **Web — stage files:** **Rider** / **Stage plot** toggles are **hidden** on the stage-wide file list (use each act’s **Files** page). The list **filters out** any row with a `performanceId` so band files never show on the stage screen; a short notice appears if the API/cache returned any. **API:** `GET /files` must pass **exactly one** of `stageId` or `performanceId` (reject both or neither).
-
-- **Web — stage page:** **Stage files** is **collapsed by default** (header shows **Show (n)**). Expanded copy explains stage vs per-act uploads. **Performance Files** page intro is shortened to avoid duplicating the file-list help.
-
-- **Web — patch sidebar:** **Stage plot** preview no longer falls back to **stage-wide** plots (those live under **Stage → Stage files**). Only a file marked **Stage plot** on **this act’s Files** is previewed, so a new performance is not shown another act’s shared plot by mistake. **Rider** still falls back to the stage rider when the act has none.
-
-- **Web — Settings:** Removed the redundant **Import workbook JSON** button from patch template library controls; **FortuneSheet JSON** (`.json`) is still added via the same **Upload Excel … or FortuneSheet JSON** file picker (and **Import workbook JSON** remains on the **stage** template picker).
-
-### Fixed
-
 - **API / Web — performances:** Blank or whitespace-only **band / act** names are stored as **Untitled act** on create, patch, and event import (duplicate rows use the same fallback before **(copy)**). This avoids fragile patch-workbook edge cases tied to unnamed acts. Post-replay formula refresh also **skips sheets with an empty `id`** so FortuneSheet does not call **`activateSheet`** with an invalid target.
 
 - **Web — patch workbook formulas:** After **`applyOp`** / Yjs replay, FortuneSheet could keep a **stale `formulaCellInfoMap`** built from the pre-replay grid, so **`execFunctionGroup`** did not walk the right dependency edges and **dependent formulas did not refresh** on cell edits. Post-replay and post-remote-batch recalc now runs **`jfrefreshgrid`** over each sheet’s **`data`** bounds (rebuilds **`setFormulaCellInfo`**) before **`calculateFormula`**, and clears **`onOp` suppression** after **two `requestAnimationFrame`** ticks so nested updates finish before local ops resume.
@@ -41,6 +29,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **API — patch templates:** **`POST …/patch-templates/blank`** now seeds each sheet with a dense **`data`** matrix (null cells) and an empty **`calcChain`**. Previously blank workbooks had **no** `data` array, so FortuneSheet/Yjs cell ops could not persist reliably.
 
 - **Web — patch workbook placeholder:** **`WORKBOOK_PLACEHOLDER`** includes **`data`** and **`calcChain`** so the pre-sync mount matches what FortuneSheet expects.
+
+- **API — file download:** **`GET /files/:id/raw`** returns **404** when the DB row exists but the blob is missing on disk (**ENOENT**), with a **warn** log, instead of surfacing as **500**.
+
+- **API — database:** Postgres pool **`error`** events on idle clients are **logged** (`db-pool` component) instead of failing silently.
+
+- **Web — search / shortcuts:** **`g`** navigation prefix and search **debounce** timers are **cleared** on unmount / when the search dialog closes so callbacks cannot run after teardown; workbook JSON **download** revokes the blob URL on the **next macrotask** so the browser can start the save reliably.
+
+- **Web — a11y:** Header **search**, **theme toggle**, and **My stage today** expose **`aria-label`** (still with **`title`** where helpful).
+
+### Changed
+
+- **Docs / tooling:** **`docs/REALTIME.md`** documents the **template editor** WebSocket path (**`/ws/v1/collab-template/:templateId`**). **`AGENTS.md`** file map and **`.cursor/rules`** (**`pitfalls.mdc`**, **`code-patterns.mdc`**) aligned with **`docs/CODEBASE_REVIEW.md`** follow-ups (Yjs bridge paths, oplog-replay caveat, `useQueryClient` mutation example). **`[Unreleased]`** changelog merged duplicate **`### Fixed`** blocks.
+
+- **Web — stage files:** **Rider** / **Stage plot** toggles are **hidden** on the stage-wide file list (use each act’s **Files** page). The list **filters out** any row with a `performanceId` so band files never show on the stage screen; a short notice appears if the API/cache returned any. **API:** `GET /files` must pass **exactly one** of `stageId` or `performanceId` (reject both or neither).
+
+- **Web — stage page:** **Stage files** is **collapsed by default** (header shows **Show (n)**). Expanded copy explains stage vs per-act uploads. **Performance Files** page intro is shortened to avoid duplicating the file-list help.
+
+- **Web — patch sidebar:** **Stage plot** preview no longer falls back to **stage-wide** plots (those live under **Stage → Stage files**). Only a file marked **Stage plot** on **this act’s Files** is previewed, so a new performance is not shown another act’s shared plot by mistake. **Rider** still falls back to the stage rider when the act has none.
+
+- **Web — Settings:** Removed the redundant **Import workbook JSON** button from patch template library controls; **FortuneSheet JSON** (`.json`) is still added via the same **Upload Excel … or FortuneSheet JSON** file picker (and **Import workbook JSON** remains on the **stage** template picker).
 
 ### Changed
 

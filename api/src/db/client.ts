@@ -2,7 +2,9 @@ import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema.js";
 import { drizzleDebugLogger } from "../lib/drizzle-logger.js";
-import { isDebugLevel } from "../lib/log.js";
+import { createLogger, isDebugLevel } from "../lib/log.js";
+
+const dbLog = createLogger("db-pool");
 
 const connectionString =
   process.env.DATABASE_URL ??
@@ -11,6 +13,10 @@ const connectionString =
 export const pool = new pg.Pool({
   connectionString,
   max: 20,
+});
+
+pool.on("error", (err) => {
+  dbLog.error({ err }, "Postgres pool idle client error");
 });
 
 export const db = drizzle(pool, {

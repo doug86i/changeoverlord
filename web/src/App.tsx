@@ -95,6 +95,7 @@ function Layout() {
               type="button"
               className="primary nav-my-stage"
               disabled={myStageBusy}
+              aria-label="My stage today — open today’s running order for your stage (server date; uses last visit when it’s today)"
               title="Open today’s stage-day running order for your stage (server date). Uses last visit when it’s today."
               onClick={() => void goMyStageToday()}
             >
@@ -114,6 +115,7 @@ function Layout() {
           <button
             type="button"
             className="icon-btn"
+            aria-label="Search — press slash or Ctrl+K"
             title="Search (/ or Ctrl+K)"
             onClick={openSearch}
             style={{ fontSize: "0.9rem" }}
@@ -123,6 +125,7 @@ function Layout() {
           <button
             type="button"
             onClick={toggle}
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
             title="Toggle theme"
             className="theme-toggle"
           >

@@ -70,7 +70,7 @@ function InlinePdfViewer({ fileId, onClose }: { fileId: string; onClose: () => v
         <iframe
           src={`/api/v1/files/${fileId}/raw`}
           title="PDF viewer"
-          style={{ width: "100%", height: "calc(100% - 40px)", border: "none", borderRadius: "var(--radius-md)", background: "#fff" }}
+          style={{ width: "100%", height: "calc(100% - 40px)", border: "none", borderRadius: "var(--radius-md)", background: "var(--color-surface)" }}
         />
       </div>
     </div>

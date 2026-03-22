@@ -410,7 +410,17 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     const [row] = await db.select().from(fileAssets).where(eq(fileAssets.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
     const abs = path.join(getUploadsDir(), row.storageKey);
-    const buf = await fs.readFile(abs);
+    let buf: Buffer;
+    try {
+      buf = await fs.readFile(abs);
+    } catch (e) {
+      const code = e && typeof e === "object" && "code" in e ? String((e as NodeJS.ErrnoException).code) : "";
+      if (code === "ENOENT") {
+        req.log.warn({ id, storageKey: row.storageKey }, "file row exists but blob missing on disk");
+        return reply.code(404).send({ error: "NotFound" });
+      }
+      throw e;
+    }
     return reply
       .header("Content-Type", row.mimeType)
       .header(
