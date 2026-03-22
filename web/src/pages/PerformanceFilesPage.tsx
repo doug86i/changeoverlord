@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { apiGet } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
-import { FileAttachments } from "../components/FileAttachments";
+import { PerformanceFilesPanel } from "../components/PerformanceFilesPanel";
 import { formatDateShort } from "../lib/dateFormat";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
 
@@ -80,8 +80,9 @@ export function PerformanceFilesPage() {
         this act’s list).
       </p>
       {stageId && (
-        <FileAttachments
-          scope={{ kind: "performance", performanceId, stageId }}
+        <PerformanceFilesPanel
+          performanceId={performanceId}
+          stageId={stageId}
           title="Performance files"
         />
       )}

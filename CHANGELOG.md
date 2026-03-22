@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Web:** **`PerformanceFilesPanel`** — shared performance-scoped **`FileAttachments`** wrapper; **stage clock** focus section embeds the same file management as the performance **Files** route (collapsed by default).
 - **API / Web:** **Stage clock urgent message** — `stages.clock_message`, **`PATCH /api/v1/stages/:id/clock-message`**, synced to all clock UIs via existing **`stage`** SSE invalidation; flashing overlay on **kiosk** and stage-manager preview.
 - **Web:** **`ClockArena`** — single responsive arena layout for **`ClockDayPage`** (split view + kiosk + fullscreen).
 

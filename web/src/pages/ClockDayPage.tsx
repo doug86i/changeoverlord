@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { apiGet, apiSend } from "../api/client";
 import type { EventRow, PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { ClockArena } from "../components/ClockArena";
+import { PerformanceFilesPanel } from "../components/PerformanceFilesPanel";
 import { ClockEndOfDayOverlay } from "../components/ClockEndOfDayOverlay";
 import {
   findNextStageDay,
@@ -623,9 +624,26 @@ export function ClockDayPage() {
                 )}
                 {focus.notes ? <p style={{ marginTop: "0.75rem" }}>{focus.notes}</p> : null}
               </div>
-            ) : (
-              <p className="muted">No performances.</p>
-            )}
+            ) : null}
+            {focus && stageId ? (
+              <div className="clock-day-focus-files">
+                <div className="clock-day-focus-act-links">
+                  <Link to={`/patch/${focus.id}`} className="icon-btn">
+                    Patch / RF
+                  </Link>
+                  <Link to={`/performances/${focus.id}/files`} className="icon-btn">
+                    Files page
+                  </Link>
+                </div>
+                <PerformanceFilesPanel
+                  performanceId={focus.id}
+                  stageId={stageId}
+                  title="Files (this act)"
+                  collapsedByDefault
+                />
+              </div>
+            ) : null}
+            {!focus ? <p className="muted">No performances.</p> : null}
           </section>
 
           <section className="clock-day-section" aria-labelledby="clock-nav-heading">

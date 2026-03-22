@@ -212,6 +212,7 @@ web/
       ClockEndOfDayOverlay.tsx    # post-last-act / next-day crew messaging on clock
       ClockArena.tsx              # unified stage clock face (contained + kiosk/fullscreen)
       FileAttachments.tsx         # drag-drop upload, inline PDF viewer, extract
+      PerformanceFilesPanel.tsx   # wraps FileAttachments for performance scope (Files route + clock)
       PatchPageSidebar.tsx        # patch page sticky context (clock, changeover, files)
       ExportImportTools.tsx       # export/import event buttons
       PrintDaySheet.tsx           # print-friendly running order table

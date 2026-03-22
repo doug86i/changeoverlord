@@ -663,6 +663,24 @@ a.search-dialog-result:focus-visible {
   padding: 0.5rem 0;
 }
 
+.clock-day-focus-files {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.clock-day-focus-act-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.clock-day-focus-files .card {
+  margin-bottom: 0;
+}
+
 .clock-day-schedule {
   list-style: none;
   padding: 0;
