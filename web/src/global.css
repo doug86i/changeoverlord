@@ -267,6 +267,18 @@ textarea {
   left: 0;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ── App shell ─────────────────────────────────────────────── */
 
 .app-shell {
@@ -1492,13 +1504,14 @@ a.search-dialog-result:focus-visible {
   gap: 0.75rem;
 }
 
-@media (max-width: 960px) {
+/* Tablet: narrower sidebar column; sidebar stays beside workbook (768px+). */
+@media (max-width: 1023px) and (min-width: 768px) {
   .patch-page-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
   }
 
   .patch-page-layout--sidebar-collapsed {
-    grid-template-columns: 1fr;
+    grid-template-columns: 3rem minmax(0, 1fr);
   }
 }
 
@@ -1638,7 +1651,7 @@ a.patch-sidebar-perf-link:hover {
   text-decoration: underline;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1023px) and (min-width: 768px) {
   .patch-sidebar-expand-btn {
     flex-direction: row;
     min-height: 2.25rem;
@@ -1903,13 +1916,137 @@ a.patch-sidebar-perf-link:hover {
 }
 
 /* In-cell editor: force black text so typed content stays readable on the white cell background. */
-.patch-workbook-host .luckysheet-input-box-inner,
-.patch-workbook-host .luckysheet-input-box-inner *,
-.patch-workbook-host .luckysheet-cell-input,
-.patch-workbook-host .luckysheet-cell-input * {
+.patch-workbook-host:not(.patch-workbook-host--readonly) .luckysheet-input-box-inner,
+.patch-workbook-host:not(.patch-workbook-host--readonly) .luckysheet-input-box-inner *,
+.patch-workbook-host:not(.patch-workbook-host--readonly) .luckysheet-cell-input,
+.patch-workbook-host:not(.patch-workbook-host--readonly) .luckysheet-cell-input * {
   color: #000 !important;
   -webkit-text-fill-color: #000 !important;
   caret-color: #000;
+}
+
+/* Phone read-only patch: block editing; layout / CF / formulas unchanged. */
+.patch-workbook-host--readonly .luckysheet-input-box-inner {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.patch-workbook-host--readonly .luckysheet-cell-input {
+  pointer-events: none !important;
+}
+
+.patch-workbook-host--readonly .fortune-context-menu,
+.patch-workbook-host--readonly .luckysheet-context-menu,
+.patch-workbook-host--readonly [class*="context-menu"] {
+  display: none !important;
+}
+
+.patch-workbook-host--readonly .fortune-cols-change-size,
+.patch-workbook-host--readonly .fortune-rows-change-size,
+.patch-workbook-host--readonly .luckysheet-cols-change-size,
+.patch-workbook-host--readonly .luckysheet-rows-change-size {
+  display: none !important;
+}
+
+.patch-workbook-host--readonly * {
+  cursor: default !important;
+}
+
+/* Phone patch: maximize sheet area under app header */
+@media (max-width: 767px) {
+  main.main-wide:has(.patch-page--phone) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0.25rem 0.35rem 0.5rem;
+  }
+}
+
+.patch-page--phone {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0.35rem;
+}
+
+.patch-page-phone-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  min-height: 2.5rem;
+  padding: 0.15rem 0.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.patch-page-phone-band {
+  font-weight: 700;
+  font-size: clamp(0.9rem, 3.5vw, 1rem);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patch-page-phone-menu-btn {
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+.patch-phone-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: var(--color-overlay);
+  cursor: pointer;
+}
+
+.patch-phone-menu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 201;
+  width: min(22rem, 92vw);
+  max-width: 100%;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -4px 0 24px var(--color-overlay);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.patch-phone-menu-scroll {
+  overflow-y: auto;
+  padding: 0.75rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.patch-sidebar--phone-menu {
+  position: static;
+  border: none;
+  border-radius: 0;
+  padding: 0.5rem 0 0;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.patch-workbook-host--phone {
+  flex: 1 1 auto;
+  min-height: 200px;
+  height: auto !important;
+  max-height: none;
+}
+
+.patch-workbook-host--phone .fortune-container {
+  min-height: 50vh;
 }
 
 /* ── Stage / event chat dock ───────────────────────────────── */

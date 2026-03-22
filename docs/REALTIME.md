@@ -87,6 +87,7 @@ The **FortuneSheet / Yjs** workbook uses **WebSockets** — **binary Yjs sync**,
 
 - **Do not** send workbook updates through `/api/v1/realtime`.
 - **Do not** move schedule/performance rows into Yjs “to get realtime” — use REST + invalidation above.
+- **Phone patch (read-only viewer):** `usePatchWorkbookCollab` can call **`WebsocketProvider.disconnect()`** when the document is hidden (Page Visibility API) and **`connect()`** when visible again, so the socket is not held open with the screen off. Reconnect uses the normal Yjs sync handshake; remote edits still apply.
 
 Persistence: **`performance_yjs_snapshots`** and **`patch_templates.snapshot`**; stage **default template** clone on new performance — see schema and `docs/DECISIONS.md`.
 

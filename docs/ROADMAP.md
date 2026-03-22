@@ -114,6 +114,7 @@ All tier-1 features from the original requirements are implemented:
 | Keyboard shortcuts + help overlay (?) | **Done** |
 | Offline resilience (offlineFirst, beforeunload warning) | **Done** |
 | Collaborative patch/RF workbook (Yjs + FortuneSheet) | **Done** |
+| Patch phone read-only view (full FortuneSheet, menu for context, visibility-aware sync) | **Done** |
 | Global patch template library (Excel upload, JSON upload, presets, edit, preview) | **Done** |
 | Auth (optional shared password, session cookie) | **Done** |
 | DHSL footer branding | **Done** |
@@ -142,7 +143,6 @@ All tier-1 features from the original requirements are implemented:
 | M-2 | **Multi-stage clock** — now/next for all stages side by side | |
 | PR-2 | **Print patch list** — printable patch workbook formatted for paper | |
 | PR-3 | **Export patch as Excel** — download `.xlsx` of a performance's workbook | |
-| R-7 | **Patch view on phone** — read-only card layout (channel, instrument, mic) | |
 | S-11 | **Bulk day creation** — "Add days from [start] to [end]" | |
 | S-12 | **Duplicate a day's running order** — copy Saturday's schedule to Sunday | |
 | W-4 | **PWA / service worker** — cache the app shell for faster reload on poor Wi-Fi | |

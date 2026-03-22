@@ -11,6 +11,7 @@ import { WebsocketProvider } from "y-websocket";
 import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Op, Sheet } from "@fortune-sheet/core";
 import { logDebug } from "./debug";
+import { usePageVisible } from "../hooks/usePageVisible";
 import {
   PATCH_WORKBOOK_Y_ORIGIN,
   usePatchWorkbookOpLogEffects,
@@ -41,6 +42,13 @@ export function usePatchWorkbookCollab(opts: {
   workbookReady: boolean;
   /** Called after each local op is pushed to Yjs (e.g. mark performance workbook dirty). */
   onLocalOp?: () => void;
+  /**
+   * When true, disconnect the collab WebSocket while the tab is hidden or the screen is off
+   * (Page Visibility API), then reconnect when visible again — saves battery on phones.
+   */
+  pauseWhenHidden?: boolean;
+  /** When true, local FortuneSheet ops are not pushed to Yjs (read-only viewer; remote ops still apply). */
+  readOnly?: boolean;
 }): {
   wbRef: RefObject<WorkbookInstance | null>;
   onOp: (ops: Op[]) => void;
@@ -49,8 +57,17 @@ export function usePatchWorkbookCollab(opts: {
   /** FortuneSheet has replayed Yjs `opLog` (incl. late server snapshot); safe to edit. */
   workbookHydrated: boolean;
 } {
-  const { roomId, mode, workbookReady, onLocalOp } = opts;
+  const {
+    roomId,
+    mode,
+    workbookReady,
+    onLocalOp,
+    pauseWhenHidden = false,
+    readOnly = false,
+  } = opts;
   const wbRef = useRef<WorkbookInstance>(null);
+  const providerRef = useRef<InstanceType<typeof WebsocketProvider> | null>(null);
+  const pageVisible = usePageVisible();
   /** True while running post-hydration `calculateFormula` — those patches must not become Yjs ops. */
   const suppressYjsOpsForFormulaRecalcRef = useRef(false);
   /** Synchronous gate so `onOp` ignores input before hydration even if React state lags. */
@@ -72,6 +89,7 @@ export function usePatchWorkbookCollab(opts: {
 
   const onOp = useCallback(
     (ops: Op[]) => {
+      if (readOnly) return;
       if (suppressYjsOpsForFormulaRecalcRef.current) return;
       if (!localOpsAllowedRef.current) return;
       onLocalOp?.();
@@ -79,7 +97,7 @@ export function usePatchWorkbookCollab(opts: {
         yops.push([JSON.stringify(ops)]);
       }, PATCH_WORKBOOK_Y_ORIGIN);
     },
-    [ydoc, yops, onLocalOp],
+    [ydoc, yops, onLocalOp, readOnly],
   );
 
   const onHydrationChange = useCallback((hydrated: boolean) => {
@@ -111,6 +129,7 @@ export function usePatchWorkbookCollab(opts: {
     const provider = new WebsocketProvider(base, roomId, ydoc, {
       connect: true,
     });
+    providerRef.current = provider;
 
     const onStatus = (ev: { status: string }) => {
       logDebug("patch-workbook", "y-websocket status", ev.status);
@@ -131,9 +150,24 @@ export function usePatchWorkbookCollab(opts: {
     provider.on("connection-error", onErr);
 
     return () => {
+      providerRef.current = null;
       provider.destroy();
     };
   }, [roomId, ydoc, mode]);
+
+  useEffect(() => {
+    if (!pauseWhenHidden) return;
+    const provider = providerRef.current;
+    if (!provider) return;
+    if (!pageVisible) {
+      logDebug("patch-workbook", "Page hidden — disconnecting Yjs WebSocket");
+      provider.disconnect();
+      setConn("connecting");
+    } else {
+      logDebug("patch-workbook", "Page visible — reconnecting Yjs WebSocket");
+      provider.connect();
+    }
+  }, [pauseWhenHidden, pageVisible]);
 
   usePatchWorkbookOpLogEffects(
     roomId,

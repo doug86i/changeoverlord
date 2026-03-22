@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Web:** **`usePageVisible`**, **`useMediaQuery`** — Page Visibility and viewport queries for responsive behaviour.
+- **Web:** **Patch / RF (phone, max-width 767px)** — **Read-only** FortuneSheet (full layout, conditional formatting, formulas, live Yjs updates); thin **band name + Menu** bar; **Menu** slide-over for breadcrumbs, band nav, connection status, and **`PatchPageSidebar`** content. **`pauseWhenHidden`** disconnects the collab WebSocket when the tab is hidden or the screen is off (phone only) to save battery.
 - **Web:** **`PerformanceFilesPanel`** — shared performance-scoped **`FileAttachments`** wrapper; **stage clock** focus section embeds the same file management as the performance **Files** route (collapsed by default).
 - **API / Web:** **Stage clock urgent message** — `stages.clock_message`, **`PATCH /api/v1/stages/:id/clock-message`**, synced to all clock UIs via existing **`stage`** SSE invalidation; flashing overlay on the **clock arena** for all viewers.
 - **Web:** **`ClockArena`** — single responsive arena layout for **`ClockDayPage`** (arena + controls + fullscreen).
@@ -37,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** **Patch layout** — **Tablet/desktop (768px+)** keeps the **sidebar beside** the workbook (no single-column stack at 960px); **768–1023px** uses a **narrower** sidebar column. **`patchWorkbookCollab`** supports **`readOnly`** (no local ops to Yjs) and **`pauseWhenHidden`**.
 - **Web:** **Stage clock urgent message** — text scales with **`useFitTextInBox`** to use as much of the **arena** as possible without overflowing; **changeover** banner is **title-only** (long subtitle removed). Arena wrap **`overflow: auto`**; footer grid shows **four columns** from **480px** up so all metadata cells stay visible on typical phones in landscape and small tablets.
 - **Web:** **Stage clock** — **High-contrast banners** for **changeover** (empty stage), **before first act**, and **on-stage handover** (no slot end time: timer counts to **next** act’s start, not “your set”). **Patch** sidebar badges match; **focus** card says **Until next act** in that case. **`computeStageDayClockMetrics`** now returns **`clockBanner`** (replaces **`isChangeover`** flag).
 - **Web:** **Stage clock countdown** (arena, patch sidebar, focus card) uses **minutes:seconds** (**`45:00`**, **`0:30`**) for gaps under **24 hours**; **N days** when the next boundary is a day or more away (replacing mixed **`12m 05s`** / **`2h 15m`** strings).

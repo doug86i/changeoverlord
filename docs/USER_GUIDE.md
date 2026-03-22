@@ -98,8 +98,9 @@ Chat is meant for **short coordination** on the LAN; there is no private DM or e
 Each **performance** can have a **patch / RF workbook** — a multi-sheet grid (e.g. **Input**, **RF**) that **multiple people can edit at once** in real time.
 
 - Open the workbook from the **stage day** view: each performance row has a **Patch / RF** link to `/patch/:performanceId`.
-- The app opens the spreadsheet with a **context sidebar** on wide screens (`/patch/:performanceId`); on narrow screens the sidebar stacks **above** the grid.
-- **Collaboration** uses a live connection to the server; keep the tab open while editing.
+- **Tablet and desktop (768px and wider):** the spreadsheet sits beside a **context sidebar** you can **Hide »** / **« Context** to collapse to a thin rail. On **tablet** the sidebar column is slightly narrower so the grid has more room.
+- **Phone (narrow portrait):** the sheet is **read-only** and uses almost the full screen: a thin bar shows the **band name** and a **Menu** button. Open **Menu** for breadcrumbs, **prev/next band**, **connection status**, and the same **sidebar** content (clock, now/next, files, plot). The grid keeps **layout, conditional formatting, and formulas**; **toolbar** and **formula bar** are hidden. **Pinch-zoom** and scroll as needed. Edits from a desktop still **update live** on the phone. When you **switch away** or the **screen turns off**, the app **disconnects** the patch sync to save battery and **reconnects** when you return.
+- **Collaboration** uses a live connection to the server; keep the tab open while **editing** on desktop/tablet.
 
 ### Patch page sidebar (stay on the sheet)
 
@@ -127,9 +128,9 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 - **← Previous** and **Next →** to jump between acts on the same day.
 - A **dropdown** to jump to any act directly.
 - **Alt+← / Alt+→** keyboard shortcuts for quick switching.
-- On the **patch** page, **time** and **countdown** are in the **sidebar** (see above). Connection status is next to the page title: green (live), amber (syncing or **Loading workbook…** while the grid catches up after you open the page), red (error). The same **Loading workbook…** overlay can appear on **Edit spreadsheet** (library templates) — wait until it clears before editing so the sheet is not an empty placeholder.
+- On the **patch** page (tablet/desktop), **time** and **countdown** are in the **sidebar** (see above). Connection status is next to the page title; on **phone** it is inside **Menu**. Green (live), amber (syncing or **Loading workbook…** while the grid catches up), red (error). The same **Loading workbook…** overlay can appear on **Edit spreadsheet** (library templates) — wait until it clears before editing so the sheet is not an empty placeholder.
 
-**Export / import workbook JSON (this act)** — Next to the title, **Export JSON** downloads the current band’s spreadsheet as a JSON file (FortuneSheet-native; includes a small **`changeoverlordWorkbook`** envelope). **Import JSON** replaces this act’s workbook from a file you choose. The page **reloads** after import so everyone sees the same grid. Use this to edit in external tools, share with agents, or copy a sheet between servers. Details: **`docs/PATCH_TEMPLATE_JSON.md`**.
+**Export / import workbook JSON (this act)** — Next to the title on **tablet/desktop**, **Export JSON** downloads the current band’s spreadsheet as a JSON file (FortuneSheet-native; includes a small **`changeoverlordWorkbook`** envelope). **Import JSON** replaces this act’s workbook from a file you choose. The page **reloads** after import so everyone sees the same grid. Use this to edit in external tools, share with agents, or copy a sheet between servers. Details: **`docs/PATCH_TEMPLATE_JSON.md`**. These actions are **not** on the **phone** read-only view.
 
 ### Templates (global and stage)
 

@@ -227,12 +227,15 @@ web/
       dateFormat.ts        # formatDateFriendly, formatDateShort, minutesBetween, formatDuration, formatCountdown
       useLastVisited.ts    # `LAST_STAGE_DAY_STORAGE_KEY` (clock nav / my stage today)
       myStageToday.ts      # resolve /stage-days/:id for “today” (My stage today nav)
-      patchWorkbookCollab.ts   # shared Yjs/WebSocket workbook hook + op routing
+      patchWorkbookCollab.ts   # shared Yjs/WebSocket workbook hook; readOnly + pauseWhenHidden (phone)
       patchWorkbookYjs.ts      # Yjs hydrate/recalc / sheet activation helpers
       stageDayClockMetrics.ts  # clock page derived metrics (hero + ClockBannerMode handover)
       clockSchedule.ts         # clock schedule helpers
     hooks/
       useFitCountdownInBox.ts  # countdown text scaling for clock UI
+      useFitTextInBox.ts       # urgent clock message font scaling
+      usePageVisible.ts        # document.visibilityState (patch collab battery)
+      useMediaQuery.ts         # CSS media query match (e.g. phone patch layout)
 ```
 
 ## Handoff — next agent (patch templates / FortuneSheet)

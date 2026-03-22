@@ -262,7 +262,7 @@ Unused classes (e.g. `.bg-ok`/`.bg-warn`/`.bg-danger`, unused clock helpers, `.s
 
 ### 30. Breakpoint sprawl in `global.css`
 
-Mix of 700 / 768 / 960 / 1024px — consider consolidating tokens or media-query constants.
+**Update:** Patch page breakpoints aligned to **768px** (phone) and **1023px** (tablet sidebar width / collapsed-rail layout); the old **960px** patch stack-to-column rule was removed. Remaining mix (**480** / **640** clock, **767** nav, **1023** main narrow) is intentional per surface — further consolidation optional.
 
 ### 31. [`.dockerignore`](../.dockerignore)
 

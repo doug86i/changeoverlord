@@ -38,6 +38,8 @@ export function PatchPageSidebar({
   currentPerformance,
   collapsed,
   onCollapsedChange,
+  variant = "default",
+  onRequestClose,
 }: {
   performanceId: string;
   stageDayId: string;
@@ -50,6 +52,9 @@ export function PatchPageSidebar({
   };
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
+  /** Phone patch menu: always expanded panel with Close instead of collapse rail. */
+  variant?: "default" | "phoneMenu";
+  onRequestClose?: () => void;
 }) {
   const perfQ = useQuery({
     queryKey: ["performances", stageDayId],
@@ -125,7 +130,7 @@ export function PatchPageSidebar({
           ? "status-warn"
           : "status-ok";
 
-  if (collapsed) {
+  if (variant !== "phoneMenu" && collapsed) {
     return (
       <div className="patch-sidebar patch-sidebar--collapsed-rail">
         <button
@@ -145,18 +150,33 @@ export function PatchPageSidebar({
   }
 
   return (
-    <aside className="patch-sidebar" aria-label="Patch context">
+    <aside
+      className={`patch-sidebar${variant === "phoneMenu" ? " patch-sidebar--phone-menu" : ""}`}
+      aria-label="Patch context"
+    >
       <div className="patch-sidebar-header">
         <span className="patch-sidebar-header-title">Session context</span>
-        <button
-          type="button"
-          className="patch-sidebar-collapse-btn icon-btn"
-          onClick={() => onCollapsedChange(true)}
-          aria-expanded="true"
-          title="Hide sidebar for a larger spreadsheet"
-        >
-          Hide »
-        </button>
+        {variant === "phoneMenu" ? (
+          <button
+            type="button"
+            className="patch-sidebar-collapse-btn icon-btn"
+            onClick={() => onRequestClose?.()}
+            aria-expanded="true"
+            title="Close menu"
+          >
+            Close
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="patch-sidebar-collapse-btn icon-btn"
+            onClick={() => onCollapsedChange(true)}
+            aria-expanded="true"
+            title="Hide sidebar for a larger spreadsheet"
+          >
+            Hide »
+          </button>
+        )}
       </div>
 
       {sidebarHandoverBadge ? (

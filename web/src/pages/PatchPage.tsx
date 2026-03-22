@@ -7,6 +7,7 @@ import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
 import { PatchPageSidebar } from "../components/PatchPageSidebar";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatDateShort } from "../lib/dateFormat";
 import {
   WORKBOOK_PLACEHOLDER,
@@ -20,6 +21,8 @@ export function PatchPage() {
   const dirtyRef = useRef(false);
   const perfJsonImportRef = useRef<HTMLInputElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
+  const isPhone = useMediaQuery("(max-width: 767px)");
 
   useEffect(() => {
     try {
@@ -36,6 +39,15 @@ export function PatchPage() {
       /* ignore */
     }
   }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    if (!isPhone || !phoneMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPhoneMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isPhone, phoneMenuOpen]);
 
   const perfQ = useQuery({
     queryKey: ["performance", performanceId],
@@ -86,21 +98,23 @@ export function PatchPage() {
     mode: "performance",
     workbookReady,
     onLocalOp: markDirty,
+    pauseWhenHidden: isPhone,
+    readOnly: isPhone,
   });
 
   const blockingWorkbook =
     workbookReady && !workbookHydrated && conn !== "error";
 
-  // beforeunload warning when workbook has unsaved changes
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
+      if (isPhone) return;
       if (conn !== "connected" && dirtyRef.current) {
         e.preventDefault();
       }
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [conn]);
+  }, [conn, isPhone]);
 
   if (!performanceId) return null;
   if (perfQ.isLoading) return <p className="muted">Loading…</p>;
@@ -134,143 +148,226 @@ export function PatchPage() {
     ? `patch-page-layout${sidebarCollapsed ? " patch-page-layout--sidebar-collapsed" : ""}`
     : undefined;
 
-  return (
-    <div className={layoutClass}>
-      {showPatchSidebar && day && stageDayId && (
-        <PatchPageSidebar
-          performanceId={performanceId}
-          stageDayId={stageDayId}
-          dayDate={day.dayDate}
-          stageId={day.stageId}
-          currentPerformance={{
+  const sidebarProps =
+    showPatchSidebar && day && stageDayId
+      ? {
+          performanceId,
+          stageDayId,
+          dayDate: day.dayDate,
+          stageId: day.stageId,
+          currentPerformance: {
             bandName: perf.bandName,
             startTime: perf.startTime,
             endTime: perf.endTime,
-          }}
-          collapsed={sidebarCollapsed}
-          onCollapsedChange={setSidebarCollapsed}
+          },
+          collapsed: sidebarCollapsed,
+          onCollapsedChange: setSidebarCollapsed,
+        }
+      : null;
+
+  const breadcrumbs = stage && day && (
+    <p className="muted patch-page-breadcrumbs" style={{ marginTop: 0 }}>
+      <Link to={`/events/${stage.eventId}`}>Event</Link>
+      {" / "}
+      <Link to={`/stages/${stage.id}`}>{stage.name}</Link>
+      {" / "}
+      <Link to={`/stage-days/${day.id}`}>{formatDateShort(day.dayDate)}</Link>
+      {" / "}
+      <span>{perf.bandName || "Performance"}</span>
+      {" · "}
+      <Link to={`/performances/${perf.id}/files`}>Files</Link>
+    </p>
+  );
+
+  const workbookInner = (
+    <>
+      {blockingWorkbook ? (
+        <div
+          className="patch-workbook-host__loading"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          Loading workbook…
+        </div>
+      ) : null}
+      <PatchWorkbookErrorBoundary key={performanceId}>
+        <Workbook
+          key={performanceId}
+          ref={wbRef}
+          data={WORKBOOK_PLACEHOLDER}
+          onOp={onOp}
+          showToolbar={!isPhone}
+          showFormulaBar={!isPhone}
+          showSheetTabs
         />
-      )}
-      <div className={showPatchSidebar ? "patch-page-main" : undefined}>
-      <p className="muted" style={{ marginTop: 0 }}>
-        {stage && day && (
+      </PatchWorkbookErrorBoundary>
+    </>
+  );
+
+  if (isPhone) {
+    return (
+      <div className="patch-page patch-page--phone">
+        <div className="patch-page-phone-bar">
+          <span className="patch-page-phone-band">{perf.bandName || "Patch"}</span>
+          <button
+            type="button"
+            className="icon-btn patch-page-phone-menu-btn"
+            aria-expanded={phoneMenuOpen}
+            aria-controls="patch-phone-menu"
+            onClick={() => setPhoneMenuOpen((o) => !o)}
+          >
+            Menu
+          </button>
+        </div>
+
+        {phoneMenuOpen ? (
           <>
-            <Link to={`/events/${stage.eventId}`}>Event</Link>
-            {" / "}
-            <Link to={`/stages/${stage.id}`}>{stage.name}</Link>
-            {" / "}
-            <Link to={`/stage-days/${day.id}`}>{formatDateShort(day.dayDate)}</Link>
-            {" / "}
+            <button
+              type="button"
+              className="patch-phone-menu-backdrop"
+              aria-label="Close menu"
+              onClick={() => setPhoneMenuOpen(false)}
+            />
+            <div
+              id="patch-phone-menu"
+              className="patch-phone-menu-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="patch-phone-menu-title"
+            >
+              <h2 id="patch-phone-menu-title" className="visually-hidden">
+                Patch navigation and context
+              </h2>
+              <div className="patch-phone-menu-scroll">
+                {breadcrumbs}
+                {stageDayId ? (
+                  <PerformanceBandNav
+                    performanceId={performanceId}
+                    stageDayId={stageDayId}
+                    mode="patch"
+                  />
+                ) : null}
+                <p className={`${connClass}`} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+                  ● {connLabel}
+                </p>
+                {sidebarProps ? (
+                  <PatchPageSidebar
+                    {...sidebarProps}
+                    variant="phoneMenu"
+                    onRequestClose={() => setPhoneMenuOpen(false)}
+                  />
+                ) : null}
+              </div>
+            </div>
           </>
-        )}
-        <span>{perf.bandName || "Performance"}</span>
-        {" · "}
-        <Link to={`/performances/${perf.id}/files`}>Files</Link>
-      </p>
+        ) : null}
 
-      {stageDayId && (
-        <PerformanceBandNav
-          performanceId={performanceId}
-          stageDayId={stageDayId}
-          mode="patch"
-        />
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "1rem",
-          flexWrap: "wrap",
-          marginBottom: "0.75rem",
-        }}
-      >
-        <h1 style={{ margin: 0 }}>Patch &amp; RF — {perf.bandName}</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className="icon-btn"
-            disabled={importPerfWorkbookJson.isPending}
-            onClick={async () => {
-              try {
-                await downloadWorkbookJson(
-                  `/api/v1/performances/${performanceId}/sheets-export`,
-                  `${perf.bandName || "performance"}_workbook.json`,
-                );
-              } catch (err) {
-                window.alert((err as Error).message);
-              }
-            }}
-          >
-            Export JSON
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            disabled={importPerfWorkbookJson.isPending}
-            onClick={() => perfJsonImportRef.current?.click()}
-          >
-            Import JSON
-          </button>
-          <input
-            ref={perfJsonImportRef}
-            type="file"
-            accept=".json,application/json"
-            style={{ display: "none" }}
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (!f) return;
-              try {
-                const text = await readFileAsText(f);
-                importPerfWorkbookJson.mutate(text);
-              } catch (err) {
-                window.alert((err as Error).message);
-              }
-            }}
-          />
-          <span className={`${connClass}`} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-            ● {connLabel}
-          </span>
+        <div
+          className="patch-workbook-host patch-workbook-host--readonly patch-workbook-host--phone"
+          style={{
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+          }}
+        >
+          {workbookInner}
         </div>
       </div>
-      {importPerfWorkbookJson.isError && (
-        <p role="alert" style={{ color: "var(--color-danger)", marginTop: 0 }}>
-          {(importPerfWorkbookJson.error as Error).message}
-        </p>
-      )}
-      <div
-        className="patch-workbook-host"
-        style={{
-          height: "min(70vh, 720px)",
-          minHeight: 360,
-          border: "1px solid var(--color-border)",
-          borderRadius: "var(--radius-md)",
-          overflow: "hidden",
-        }}
-      >
-        {blockingWorkbook ? (
-          <div
-            className="patch-workbook-host__loading"
-            aria-busy="true"
-            aria-live="polite"
-          >
-            Loading workbook…
-          </div>
-        ) : null}
-        <PatchWorkbookErrorBoundary key={performanceId}>
-          <Workbook
-            key={performanceId}
-            ref={wbRef}
-            data={WORKBOOK_PLACEHOLDER}
-            onOp={onOp}
-            showToolbar
-            showFormulaBar
-            showSheetTabs
+    );
+  }
+
+  return (
+    <div className={layoutClass}>
+      {showPatchSidebar && sidebarProps ? (
+        <PatchPageSidebar {...sidebarProps} />
+      ) : null}
+      <div className={showPatchSidebar ? "patch-page-main" : undefined}>
+        {breadcrumbs}
+
+        {stageDayId && (
+          <PerformanceBandNav
+            performanceId={performanceId}
+            stageDayId={stageDayId}
+            mode="patch"
           />
-        </PatchWorkbookErrorBoundary>
-      </div>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "1rem",
+            flexWrap: "wrap",
+            marginBottom: "0.75rem",
+          }}
+        >
+          <h1 style={{ margin: 0 }}>Patch &amp; RF — {perf.bandName}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="icon-btn"
+              disabled={importPerfWorkbookJson.isPending}
+              onClick={async () => {
+                try {
+                  await downloadWorkbookJson(
+                    `/api/v1/performances/${performanceId}/sheets-export`,
+                    `${perf.bandName || "performance"}_workbook.json`,
+                  );
+                } catch (err) {
+                  window.alert((err as Error).message);
+                }
+              }}
+            >
+              Export JSON
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              disabled={importPerfWorkbookJson.isPending}
+              onClick={() => perfJsonImportRef.current?.click()}
+            >
+              Import JSON
+            </button>
+            <input
+              ref={perfJsonImportRef}
+              type="file"
+              accept=".json,application/json"
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                try {
+                  const text = await readFileAsText(f);
+                  importPerfWorkbookJson.mutate(text);
+                } catch (err) {
+                  window.alert((err as Error).message);
+                }
+              }}
+            />
+            <span className={`${connClass}`} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+              ● {connLabel}
+            </span>
+          </div>
+        </div>
+        {importPerfWorkbookJson.isError && (
+          <p role="alert" style={{ color: "var(--color-danger)", marginTop: 0 }}>
+            {(importPerfWorkbookJson.error as Error).message}
+          </p>
+        )}
+        <div
+          className="patch-workbook-host"
+          style={{
+            height: "min(70vh, 720px)",
+            minHeight: 360,
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+          }}
+        >
+          {workbookInner}
+        </div>
       </div>
     </div>
   );
