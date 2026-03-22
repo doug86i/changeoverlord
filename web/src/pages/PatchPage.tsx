@@ -204,24 +204,38 @@ export function PatchPage() {
     </>
   );
 
-  if (isPhone) {
-    return (
-      <div className="patch-page patch-page--phone">
-        <div className="patch-page-phone-bar">
-          <span className="patch-page-phone-band">{perf.bandName || "Patch"}</span>
-          <button
-            type="button"
-            className="icon-btn patch-page-phone-menu-btn"
-            aria-expanded={phoneMenuOpen}
-            aria-controls="patch-phone-menu"
-            onClick={() => setPhoneMenuOpen((o) => !o)}
-          >
-            Menu
-          </button>
-        </div>
+  const rootClass = isPhone
+    ? "patch-page patch-page--phone"
+    : layoutClass;
 
-        {phoneMenuOpen ? (
-          <>
+  return (
+    <div className={rootClass}>
+      {/* Desktop/tablet sidebar (child 0) */}
+      {!isPhone && showPatchSidebar && sidebarProps ? (
+        <PatchPageSidebar {...sidebarProps} />
+      ) : null}
+
+      {/* Content column (child 1 — always present, keeps workbook stable) */}
+      <div className={!isPhone && showPatchSidebar ? "patch-page-main" : undefined}>
+        {/* Phone top bar (child 0 inside content) */}
+        {isPhone ? (
+          <div className="patch-page-phone-bar">
+            <span className="patch-page-phone-band">{perf.bandName || "Patch"}</span>
+            <button
+              type="button"
+              className="icon-btn patch-page-phone-menu-btn"
+              aria-expanded={phoneMenuOpen}
+              aria-controls="patch-phone-menu"
+              onClick={() => setPhoneMenuOpen((o) => !o)}
+            >
+              Menu
+            </button>
+          </div>
+        ) : null}
+
+        {/* Phone menu panel — position:fixed, doesn't affect flow (child 1) */}
+        {isPhone && phoneMenuOpen ? (
+          <div className="patch-phone-menu-wrapper">
             <button
               type="button"
               className="patch-phone-menu-backdrop"
@@ -247,7 +261,7 @@ export function PatchPage() {
                     mode="patch"
                   />
                 ) : null}
-                <p className={`${connClass}`} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+                <p className={connClass} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
                   ● {connLabel}
                 </p>
                 {sidebarProps ? (
@@ -259,111 +273,99 @@ export function PatchPage() {
                 ) : null}
               </div>
             </div>
+          </div>
+        ) : null}
+
+        {/* Desktop/tablet header (child 2) */}
+        {!isPhone ? (
+          <>
+            {breadcrumbs}
+
+            {stageDayId && (
+              <PerformanceBandNav
+                performanceId={performanceId}
+                stageDayId={stageDayId}
+                mode="patch"
+              />
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "1rem",
+                flexWrap: "wrap",
+                marginBottom: "0.75rem",
+              }}
+            >
+              <h1 style={{ margin: 0 }}>Patch &amp; RF — {perf.bandName}</h1>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  disabled={importPerfWorkbookJson.isPending}
+                  onClick={async () => {
+                    try {
+                      await downloadWorkbookJson(
+                        `/api/v1/performances/${performanceId}/sheets-export`,
+                        `${perf.bandName || "performance"}_workbook.json`,
+                      );
+                    } catch (err) {
+                      window.alert((err as Error).message);
+                    }
+                  }}
+                >
+                  Export JSON
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  disabled={importPerfWorkbookJson.isPending}
+                  onClick={() => perfJsonImportRef.current?.click()}
+                >
+                  Import JSON
+                </button>
+                <input
+                  ref={perfJsonImportRef}
+                  type="file"
+                  accept=".json,application/json"
+                  style={{ display: "none" }}
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!f) return;
+                    try {
+                      const text = await readFileAsText(f);
+                      importPerfWorkbookJson.mutate(text);
+                    } catch (err) {
+                      window.alert((err as Error).message);
+                    }
+                  }}
+                />
+                <span className={connClass} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+                  ● {connLabel}
+                </span>
+              </div>
+            </div>
+            {importPerfWorkbookJson.isError && (
+              <p role="alert" style={{ color: "var(--color-danger)", marginTop: 0 }}>
+                {(importPerfWorkbookJson.error as Error).message}
+              </p>
+            )}
           </>
         ) : null}
 
+        {/* Workbook — always at child 3; survives phone↔desktop transitions */}
         <div
-          className="patch-workbook-host patch-workbook-host--readonly patch-workbook-host--phone"
+          className={
+            `patch-workbook-host${isPhone ? " patch-workbook-host--readonly patch-workbook-host--phone" : ""}`
+          }
           style={{
             border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)",
             overflow: "hidden",
-          }}
-        >
-          {workbookInner}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={layoutClass}>
-      {showPatchSidebar && sidebarProps ? (
-        <PatchPageSidebar {...sidebarProps} />
-      ) : null}
-      <div className={showPatchSidebar ? "patch-page-main" : undefined}>
-        {breadcrumbs}
-
-        {stageDayId && (
-          <PerformanceBandNav
-            performanceId={performanceId}
-            stageDayId={stageDayId}
-            mode="patch"
-          />
-        )}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "1rem",
-            flexWrap: "wrap",
-            marginBottom: "0.75rem",
-          }}
-        >
-          <h1 style={{ margin: 0 }}>Patch &amp; RF — {perf.bandName}</h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="icon-btn"
-              disabled={importPerfWorkbookJson.isPending}
-              onClick={async () => {
-                try {
-                  await downloadWorkbookJson(
-                    `/api/v1/performances/${performanceId}/sheets-export`,
-                    `${perf.bandName || "performance"}_workbook.json`,
-                  );
-                } catch (err) {
-                  window.alert((err as Error).message);
-                }
-              }}
-            >
-              Export JSON
-            </button>
-            <button
-              type="button"
-              className="icon-btn"
-              disabled={importPerfWorkbookJson.isPending}
-              onClick={() => perfJsonImportRef.current?.click()}
-            >
-              Import JSON
-            </button>
-            <input
-              ref={perfJsonImportRef}
-              type="file"
-              accept=".json,application/json"
-              style={{ display: "none" }}
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (!f) return;
-                try {
-                  const text = await readFileAsText(f);
-                  importPerfWorkbookJson.mutate(text);
-                } catch (err) {
-                  window.alert((err as Error).message);
-                }
-              }}
-            />
-            <span className={`${connClass}`} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-              ● {connLabel}
-            </span>
-          </div>
-        </div>
-        {importPerfWorkbookJson.isError && (
-          <p role="alert" style={{ color: "var(--color-danger)", marginTop: 0 }}>
-            {(importPerfWorkbookJson.error as Error).message}
-          </p>
-        )}
-        <div
-          className="patch-workbook-host"
-          style={{
-            height: "min(70vh, 720px)",
-            minHeight: 360,
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            overflow: "hidden",
+            ...(isPhone ? {} : { height: "min(70vh, 720px)", minHeight: 360 }),
           }}
         >
           {workbookInner}

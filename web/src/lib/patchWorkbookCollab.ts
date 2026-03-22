@@ -156,9 +156,13 @@ export function usePatchWorkbookCollab(opts: {
   }, [roomId, ydoc, mode]);
 
   useEffect(() => {
-    if (!pauseWhenHidden) return;
     const provider = providerRef.current;
     if (!provider) return;
+    if (!pauseWhenHidden) {
+      // Ensure we're connected if we previously disconnected (e.g. phone→desktop resize)
+      provider.connect();
+      return;
+    }
     if (!pageVisible) {
       logDebug("patch-workbook", "Page hidden — disconnecting Yjs WebSocket");
       provider.disconnect();
