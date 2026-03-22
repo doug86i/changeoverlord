@@ -1952,11 +1952,36 @@ a.patch-sidebar-perf-link:hover {
   cursor: default !important;
 }
 
-/* Phone patch: maximize sheet area under app header */
+/* Phone patch: maximize sheet area under app header; lock page scroll on iOS */
 @media (max-width: 767px) {
+  /**
+   * Prevent the browser chrome from scrolling with the sheet (rubber-band / dual scroll).
+   * `min-height: 100%` alone lets `.app-shell` grow past the viewport when inner heights use dvh.
+   */
+  html:has(.patch-page--phone),
+  body:has(.patch-page--phone) {
+    overflow: hidden;
+    overscroll-behavior-y: none;
+    height: 100%;
+  }
+
+  #root:has(.patch-page--phone) {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .app-shell:has(.patch-page--phone) {
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   main.main-wide:has(.patch-page--phone) {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
     padding: 0.25rem 0.35rem 0.5rem;
     overflow: hidden;
@@ -2049,8 +2074,8 @@ a.patch-sidebar-perf-link:hover {
 }
 
 .patch-workbook-host--phone {
-  height: calc(100dvh - 8rem);
-  min-height: 200px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 
