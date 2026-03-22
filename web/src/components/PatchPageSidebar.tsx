@@ -16,12 +16,6 @@ function isPlotAsset(f: FileAssetRow): boolean {
   return f.mimeType === "application/pdf" || f.mimeType.startsWith("image/");
 }
 
-function pickPlotPreview(perfFiles: FileAssetRow[], stageFiles: FileAssetRow[]): FileAssetRow | null {
-  const p = perfFiles.find(isPlotAsset);
-  if (p) return p;
-  return stageFiles.find(isPlotAsset) ?? null;
-}
-
 function firstFileByPurpose(
   files: FileAssetRow[],
   purpose: FileAssetPurpose,
@@ -124,11 +118,11 @@ export function PatchPageSidebar({
     enabled: Boolean(stageId),
   });
 
+  /** Only performance-scoped plots — stage-wide plots belong to the whole stage and look like “someone else’s” on a new act. */
   const plotFile = useMemo(() => {
     const pf = perfFilesQ.data?.files ?? [];
-    const sf = stageFilesQ.data?.files ?? [];
-    return pickPlotPreview(pf, sf);
-  }, [perfFilesQ.data, stageFilesQ.data]);
+    return pf.find(isPlotAsset) ?? null;
+  }, [perfFilesQ.data]);
 
   const riderFile = useMemo(() => {
     const pf = perfFilesQ.data?.files ?? [];
@@ -306,10 +300,12 @@ export function PatchPageSidebar({
           </>
         ) : (
           <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>
-            No stage plot.{" "}
+            No plot for this act. Open{" "}
             <Link to={`/performances/${performanceId}/files`}>Files</Link>
-            {" — "}
-            <span className="muted">Upload as “Stage plot”</span>
+            {" "}
+            and mark a file as <strong>Stage plot</strong>, or use{" "}
+            <Link to={`/stages/${stageId}`}>Stage → Stage files</Link> for a plot
+            shared by the whole stage (not shown here).
           </p>
         )}
       </div>
