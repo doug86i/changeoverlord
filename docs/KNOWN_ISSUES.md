@@ -435,6 +435,33 @@ Fix: add `flex-shrink: 0` (and `white-space: nowrap` where appropriate) to each 
 
 **Update (2026):** The collab server sends **`fullState`** (`Sheet[]` from **`sheets_json`**) on connect/reconnect; the client remounts **`<Workbook data={…}>`** from that payload before applying live **`op`** batches. Remote **`applyOp`** failures are logged in the hook; reload the patch page if the grid errors. See [`docs/DECISIONS.md`](DECISIONS.md) (FortuneSheet fork section).
 
+### 83. Duplicate sheet tabs on remote peers after **Add sheet** *(open)*
+
+**Symptom:** User A adds a new sheet tab; user B (and other remotes) sometimes end up with **two** tabs for the same logical add (or extra empty tabs). The **authoritative** workbook in Postgres (**`sheets_json`**) and **Export JSON** can also reflect duplicates if the bad state was persisted before anyone notices.
+
+**Why it’s hard:** FortuneSheet **`addSheet`** / **`deleteSheet`** / row-column structural ops are **not idempotent**. Applying the **same** op batch twice appends twice. Cell-level **`replace`** patches are usually harmless when duplicated; structural ops are not.
+
+**What we’ve tried**
+
+| Attempt | Notes |
+|--------|--------|
+| **React 18 Strict Mode `onOp` dedup** (`lastPushedOpsRef`, drop identical consecutive batches) | Helped in **development** when `useState` updaters double-invoked and fired **`onOp`** twice with the same serialized ops. **Production** builds do not use Strict Mode double-invoke; duplicates can still occur from other causes. **Removed** when switching to the WebSocket relay — relay assumed server convergence would be enough; **it is not** if two batches still reach the server or peers. |
+| **Yjs opLog + client replay** (prior architecture) | Same underlying issue: duplicate pushes to the log → duplicate **`applyOp`** on peers. Compaction and bootstrap from **`sheets-export`** reduced some races; did not fully eliminate structural duplicates. |
+| **Skip client opLog drain when `sheets-export` bootstrap present** | Avoided double-applying history on first paint; irrelevant after relay (**`fullState`** replaces bootstrap). |
+| **`setAutoFreeze(false)`** (Immer) | Fixes **freeze / replay** crashes inside **`addSheet`** (`Unable to delete property`); does **not** stop duplicate tabs if two structural batches apply. |
+| **FortuneSheet fork** — guards on **`initSheetData`**, **`getSheetIndex`**, **`addSheet`** on read-only collab, etc. | Stops **crashes** when remotes apply **`addSheet`** with bad payloads; does **not** deduplicate duplicate **valid** **`addSheet`** batches. |
+| **WebSocket op relay** (`api/src/plugins/collab-ws-relay.ts`) | Server applies each client message once with **`applyOpBatchToSheets`** and broadcasts to **other** sockets only (`broadcastOp` excludes sender). **Does not** deduplicate if the **editor** sends two WebSocket messages (e.g. double **`onOp`**) or if separate batches both add sheets. |
+
+**Likely directions (not implemented)**
+
+- Restore **client-side** dedup: ignore **consecutive identical** serialized **`Op[]`** (or hash) for **`onOp`** before **`socket.send`**, at least for batches containing structural ops — same idea as the old **`lastPushedOpsRef`**, kept for **production** too.
+- **Server-side:** reject or merge duplicate structural batches (hard without stable op ids from the client).
+- **Upstream / fork:** make **`addSheet`** idempotent when a sheet with the same **`id`** already exists (spec change; needs careful testing).
+
+**Workaround for operators:** If tabs duplicate, **reload** the patch page (or **Import JSON** / **Export JSON** round-trip after fixing in one client). See [`docs/USER_GUIDE.md`](USER_GUIDE.md) (patch spreadsheet section).
+
+**Code:** [`web/src/lib/patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts) (**`onOp`** → send), [`api/src/plugins/collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts) (receive → **`applyOpBatchToSheets`** → broadcast). History in root [`CHANGELOG.md`](../CHANGELOG.md) (search **Strict Mode**, **addSheet**, **Yjs**).
+
 ---
 
 ## Informational / design notes

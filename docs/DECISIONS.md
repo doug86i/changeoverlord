@@ -135,6 +135,8 @@ The project consumes **`@fortune-sheet/core`** and **`@fortune-sheet/react`** fr
 
 **Patch workbook collaboration (relay):** Live editing uses **FortuneSheet’s collab pattern**: local edits call **`onOp` → WebSocket `{ type: "op", data: Op[] }` → server applies the same batch to in-memory **`Sheet[]`** with **`applyOpBatchToSheets`** (see **`api/src/lib/workbook-ops.ts`**) → server broadcasts to other sockets → peers call **`applyOp`**. Postgres stores **`sheets_json`** (`performance_workbooks`, `patch_templates`); the relay debounces writes (~2s) and flushes on room empty / process shutdown. **Yjs was removed** (2026): it duplicated upstream’s design, added ~1.7k lines of integration, and interacted badly with React 18 Strict Mode duplicate **`onOp`** pushes for non-idempotent ops.
 
+**Open collab bug:** Duplicate **sheet tabs** on remotes after **Add sheet** can still occur — structural FortuneSheet ops are not idempotent, and the relay does not yet reintroduce **`onOp`** deduplication for production. See **[`docs/KNOWN_ISSUES.md`](KNOWN_ISSUES.md) § #83**.
+
 **To update the fork:** clone `doug86i/fortune-sheet`, checkout `dhsl/v1.0.4`, edit TypeScript source, run `yarn install && npm run build`, then `npm pack` in `packages/core/` and `packages/react/`, copy `.tgz` to **`vendor/`**. In this repo, refresh **`package-lock.json`** integrity so npm extracts the new bytes: e.g. **`npm install -w @changeoverlord/web @fortune-sheet/react@file:./vendor/fortune-sheet-react-1.0.4.tgz`** and the same for **`@fortune-sheet/core`** on **`api`**, or delete **`node_modules/@fortune-sheet`** and reinstall after replacing tarballs. Prefer **upstream PRs** when practical; drop fork commits when merged.
 
 ---
