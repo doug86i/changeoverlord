@@ -14,8 +14,8 @@ import { createLogger } from "../lib/log.js";
 import { createDefaultPatchWorkbookSheets } from "../lib/default-patch-sheets.js";
 import {
   applyOpBatchToSheets,
+  hydrateSheetsForCollabRoom,
   sheetsFromJsonb,
-  sheetsUsableForServing,
   sheetsSafeForCollabPersist,
 } from "../lib/workbook-ops.js";
 
@@ -312,8 +312,11 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         : await loadSheetsForTemplate(entityId);
     let sheets: Sheet[];
     let seededDefault = false;
-    if (sheetsUsableForServing(raw)) {
+    // Match `sheetsSafeForCollabPersist` (relay writes): Fortune `addSheet` tabs may lack `data` /
+    // `celldata` until hydrated — `sheetsUsableForServing` would falsely drop the whole workbook.
+    if (sheetsSafeForCollabPersist(raw)) {
       sheets = structuredClone(raw);
+      hydrateSheetsForCollabRoom(sheets);
     } else {
       sheets = structuredClone(createDefaultPatchWorkbookSheets());
       seededDefault = true;

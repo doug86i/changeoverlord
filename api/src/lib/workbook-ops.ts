@@ -4,6 +4,46 @@
  */
 import type { Op, Sheet } from "@fortune-sheet/core";
 
+/** Matches `createDefaultPatchWorkbookSheets` when `row` / `column` are missing. */
+const MATERIALIZE_ROWS_FALLBACK = 36;
+const MATERIALIZE_COLS_FALLBACK = 18;
+
+/**
+ * Fortune `addSheet` often creates tabs with `row` / `column` but **no** `data` or `celldata` until
+ * the client runs `initSheetData`. Relay persist allows that shape (`sheetsSafeForCollabPersist`);
+ * materialize so `sheetsUsableForServing` / export / ops that need `data` behave.
+ */
+export function ensureSheetDataMatrixFromRowCol(sheet: Sheet): void {
+  const data = sheet.data;
+  const hasMatrix = Array.isArray(data) && data.length > 0;
+  const cd = (sheet as { celldata?: unknown[] }).celldata;
+  const hasCelldata = Array.isArray(cd) && cd.length > 0;
+  if (hasMatrix || hasCelldata) return;
+  const rowNum = (sheet as { row?: unknown }).row;
+  const colNum = (sheet as { column?: unknown }).column;
+  const rows =
+    typeof rowNum === "number" && Number.isFinite(rowNum) && rowNum > 0
+      ? Math.floor(rowNum)
+      : MATERIALIZE_ROWS_FALLBACK;
+  const cols =
+    typeof colNum === "number" && Number.isFinite(colNum) && colNum > 0
+      ? Math.floor(colNum)
+      : MATERIALIZE_COLS_FALLBACK;
+  sheet.data = Array.from({ length: rows }, () => Array.from({ length: cols }, () => null));
+}
+
+export function materializeEmptySheetMatrices(sheets: Sheet[]): void {
+  for (const s of sheets) {
+    if (s && typeof s === "object") ensureSheetDataMatrixFromRowCol(s);
+  }
+}
+
+/** After reading `sheets_json` for a WebSocket room: fill blank tab matrices + calc chains. */
+export function hydrateSheetsForCollabRoom(sheets: Sheet[]): void {
+  materializeEmptySheetMatrices(sheets);
+  for (const s of sheets) ensureCalcChain(s);
+}
+
 function setAtPath(obj: Record<string, unknown>, path: (string | number)[], value: unknown): void {
   let cur: Record<string, unknown> = obj;
   for (let i = 0; i < path.length - 1; i++) {
@@ -29,6 +69,7 @@ function applyOpBatch(
       for (const s of op.value as Sheet[]) {
         sheets.push(s);
         if (s.id) sheetById.set(String(s.id), s);
+        ensureSheetDataMatrixFromRowCol(s);
       }
       continue;
     }
@@ -120,6 +161,7 @@ function applyOpBatch(
       if (sid && sheetById.has(sid)) continue;
       sheets.push(newSheet);
       if (sid) sheetById.set(sid, newSheet);
+      ensureSheetDataMatrixFromRowCol(newSheet);
       continue;
     }
 
