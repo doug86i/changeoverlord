@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Patch collab** — disable Immer **`autoFreeze`** (`setAutoFreeze(false)` in `main.tsx`) so React 18 updater replays cannot hit frozen objects from a previous `produce`; fixes **`Unable to delete property`** crash when a remote user adds a sheet.
 - **Web:** **Patch collab** — **`applyOp`** failures during Yjs `opLog` replay **abort** further replay (no silent per-batch catch), skip post-hydration formula flush on a broken grid, and show **Workbook out of sync**; live **`observe`** stops applying remote ops after a patch error. **`PatchWorkbookErrorBoundary`** always offers **Copy technical details** (collab hints, mode, FortuneSheet version, UA, timestamp).
 - **Web / FortuneSheet fork:** Remote viewers could still crash on **add tab** — **`applyOp`** called **`initSheetData`** with **`undefined`** sheet payload (from **`addSheetOps[0]?.value`**) or with a **null** index; **`initSheetData`** then threw. **`applyOp`** now skips a missing payload and only initializes when **`getSheetIndex`** succeeds; core **`initSheetData`** null-checks **`newData`** and resolves index by sheet **id** when needed.
 - **Web / FortuneSheet fork:** **`Workbook`**’s React **`initSheetData`** helper (expand **`data`/`celldata`**) still crashed remotes when **`getSheetIndex`** was **`null`** or the sheet row was missing — it destructured **`newData`** and wrote **`d[index]`** without guards. Fork adds null/bounds checks and skips bad **`forEach`** rows.
