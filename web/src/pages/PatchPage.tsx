@@ -216,7 +216,7 @@ export function PatchPage() {
       ) : null}
 
       {/* Content column (child 1 — always present, keeps workbook stable) */}
-      <div className={!isPhone && showPatchSidebar ? "patch-page-main" : undefined}>
+      <div className={isPhone ? "patch-page-phone-content" : showPatchSidebar ? "patch-page-main" : undefined}>
         {/* Phone top bar (child 0 inside content) */}
         {isPhone ? (
           <div className="patch-page-phone-bar">

@@ -1970,6 +1970,13 @@ a.patch-sidebar-perf-link:hover {
   gap: 0.35rem;
 }
 
+.patch-page-phone-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .patch-page-phone-bar {
   display: flex;
   align-items: center;
@@ -2041,12 +2048,6 @@ a.patch-sidebar-perf-link:hover {
 .patch-workbook-host--phone {
   flex: 1 1 auto;
   min-height: 200px;
-  height: auto !important;
-  max-height: none;
-}
-
-.patch-workbook-host--phone .fortune-container {
-  min-height: 50vh;
 }
 
 /* ── Stage / event chat dock ───────────────────────────────── */
