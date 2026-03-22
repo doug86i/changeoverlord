@@ -56,6 +56,7 @@ Canonical choices before implementation. Update when something changes.
 - **Always import as new** entities (new UUIDs) — never merge by reusing old IDs from another server unless we add an explicit **advanced** flow later.
 - **Deletion** of old data is manual (or bulk "delete event") so crews stay in control on the **live** machine.
 - Export **manifest** must record **scope** (event / stage / stage-day) so imports validate expected contents.
+- **`POST /api/v1/import`** uses a **64 MiB** JSON **`bodyLimit`** — **version 2** packages embed every performance workbook (**`sheets`**); Fastify’s default **1 MiB** cap would reject typical exports.
 
 ---
 

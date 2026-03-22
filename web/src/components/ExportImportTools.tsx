@@ -36,12 +36,18 @@ export function ImportEventButton() {
 
   const importMut = useMutation({
     mutationFn: async (file: File) => {
-      const text = await file.text();
-      const data = JSON.parse(text);
+      let data: unknown;
+      try {
+        const text = await file.text();
+        data = JSON.parse(text) as unknown;
+      } catch {
+        throw new Error("Could not read the file as JSON.");
+      }
       return apiSend<{ event: EventRow }>("/api/v1/import", "POST", data);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["events"] });
+      void qc.invalidateQueries({ queryKey: ["events"] });
+      void qc.invalidateQueries({ queryKey: ["events", "allForClock"] });
     },
   });
 

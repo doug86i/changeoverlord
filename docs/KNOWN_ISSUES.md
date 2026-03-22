@@ -28,7 +28,7 @@
 
 [`api/src/routes/v1/export-import.ts`](../api/src/routes/v1/export-import.ts) (`POST /import`)
 
-**Update:** **`importBodySchema`** (Zod) + **`safeParse`** → 400 on bad packages; full import runs inside **`db.transaction`**; staged array and base64 snapshot sizes are capped.
+**Update:** **`importBodySchema`** (Zod) + **`safeParse`** → 400 on bad packages; full import runs inside **`db.transaction`**; staged array and base64 snapshot sizes are capped. **`POST /import`** sets **`bodyLimit` 64 MiB** so **version 2** packages (embedded **`workbooks[].sheets`**) are not rejected by Fastify’s default **1 MiB** JSON cap.
 
 - ~~Request body is cast to a TypeScript type with **no Zod (or other) runtime validation**.~~
 - ~~If `stages`, `stageDays`, or `performances` is missing, `for...of` loops can throw.~~

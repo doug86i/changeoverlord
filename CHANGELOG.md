@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - **Web / API:** Patch collab — duplicate sheet tabs after **Add sheet** mitigated: **`applyOpBatchToSheets`** skips **`addSheet`** when that sheet **`id`** already exists; **`patchWorkbookCollab`** filters redundant remote **`addSheet`** ops before **`applyOp`** and skips consecutive identical **`onOp`** payloads before **`WebSocket.send`**. See **`docs/KNOWN_ISSUES.md`** §83.
+- **API / Web:** **Event import** — **`POST /api/v1/import`** now allows **64 MiB** JSON bodies (**`bodyLimit`**). Fastify’s default **1 MiB** rejected typical **version 2** exports (embedded per-performance **`sheets`**). Clearer validation error text; workbook rows set **`updatedAt`** on insert. **Import event** in the UI shows a friendly message for invalid JSON and refetches **`["events", "allForClock"]`** after success. **`docs/DECISIONS.md`**, **`docs/USER_GUIDE.md`**, **`docs/KNOWN_ISSUES.md`** §1 note the limit.
 
 ### Changed
 

@@ -13,6 +13,12 @@ import { normalizePerformanceBandName } from "../../lib/performance-band-name.js
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { uuidParam } from "../../schemas/api.js";
 
+/**
+ * Fastify's default JSON body limit is 1 MiB. v2 event packages embed every performance
+ * workbook (`sheets` arrays), so imports exceed that quickly without a per-route limit.
+ */
+const EVENT_IMPORT_BODY_LIMIT = 64 * 1024 * 1024;
+
 const importBodySchema = z.object({
   version: z.literal(2),
   event: z.object({
@@ -119,6 +125,7 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
   app.post(
     "/import",
     {
+      bodyLimit: EVENT_IMPORT_BODY_LIMIT,
       config: {
         rateLimit: {
           max: 20,
@@ -131,7 +138,8 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "ValidationError",
-        message: "Invalid export package (expected version 2 with workbooks)",
+        message:
+          "Invalid export package (expected version 2: event, stages, stageDays, performances; optional workbooks)",
         details: parsed.error.flatten(),
       });
     }
@@ -204,6 +212,7 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
               .values({
                 performanceId: newPerfId,
                 sheetsJson: structuredClone(w.sheets) as unknown[],
+                updatedAt: new Date(),
               })
               .onConflictDoNothing();
           }
