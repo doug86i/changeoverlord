@@ -113,3 +113,16 @@ export const postChatMessageBody = z
       });
     }
   });
+
+/** Browser → API → append NDJSON when `CLIENT_LOG_FILE` is set (see docs/LOGGING.md). */
+export const clientDebugLogLine = z.object({
+  ts: z.string().max(64),
+  scope: z.string().min(1).max(160),
+  message: z.string().min(1).max(600),
+  roomId: z.string().max(120).optional(),
+  meta: z.unknown().optional(),
+});
+
+export const clientDebugLogBody = z.object({
+  lines: z.array(clientDebugLogLine).min(1).max(100),
+});

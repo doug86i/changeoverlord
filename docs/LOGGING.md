@@ -40,6 +40,18 @@ Then **`make dev-fast`** or **`make dev`**. Inspect with **`docker compose -f do
 - **Production bundle with client debug** (rare — LAN troubleshooting only): build with **`VITE_LOG_DEBUG=true`** (see Vite docs). Default production builds stay quiet.
 - **Patch / template workbook pages** emit **`logDebug("patch-workbook", …)`** for WebSocket status and sync (enable **`VITE_LOG_DEBUG`** to see in the browser console). FortuneSheet render failures are caught by an error boundary and logged the same way.
 
+### Client debug log file (collab / FortuneSheet)
+
+Browsers do not persist console output. For **patch workbook** troubleshooting, the SPA can POST structured lines to the API, which appends **newline-delimited JSON** to a file on disk:
+
+| Piece | Env / behaviour |
+|--------|------------------|
+| **API** | Set **`CLIENT_LOG_FILE`** to a path **under the API process cwd** (e.g. **`/app/logs/client-debug.ndjson`** in Docker, or **`logs/client-debug.ndjson`** when running the API from the repo root). If unset, **`POST /api/v1/debug/client-log`** is **not registered**. |
+| **Web** | Set **`VITE_CLIENT_LOG_FILE=true`** at Vite dev/build time so **`logClientDebugCollab`** in **`web/src/lib/clientDebugLog.ts`** batches POSTs. Default **`make dev-fast`**: enabled in **`docker-compose.fast.yml`** with **`./logs`** mounted into the API container. |
+| **Output** | One JSON object per line (timestamp, scope, message, optional **`roomId`**, optional **`meta`**). Tail with **`tail -f logs/client-debug.ndjson`**. |
+
+**Security:** do not enable **`CLIENT_LOG_FILE`** on untrusted networks without understanding that authenticated session holders can append to that file. Omit **`meta`** fields that could contain secrets (the collab path logs op summaries / bounded JSON only).
+
 ### Troubleshooting: spreadsheet stuck on “Syncing…” or empty
 
 1. **Server logs** (`docker compose logs -f app`): look for **`collab-ws`** and **`yjs-persist`**. A **`TypeError`** in **`setupWSConnection`** / **`getStateVector`** usually means **two incompatible Yjs packages** — see **[`DECISIONS.md`](DECISIONS.md)** (*Yjs / WebSocket npm compatibility*).
@@ -52,7 +64,7 @@ Then **`make dev-fast`** or **`make dev`**. Inspect with **`docker compose -f do
 
 1. **New REST route:** log successful **mutations** at **`debug`** with **entity ids**; use **`info`** / **`warn`** for auth or settings outcomes as in existing routes.
 2. **New background path** (bus, Yjs, WS): **`createLogger("area")`** and **`debug`** / **`error`** as appropriate.
-3. **Replace `console.log` / `console.error`** in app code with **`req.log`** or **`createLogger`** (except **`logDebug`** on the web).
+3. **Replace `console.log` / `console.error`** in app code with **`req.log`** or **`createLogger`** (except **`logDebug`** / **`logClientDebugCollab`** on the web).
 4. **Change logging shape** → update this doc and **[`docs/DECISIONS.md`](DECISIONS.md)** if behaviour is product-relevant.
 
 ---

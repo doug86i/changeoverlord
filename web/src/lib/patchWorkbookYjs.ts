@@ -5,6 +5,10 @@ import type { Op, Sheet } from "@fortune-sheet/core";
 import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Transaction, YArrayEvent } from "yjs";
 import type * as Y from "yjs";
+import {
+  logClientDebugCollab,
+  summarizeOpsForClientLog,
+} from "./clientDebugLog";
 import { logDebug } from "./debug";
 
 /** Must match `ydoc.transact(..., origin)` in onOp handlers for patch/template workbooks. */
@@ -431,10 +435,33 @@ export function usePatchWorkbookOpLogEffects(
           let ops: Op[] = [];
           try {
             ops = JSON.parse(item) as Op[];
+            const itemLen = item.length;
+            logClientDebugCollab("patch-workbook-yjs", "observe handling ops", {
+              roomId,
+              itemLen,
+              opsSummary: summarizeOpsForClientLog(ops),
+            });
+
             if (wbRef.current && shouldSkipAlreadyAppliedStructuralOps(wbRef.current, ops)) {
-              logDebug("patch-workbook-yjs", "observe SKIP already-applied structural op");
+              logClientDebugCollab(
+                "patch-workbook-yjs",
+                "observe SKIP already-applied structural op",
+                {
+                  roomId,
+                  itemLen,
+                  opsSummary: summarizeOpsForClientLog(ops),
+                },
+              );
               continue;
             }
+            logClientDebugCollab("patch-workbook-yjs", "observe applyOp", {
+              roomId,
+              itemLen,
+              opsSummary: summarizeOpsForClientLog(ops),
+              ...(item.length <= 24_000
+                ? { opBatchJson: item }
+                : { opBatchLen: item.length }),
+            });
             wbRef.current?.applyOp(ops);
             appliedRemote = true;
           } catch (e) {
@@ -516,6 +543,11 @@ export function usePatchWorkbookOpLogEffects(
           roomId,
           opLogLength: yops.length,
         });
+        logClientDebugCollab(
+          "patch-workbook-yjs",
+          "bootstrap fast-path hydration (drain skipped)",
+          { roomId, opLogLength: yops.length },
+        );
 
         if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
         try {
@@ -577,6 +609,7 @@ export function usePatchWorkbookOpLogEffects(
         roomId,
         onApplyOpFailure,
       });
+      logDebug("patch-workbook-yjs", "drain1 finished", { drain1 });
       if (isCancelled()) return;
       if (drain1.aborted) {
         onHydrationChange?.(false);

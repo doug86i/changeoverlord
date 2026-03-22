@@ -8,6 +8,9 @@ import { RealtimeSync } from "./realtime/RealtimeSync";
 import { ConnectionProvider } from "./realtime/ConnectionContext";
 import { ThemeProvider } from "./theme/ThemeContext";
 import { ViewportScrollbarVar } from "./components/ViewportScrollbarVar";
+import { registerClientDebugLogUnload } from "./lib/clientDebugLog";
+
+registerClientDebugLogUnload();
 
 /*
  * FortuneSheet uses Immer `produce` for every state update (`setContext`). React 18 may replay

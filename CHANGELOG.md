@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **API / Web / Docker (fast):** **`POST /api/v1/debug/client-log`** (when **`CLIENT_LOG_FILE`** is set) appends **NDJSON** lines from the browser; **`logClientDebugCollab`** batches patch-workbook sender/receiver events. **`make dev-fast`** mounts **`./logs`**, defaults **`CLIENT_LOG_FILE=/app/logs/client-debug.ndjson`** and **`VITE_CLIENT_LOG_FILE=true`**. See **`docs/LOGGING.md`** (*Client debug log file*).
+
 ### Changed
 
 - **Web:** **Patch / RF** and **template editor** load **`GET …/sheets-export`** before mounting FortuneSheet so the initial grid matches the server snapshot, then replay the Yjs `opLog` — reduces Immer *path doesn't resolve* crashes when the op history assumed more rows/columns than the old placeholder.

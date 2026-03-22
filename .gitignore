@@ -7,6 +7,8 @@ data/db/
 data/uploads/
 # Stray Redis volume if ever created locally — not part of the stack
 data/redis/
+# Client debug NDJSON from fast stack (CLIENT_LOG_FILE)
+logs/
 node_modules/
 # tsc incremental (local + Docker BuildKit cache mount)
 api/.cache/

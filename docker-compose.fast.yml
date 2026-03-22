@@ -38,12 +38,16 @@ services:
       HOST: "0.0.0.0"
       NODE_ENV: development
       UPLOADS_DIR: /var/changeoverlord/uploads
+      # Browser collab debug → NDJSON on disk (see docs/LOGGING.md). Host: ./logs/client-debug.ndjson
+      # Hardcoded path so an empty `CLIENT_LOG_FILE=` in `.env` does not disable the route (Compose `${VAR:-x}` yields "" when VAR is set empty).
+      CLIENT_LOG_FILE: /app/logs/client-debug.ndjson
     volumes:
       - .:/app
       - fast_nm_root:/app/node_modules
       - fast_nm_api:/app/api/node_modules
       - fast_nm_web:/app/web/node_modules
       - ${DATA_DIR:-./data}/uploads:/var/changeoverlord/uploads
+      - ./logs:/app/logs
     ports:
       - "${FAST_API_PORT:-3000}:3000"
     depends_on:
@@ -75,6 +79,8 @@ services:
     working_dir: /app
     environment:
       VITE_API_PROXY: http://api:3000
+      # Set to "false" to disable POST /api/v1/debug/client-log from the SPA
+      VITE_CLIENT_LOG_FILE: "${VITE_CLIENT_LOG_FILE:-true}"
     volumes:
       - .:/app
       - fast_nm_root:/app/node_modules

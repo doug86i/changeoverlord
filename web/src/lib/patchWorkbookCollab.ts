@@ -11,6 +11,10 @@ import { WebsocketProvider } from "y-websocket";
 import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Op, Sheet } from "@fortune-sheet/core";
 import { logDebug } from "./debug";
+import {
+  logClientDebugCollab,
+  summarizeOpsForClientLog,
+} from "./clientDebugLog";
 import { usePageVisible } from "../hooks/usePageVisible";
 import {
   PATCH_WORKBOOK_Y_ORIGIN,
@@ -110,24 +114,46 @@ export function usePatchWorkbookCollab(opts: {
     };
   }, [ydoc]);
 
-  const onOp = useCallback(
-    (ops: Op[]) => {
-      if (readOnly) return;
-      if (suppressYjsOpsForFormulaRecalcRef.current) return;
-      if (!localOpsAllowedRef.current) return;
-      const serialized = JSON.stringify(ops);
-      if (serialized === lastPushedOpsRef.current) return;
-      lastPushedOpsRef.current = serialized;
-      queueMicrotask(() => {
-        lastPushedOpsRef.current = null;
-      });
-      onLocalOp?.();
-      ydoc.transact(() => {
-        yops.push([serialized]);
-      }, PATCH_WORKBOOK_Y_ORIGIN);
-    },
-    [ydoc, yops, onLocalOp, readOnly],
-  );
+    const onOp = useCallback(
+      (ops: Op[]) => {
+        if (readOnly) return;
+        if (suppressYjsOpsForFormulaRecalcRef.current) return;
+        if (!localOpsAllowedRef.current) return;
+        const serialized = JSON.stringify(ops);
+        const isDuplicate = serialized === lastPushedOpsRef.current;
+        logClientDebugCollab("patch-workbook-collab", "onOp called", {
+          roomId,
+          mode,
+          isDuplicate,
+          opsSummary: summarizeOpsForClientLog(ops),
+          ...(serialized.length <= 24_000
+            ? { opBatchJson: serialized }
+            : { opBatchLen: serialized.length }),
+        });
+
+        if (isDuplicate) return;
+        lastPushedOpsRef.current = serialized;
+        // Extend the deduplication window slightly in case React schedules the second
+        // invocation in a subsequent microtask or frame.
+        setTimeout(() => {
+          lastPushedOpsRef.current = null;
+        }, 50);
+
+        onLocalOp?.();
+        ydoc.transact(() => {
+          logClientDebugCollab("patch-workbook-collab", "yops.push", {
+            roomId,
+            mode,
+            opsSummary: summarizeOpsForClientLog(ops),
+            ...(serialized.length <= 24_000
+              ? { opBatchJson: serialized }
+              : { opBatchLen: serialized.length }),
+          });
+          yops.push([serialized]);
+        }, PATCH_WORKBOOK_Y_ORIGIN);
+      },
+      [ydoc, yops, onLocalOp, readOnly, roomId, mode],
+    );
 
   const onHydrationChange = useCallback((hydrated: boolean) => {
     localOpsAllowedRef.current = hydrated;

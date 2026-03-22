@@ -12,6 +12,7 @@ import { filesRoutes } from "./files.js";
 import { searchRoutes } from "./search.js";
 import { exportImportRoutes } from "./export-import.js";
 import { chatRoutes } from "./chat.js";
+import { clientDebugLogRoutes } from "./client-debug-log.js";
 
 export const v1Routes: FastifyPluginAsync = async (app) => {
   await app.register(metaRoutes);
@@ -27,4 +28,5 @@ export const v1Routes: FastifyPluginAsync = async (app) => {
   await app.register(searchRoutes);
   await app.register(exportImportRoutes);
   await app.register(chatRoutes);
+  await app.register(clientDebugLogRoutes);
 };
