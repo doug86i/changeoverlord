@@ -179,11 +179,13 @@ export function usePatchWorkbookCollab(opts: {
     const url = `${proto}//${window.location.host}${path}/${roomId}`;
 
     try {
+      const oldWs = wsRef.current;
       const ws = new WebSocket(url);
       wsRef.current = ws;
       setConn("connecting");
 
       ws.onopen = () => {
+        if (wsRef.current !== ws) return;
         reconnectAttemptRef.current = 0;
         awaitingFirstFullStateRef.current = true;
         setConn("connected");
@@ -191,6 +193,7 @@ export function usePatchWorkbookCollab(opts: {
       };
 
       ws.onmessage = (ev) => {
+        if (wsRef.current !== ws) return;
         let msg: WsMessage;
         try {
           msg = JSON.parse(ev.data as string) as WsMessage;
@@ -238,11 +241,13 @@ export function usePatchWorkbookCollab(opts: {
       };
 
       ws.onerror = () => {
+        if (wsRef.current !== ws) return;
         setConn("error");
         logDebug("patch-workbook-collab", "websocket error", { roomId });
       };
 
       ws.onclose = () => {
+        if (wsRef.current !== ws) return;
         wsRef.current = null;
         if (intentionalDisconnectRef.current) {
           intentionalDisconnectRef.current = false;
@@ -269,18 +274,34 @@ export function usePatchWorkbookCollab(opts: {
           delayMs: delay,
         });
       };
+
+      if (oldWs && oldWs !== ws) {
+        oldWs.close();
+      }
     } catch {
       setConn("error");
     }
   }, [roomId, mode, clearReconnectTimer]);
 
   useEffect(() => {
-    if (!roomId || !workbookReady) return;
+    if (!roomId || !workbookReady) {
+      clearReconnectTimer();
+      const w = wsRef.current;
+      wsRef.current = null;
+      w?.close();
+      setConn("connecting");
+      setWorkbookHydrated(false);
+      setWorkbookSheets(null);
+      awaitingFirstFullStateRef.current = true;
+      setWorkbookDataRev(0);
+      return;
+    }
     connectWs();
     return () => {
       clearReconnectTimer();
-      wsRef.current?.close();
+      const w = wsRef.current;
       wsRef.current = null;
+      w?.close();
     };
   }, [roomId, workbookReady, connectWs, clearReconnectTimer]);
 

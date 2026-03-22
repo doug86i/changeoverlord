@@ -95,7 +95,7 @@ Use **`make dev-fast`** (or classic stack) so the API and Vite proxy match **[`d
    - **`onOp skipped: websocket not open`** / **`readOnly`** / **`suppressLocalOps`** — edits **not** sent to the relay (common “not saving” cause).
    - **`outbound cell op batches (aggregated)`** — debounced summary of **cell** batches **after** a successful **`ws.send`** (no cell payloads); if edits “don’t save” and this line **never** appears, Fortune may not be emitting **`onOp`** or the socket never reached **OPEN**.
    - **`outbound structural op batch sent`** — includes **`addSheetIds`**.
-   - **`fullState received`** — **`sheetCount`**, **`midSessionRemount`** when the grid key bumps.
+   - **`fullState received`** — **`sheetCount`**, **`midSessionRemount`** when the grid key bumps. If **`roomId`** (from the hook) and **`path`** (URL at flush time) disagree for the same tab, suspect a **stale WebSocket** applying another performance’s **`fullState`** — fixed in **`patchWorkbookCollab`** by always closing the socket when **`workbookReady`** is false and by ignoring events from non-current sockets.
    - **`applyOp failed for remote batch`** — client could not apply peer ops.  
    Sort by time or filter by **`tabId`** (see table above).
 
