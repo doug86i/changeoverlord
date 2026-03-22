@@ -10,7 +10,7 @@ This project splits docs by **audience** so nothing important lives only in chat
 |----------|-----------------|--------|
 | **Operators / crew** | **[`USER_GUIDE.md`](USER_GUIDE.md)** | How to use the app (flows, settings, clocks, templates). Plain language; no Docker internals. |
 | **Deploy / install** | Root **[`README.md`](../README.md)**, **[`HANDOVER.md`](HANDOVER.md)** | Quick start, Compose, ports, data directory; **new machine / teammate** checklist. |
-| **Developers** | **[`DEVELOPMENT.md`](DEVELOPMENT.md)**, **[`REALTIME.md`](REALTIME.md)**, **[`DECISIONS.md`](DECISIONS.md)**, **[`LOGGING.md`](LOGGING.md)** | Implementation, sync model, decisions, logging. |
+| **Developers** | **[`DEVELOPMENT.md`](DEVELOPMENT.md)**, **[`REALTIME.md`](REALTIME.md)**, **[`DECISIONS.md`](DECISIONS.md)**, **[`LOGGING.md`](LOGGING.md)**, **[`CODEBASE_REVIEW.md`](CODEBASE_REVIEW.md)** | Implementation, sync model, decisions, logging, **audit backlog** (known issues — update when fixed). |
 | **Product / roadmap** | **[`PLAN.md`](PLAN.md)**, **[`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md)** | Vision, architecture, roadmap, and prioritised feature requirements with user-journey analysis. |
 | **AI & architecture guardrails** | **[`AGENTS.md`](../AGENTS.md)**, **[`.cursor/rules/`](../.cursor/rules/)** | Query keys, realtime split, deploy-after-change habits. |
 | **Release notes** | **[`CHANGELOG.md`](../CHANGELOG.md)** | What changed between versions — **`[Unreleased]`** during development. |
@@ -28,6 +28,7 @@ This project splits docs by **audience** so nothing important lives only in chat
 | **Docker**, **env**, **ports**, **migrations** | **`README.md`**, **`DEVELOPMENT.md`**, **`data/README.md`**, **`HANDOVER.md`** (if clone/data-move steps change) as appropriate. |
 | **`patches/`**, **`Dockerfile`** (builder **`COPY patches`**, runner **`apk`** / **`ignore-scripts`), **`patch-package`** | **`DEVELOPMENT.md`** § *Patches*, *What gets exercised*, *Faster Docker rebuilds*; **`AGENTS.md`** § *Docker image: patches and dependencies*; **`CHANGELOG.md`** when a patch changes shipped behaviour. |
 | **Agent workflow** (Git commit granularity, Compose testing, deploy steps, changelog, logging expectations, Dockerfile speed tricks) | **`AGENTS.md`**, **`CHANGELOG.md`**, **`DEVELOPMENT.md`** § *Git commits*, **`git-commits.mdc`**, **`local-docker-deploy.mdc`**, **`changelog.mdc`**, **`logging.mdc`**. |
+| **Codebase audit / engineering backlog** (security, perf, doc drift, realtime gaps) | **`CODEBASE_REVIEW.md`** — edit or remove sections when addressed; avoid duplicating the same list in chat only. |
 | **Yjs / `@y/protocols` / `yjs` version pins** | **`package.json`** (root **`overrides`**), **`api/package.json`**, **`DECISIONS.md`** (*Yjs / WebSocket npm compatibility*). Regenerate **`package-lock.json`** after changing pins (`rm -rf node_modules package-lock.json && npm install` if npm reports **invalid** hoisting). |
 | **Feature completed or priorities shift** | **`FEATURE_REQUIREMENTS.md`** (update tier/status), **`PLAN.md`** §14 (roadmap checklist). |
 | **Stack or licence** change | **`DECISIONS.md`**, **`LICENSING.md`**. |

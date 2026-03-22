@@ -55,6 +55,8 @@ The API lives at **`/api/v1`**. The browser loads the SPA from the **same origin
 | **[`docs/DECISIONS.md`](docs/DECISIONS.md)** | Engineering decisions |
 | **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | Docker workflow, **`patches/`**, faster rebuilds, dev tips |
 | **[`docs/REALTIME.md`](docs/REALTIME.md)** | Live updates (SSE) vs collaborative grid (Yjs) |
+| **[`docs/PATCH_TEMPLATE_JSON.md`](docs/PATCH_TEMPLATE_JSON.md)** | Patch template **JSON** upload — file shape and API |
+| **[`docs/CODEBASE_REVIEW.md`](docs/CODEBASE_REVIEW.md)** | **Contributors** — engineering audit backlog (known issues, doc drift) |
 | **[`docs/LOGGING.md`](docs/LOGGING.md)** | Structured logging (`LOG_LEVEL`, `req.log`, web `logDebug`) |
 | **[`docs/DESIGN.md`](docs/DESIGN.md)** | UI themes and tokens |
 | **[`docs/LICENSING.md`](docs/LICENSING.md)** | Licences |

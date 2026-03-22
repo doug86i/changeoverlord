@@ -41,6 +41,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | [`docs/LOGGING.md`](docs/LOGGING.md) | **Structured logging:** `req.log` / `createLogger`, levels, no secrets, web `logDebug` |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | **Operator-facing** how-to (keep in sync when UX changes) |
 | [`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md) | **Doc ownership** — what to update when |
+| [`docs/CODEBASE_REVIEW.md`](docs/CODEBASE_REVIEW.md) | **Audit backlog** — known issues, doc drift, follow-ups (update when fixed) |
 | [`CHANGELOG.md`](CHANGELOG.md) | **Release notes** — **`[Unreleased]`** entries for fixes/features that ship |
 | [`.cursor/rules/agents-process.mdc`](.cursor/rules/agents-process.mdc) | **Default:** full **commit + `make dev` + health + changelog + USER_GUIDE + report URL** — do not wait for the user to say “follow the process” |
 | [`.cursor/rules/git-commits.mdc`](.cursor/rules/git-commits.mdc) | Commit **each logical unit** separately; **short, specific, imperative** messages |

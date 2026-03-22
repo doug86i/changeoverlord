@@ -16,6 +16,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 | **[`DECISIONS.md`](DECISIONS.md)** | Locked product and engineering choices (stack, API, limits) |
 | **[`DESIGN.md`](DESIGN.md)** | Visual design — themes, tokens |
 | **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing via **Compose only** (`make dev`), **`patches/`** + **`patch-package`**, **faster Docker rebuilds** (layer + **apk** cache), DB resets, optional **`npm run build`** for CI |
+| **[`CODEBASE_REVIEW.md`](CODEBASE_REVIEW.md)** | **Engineering audit backlog** — known code issues, doc drift, infra/CSS/realtime follow-ups (update as items are fixed) |
 | **[`REALTIME.md`](REALTIME.md)** | Live schedule updates (SSE) vs patch grid collaboration (Yjs + WebSockets) |
 | **[`PATCH_TEMPLATE_JSON.md`](PATCH_TEMPLATE_JSON.md)** | **FortuneSheet JSON** patch template upload — file shape, preserved fields, API |
 | **[`LOGGING.md`](LOGGING.md)** | **Structured logging** — API Pino / `req.log`, web `logDebug`, `LOG_LEVEL`, no secrets |
@@ -43,3 +44,4 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 - **What's left to build:** [`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md) (user journeys, competitive research, prioritised requirements).
 - **Changing REST handlers or TanStack queries:** [`REALTIME.md`](REALTIME.md) + [`AGENTS.md`](../AGENTS.md).
 - **Logging conventions:** [`LOGGING.md`](LOGGING.md).
+- **Known engineering backlog / audit findings:** [`CODEBASE_REVIEW.md`](CODEBASE_REVIEW.md).
