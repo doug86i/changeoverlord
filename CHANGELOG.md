@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **Web — stage chat:** Chat dock **`z-index`** raised (**`999`**, token **`--z-stage-chat-dock`**) so it stacks above the sticky header and page scroll layers; modals (**`.confirm-overlay`** at **1000**) and toasts stay on top.
+- **Web — stage chat:** Chat dock is **`createPortal`’d to `document.body`** (avoids stacking traps under **`#root`** / spreadsheet hosts) and **`right`** uses **`--app-scrollbar-width`** (set by **`ViewportScrollbarVar`**) so it clears classic viewport scrollbars. **`z-index`** remains **`999`** (**`--z-stage-chat-dock`**); modals (**1000**) and toasts stay on top.
 
 - **Web — patch sidebar:** **Rider PDF** quick link no longer falls back to a **stage-wide** rider; only a file marked **Rider** on **this act’s** Files page is linked (matches stage-plot behaviour and avoids showing another band’s rider).
 

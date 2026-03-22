@@ -6,6 +6,7 @@ import { App } from "./App";
 import { RealtimeSync } from "./realtime/RealtimeSync";
 import { ConnectionProvider } from "./realtime/ConnectionContext";
 import { ThemeProvider } from "./theme/ThemeContext";
+import { ViewportScrollbarVar } from "./components/ViewportScrollbarVar";
 import "@fortune-sheet/react/dist/index.css";
 import "./global.css";
 
@@ -28,6 +29,7 @@ createRoot(document.getElementById("root")!).render(
       <ConnectionProvider>
         <RealtimeSync />
         <ThemeProvider>
+          <ViewportScrollbarVar />
           <BrowserRouter>
             <App />
           </BrowserRouter>

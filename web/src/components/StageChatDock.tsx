@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useMatch } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiSend } from "../api/client";
@@ -264,7 +265,8 @@ export function StageChatDock() {
 
   const messages = messagesQ.data?.chatMessages ?? [];
 
-  return (
+  /** Portal to `document.body` so stacking is not trapped under `#root` / flex ancestors (FortuneSheet, etc.). */
+  return createPortal(
     <div ref={rootRef} className={panelClass} role="region" aria-label="Stage chat">
       {!expanded ? (
         <button
@@ -429,6 +431,7 @@ export function StageChatDock() {
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1560,7 +1560,8 @@ a.patch-sidebar-perf-link:hover {
 
 .stage-chat-dock {
   position: fixed;
-  right: 1rem;
+  /** Classic scrollbars consume right edge; `--app-scrollbar-width` from `ViewportScrollbarVar`. */
+  right: calc(1rem + var(--app-scrollbar-width, 0px));
   bottom: calc(var(--stage-chat-dock-bottom) + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-stage-chat-dock);
   display: flex;
@@ -1829,7 +1830,7 @@ a.patch-sidebar-perf-link:hover {
 @media (max-width: 640px) {
   .stage-chat-dock {
     left: 0.75rem;
-    right: 0.75rem;
+    right: calc(0.75rem + var(--app-scrollbar-width, 0px));
     max-width: none;
   }
 }
