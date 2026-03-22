@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web — stage page:** **Stage files** is **collapsed by default** (header shows **Show (n)**). Expanded copy explains that **Rider** / **Stage plot** on that list are **stage-wide** (no performance picker) and points operators to **day → act → Files** for per-band uploads. **Performance Files** page intro is shortened to avoid duplicating the file-list help.
+
 - **Web — patch sidebar:** **Stage plot** preview no longer falls back to **stage-wide** plots (those live under **Stage → Stage files**). Only a file marked **Stage plot** on **this act’s Files** is previewed, so a new performance is not shown another act’s shared plot by mistake. **Rider** still falls back to the stage rider when the act has none.
 
 - **Web — Settings:** Removed the redundant **Import workbook JSON** button from patch template library controls; **FortuneSheet JSON** (`.json`) is still added via the same **Upload Excel … or FortuneSheet JSON** file picker (and **Import workbook JSON** remains on the **stage** template picker).

@@ -74,9 +74,9 @@ export function PerformanceFilesPage() {
 
       <h1 style={{ marginTop: 0 }}>Files — {perf.bandName}</h1>
       <p className="muted">
-        Documents and images for this act only. New uploads are <strong>Other</strong> until you mark{" "}
-        <strong>Rider</strong> or <strong>Stage plot</strong> on each row (only one rider and one stage plot
-        per list). PDFs can <strong>Extract</strong> a page to a new single-page file (saved as stage plot).
+        Documents for <strong>this act only</strong> (not the whole stage). Details and toggles are in the
+        file list below. PDFs can <strong>Extract</strong> a page to a new file (defaults to stage plot for
+        this act’s list).
       </p>
       {stageId && (
         <FileAttachments

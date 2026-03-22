@@ -179,7 +179,7 @@ All uploaded files (patch templates, riders, plots) live on the **server's data 
 
 ### Riders and plots (attachments)
 
-- **Stage** — On a **stage** screen, **Stage files** lets you upload **documents and images** (PDF, photos, text, Word/ODT, etc.). These are **stage-wide** (not tied to one band).
+- **Stage** — On a **stage** screen, **Stage files** starts **collapsed**; expand **Show (n)** to upload or manage files. That list is **stage-wide** (not tied to one band). **Rider** / **Stage plot** there apply to the **whole stage** only — there is no way to pick a performance on this screen. For **one band**, open a **day** below → **Files** on that act’s row.
 - **Performance** — On a **stage day**, each performance row has a **Files** link. Upload files that belong to **that band only** (e.g. their rider).
 - **New uploads are Other** — Everything uploads as **Other** (general attachments). There is no “upload as” step.
 - **Rider and Stage plot (per file)** — On each row, use **Rider** or **Stage plot** so the patch sidebar can link the rider and show a plot preview. **Click the active choice again** to clear it back to **Other**. A file cannot be both at once.

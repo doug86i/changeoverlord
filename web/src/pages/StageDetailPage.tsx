@@ -175,7 +175,11 @@ export function StageDetailPage() {
         hasPatchTemplate={Boolean(st.hasPatchTemplate)}
       />
 
-      <FileAttachments scope={{ kind: "stage", stageId }} title="Stage files" />
+      <FileAttachments
+        scope={{ kind: "stage", stageId }}
+        title="Stage files"
+        collapsedByDefault
+      />
 
       <div className="card" style={{ marginBottom: "1rem" }}>
         <div className="title-bar" style={{ marginBottom: "0.75rem" }}>Add single day</div>

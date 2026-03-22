@@ -338,9 +338,19 @@ type Scope =
   | { kind: "stage"; stageId: string }
   | { kind: "performance"; performanceId: string; stageId: string };
 
-export function FileAttachments({ scope, title }: { scope: Scope; title: string }) {
+export function FileAttachments({
+  scope,
+  title,
+  /** Stage page: start collapsed so the day list stays visible; expand to manage uploads. */
+  collapsedByDefault = false,
+}: {
+  scope: Scope;
+  title: string;
+  collapsedByDefault?: boolean;
+}) {
   const qc = useQueryClient();
   const [dragOver, setDragOver] = useState(false);
+  const [expanded, setExpanded] = useState(!collapsedByDefault);
   const inputRef = useRef<HTMLInputElement>(null);
   const qk =
     scope.kind === "stage"
@@ -378,14 +388,67 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
     [upload],
   );
 
+  const fileCount = filesQ.data?.files.length;
+  const countLabel =
+    filesQ.isLoading ? "…" : fileCount != null ? String(fileCount) : "0";
+
+  const stageScopeHelp = (
+    <>
+      <p className="muted" style={{ fontSize: "0.9rem", marginBottom: "0.65rem" }}>
+        Everything here is <strong>stage-wide</strong> — not linked to a single band.{" "}
+        <strong>Rider</strong> and <strong>Stage plot</strong> on these rows set the <strong>shared</strong>{" "}
+        defaults for this stage (one rider and one stage plot for this list). There is no performance picker;
+        this screen cannot attach a file to a specific act.
+      </p>
+      <p className="muted" style={{ fontSize: "0.9rem", marginBottom: "0.65rem" }}>
+        For <strong>one band</strong>, go to <strong>Days</strong> on this page → open a day → use{" "}
+        <strong>Files</strong> on that act’s row. Uploads there belong to that performance only; the patch
+        sidebar uses those for per-act rider / stage plot preview.
+      </p>
+    </>
+  );
+
+  const performanceScopeHelp = (
+    <p className="muted" style={{ fontSize: "0.9rem", marginBottom: "0.65rem" }}>
+      New uploads start as <strong>Other</strong>. Use <strong>Rider</strong> or <strong>Stage plot</strong>{" "}
+      on each row (this list is <strong>only this act</strong>). When <strong>Convert to PDF</strong> appears,
+      the server can turn images, Word/ODT/RTF, or plain text into a PDF so you can <strong>Extract</strong> a
+      page.
+    </p>
+  );
+
+  const showBody = !collapsedByDefault || expanded;
+
   return (
     <div className="card" style={{ marginBottom: "1.5rem" }}>
-      <div className="title-bar" style={{ marginBottom: "0.75rem" }}>{title}</div>
+      <div
+        className="title-bar"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "0.5rem",
+          marginBottom: showBody ? "0.75rem" : 0,
+        }}
+      >
+        <span>{title}</span>
+        {collapsedByDefault ? (
+          <button
+            type="button"
+            className="icon-btn"
+            aria-expanded={expanded}
+            aria-controls={`file-attachments-${scope.kind}-${scope.kind === "stage" ? scope.stageId : scope.performanceId}`}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? "Collapse" : `Show (${countLabel})`}
+          </button>
+        ) : null}
+      </div>
 
-      <p className="muted" style={{ fontSize: "0.9rem", marginBottom: "0.65rem" }}>
-        New uploads start as <strong>Other</strong>. Use <strong>Rider</strong> or <strong>Stage plot</strong> on each row.
-        When <strong>Convert to PDF</strong> appears, the server can turn images, Word/ODT/RTF, or plain text into a PDF so you can <strong>Extract</strong> a page.
-      </p>
+      {showBody ? (
+        <div id={`file-attachments-${scope.kind}-${scope.kind === "stage" ? scope.stageId : scope.performanceId}`}>
+      {scope.kind === "stage" ? stageScopeHelp : performanceScopeHelp}
 
       {/* Drop zone */}
       <div
@@ -436,6 +499,8 @@ export function FileAttachments({ scope, title }: { scope: Scope; title: string 
       {filesQ.data && filesQ.data.files.length === 0 && !filesQ.isLoading && (
         <p className="muted">No files yet.</p>
       )}
+        </div>
+      ) : null}
     </div>
   );
 }
