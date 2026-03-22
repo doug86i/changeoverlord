@@ -75,6 +75,8 @@ Persistence: **`performance_yjs_snapshots`** and **`patch_templates.snapshot`**;
 - **Graceful shutdown:** on **SIGTERM / SIGINT**, all active Yjs docs are flushed to Postgres before the process exits. Without this, edits in the debounce window are lost on container restart.
 - **OpLog compaction:** when the append-only `opLog` exceeds **200 entries**, the persist layer replays it to the current sheet state and replaces it with a single `replace luckysheetfile` op. This keeps snapshots small and page-load replay fast.
 
+**Are workbooks rebuilt from “all history” forever?** No. The browser replays the **`opLog`** after sync, but **`opLog` length is capped** by compaction (≤ **200** batches between compactions; often **1** batch — a full `luckysheetfile` replace — after compaction). Postgres stores one **Yjs binary snapshot** per doc, not an unbounded event log. Cost still grows with **workbook size** (big grids), not unbounded edit count.
+
 ---
 
 ## Limits (single API process)
