@@ -80,12 +80,15 @@ export function PatchPage() {
 
   const workbookReady = Boolean(performanceId && perfQ.isSuccess && perfQ.data);
 
-  const { wbRef, onOp, conn, synced } = usePatchWorkbookCollab({
+  const { wbRef, onOp, conn, synced, workbookHydrated } = usePatchWorkbookCollab({
     roomId: performanceId,
     mode: "performance",
     workbookReady,
     onLocalOp: markDirty,
   });
+
+  const blockingWorkbook =
+    workbookReady && !workbookHydrated && conn !== "error";
 
   // beforeunload warning when workbook has unsaved changes
   useEffect(() => {
@@ -112,11 +115,13 @@ export function PatchPage() {
     ? "Connection error"
     : !synced
       ? "Syncing…"
-      : "Live";
+      : !workbookHydrated
+        ? "Loading workbook…"
+        : "Live";
 
   const connClass = conn === "error"
     ? "status-danger"
-    : !synced
+    : !synced || !workbookHydrated
       ? "status-warn"
       : "status-ok";
 
@@ -244,6 +249,15 @@ export function PatchPage() {
           overflow: "hidden",
         }}
       >
+        {blockingWorkbook ? (
+          <div
+            className="patch-workbook-host__loading"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            Loading workbook…
+          </div>
+        ) : null}
         <PatchWorkbookErrorBoundary key={performanceId}>
           <Workbook
             key={performanceId}

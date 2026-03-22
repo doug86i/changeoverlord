@@ -122,7 +122,7 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 - **← Previous** and **Next →** to jump between acts on the same day.
 - A **dropdown** to jump to any act directly.
 - **Alt+← / Alt+→** keyboard shortcuts for quick switching.
-- On the **patch** page, **time** and **countdown** are in the **sidebar** (see above). Connection status is next to the page title: green (live), amber (syncing), red (error).
+- On the **patch** page, **time** and **countdown** are in the **sidebar** (see above). Connection status is next to the page title: green (live), amber (syncing or **Loading workbook…** while the grid catches up after you open the page), red (error). The same **Loading workbook…** overlay can appear on **Edit spreadsheet** (library templates) — wait until it clears before editing so the sheet is not an empty placeholder.
 
 **Export / import workbook JSON (this act)** — Next to the title, **Export JSON** downloads the current band’s spreadsheet as a JSON file (FortuneSheet-native; includes a small **`changeoverlordWorkbook`** envelope). **Import JSON** replaces this act’s workbook from a file you choose. The page **reloads** after import so everyone sees the same grid. Use this to edit in external tools, share with agents, or copy a sheet between servers. Details: **`docs/PATCH_TEMPLATE_JSON.md`**.
 

@@ -88,6 +88,68 @@ function flushWorkbookFormulaRecalc(
 }
 
 /**
+ * Drain `opLog` entries onto the FortuneSheet instance. After an apparent catch-up we wait
+ * extra animation frames so late Yjs merges (e.g. server `bindState` DB snapshot applied after
+ * the first empty sync) are not missed — `yops.observe` ignores remote ops until `hydratedRef`.
+ */
+/** Returns next index to apply (equals `yops.length` when fully caught up). */
+async function drainOpLogWithQuietFrames(opts: {
+  yops: Y.Array<string>;
+  wb: WorkbookInstance;
+  runId: number;
+  hydrationRunIdRef: MutableRefObject<number>;
+  cancelled: () => boolean;
+  startIndex: number;
+  /** Max “idle” rAF cycles with `i === yops.length` before we consider the log quiescent. */
+  idleFramesRequired: number;
+}): Promise<number> {
+  const {
+    yops,
+    wb,
+    runId,
+    hydrationRunIdRef,
+    cancelled,
+    startIndex,
+    idleFramesRequired,
+  } = opts;
+  let i = startIndex;
+  let idleFrames = 0;
+  while (idleFrames < idleFramesRequired) {
+    if (cancelled() || runId !== hydrationRunIdRef.current) return i;
+    while (i < yops.length) {
+      if (cancelled() || runId !== hydrationRunIdRef.current) return i;
+      const item = yops.get(i);
+      const batchIndex = i;
+      i += 1;
+      try {
+        const ops = JSON.parse(item) as Op[];
+        wb.applyOp(ops);
+      } catch (e) {
+        logDebug(
+          "patch-workbook-yjs",
+          `opLog replay batch ${batchIndex} failed`,
+          e,
+        );
+      }
+      idleFrames = 0;
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+    }
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+    if (cancelled() || runId !== hydrationRunIdRef.current) return i;
+    if (i < yops.length) {
+      idleFrames = 0;
+    } else {
+      idleFrames += 1;
+    }
+  }
+  return i;
+}
+
+/**
  * FortuneSheet only receives remote changes via `applyOp`. Yjs may sync the full `opLog`
  * before `<Workbook>` mounts, so `yops.observe` runs while `wbRef.current` is still null and
  * those updates are dropped — empty sheet, “wrong” template, or edits that never appear.
@@ -103,6 +165,8 @@ export function usePatchWorkbookOpLogEffects(
   canShowWorkbook: boolean,
   /** While true, `onOp` must not push to Yjs — `calculateFormula` would otherwise append huge batches after hydrate. */
   suppressYjsOpsRef?: MutableRefObject<boolean>,
+  /** Fires when FortuneSheet may / may not accept edits (initial replay + late snapshot catch-up). */
+  onHydrationChange?: (hydrated: boolean) => void,
 ): void {
   const hydratedRef = useRef(false);
   /** Bumps on each hydration layout effect so stale async `run()` cannot set `hydratedRef`. */
@@ -180,14 +244,26 @@ export function usePatchWorkbookOpLogEffects(
   }, [yops, wbRef, suppressYjsOpsRef]);
 
   useLayoutEffect(() => {
-    if (!synced || !canShowWorkbook || !roomId) return;
+    if (!roomId) {
+      onHydrationChange?.(false);
+      return;
+    }
+    if (!synced || !canShowWorkbook) {
+      onHydrationChange?.(false);
+      return;
+    }
     // Avoid re-applying the full opLog after reconnect (synced toggles) — workbook still holds state.
-    if (hydratedRef.current) return;
+    if (hydratedRef.current) {
+      onHydrationChange?.(true);
+      return;
+    }
 
     const runId = ++hydrationRunIdRef.current;
     let cancelled = false;
     let attempts = 0;
     const maxAttempts = 120;
+
+    onHydrationChange?.(false);
 
     const run = async () => {
       if (cancelled || runId !== hydrationRunIdRef.current) return;
@@ -196,30 +272,26 @@ export function usePatchWorkbookOpLogEffects(
         if (attempts++ < maxAttempts) requestAnimationFrame(() => void run());
         return;
       }
-      // Drain by index so batches appended while we replay (e.g. remote edits) are not skipped.
-      // A one-shot `toArray()` misses tail inserts that occurred mid-replay while `hydratedRef` is false.
-      let i = 0;
-      while (i < yops.length) {
-        if (cancelled || runId !== hydrationRunIdRef.current) return;
-        const item = yops.get(i);
-        i += 1;
-        try {
-          const ops = JSON.parse(item) as Op[];
-          wb.applyOp(ops);
-        } catch (e) {
-          logDebug("patch-workbook-yjs", `opLog replay batch ${i - 1} failed`, e);
-        }
-        // One animation frame per Yjs batch so Immer / FortuneSheet can commit before the next applyOp.
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => resolve());
-        });
-      }
-      if (cancelled || runId !== hydrationRunIdRef.current) return;
-      // Let one frame elapse so `applyOp` commits before recalc touches formula maps / current sheet.
+      const isCancelled = () => cancelled || runId !== hydrationRunIdRef.current;
+
+      // First drain + quiet frames: catches server snapshot applied after an initial empty sync
+      // (`api` bindState loads Postgres asynchronously).
+      let nextIndex = await drainOpLogWithQuietFrames({
+        yops,
+        wb,
+        runId,
+        hydrationRunIdRef,
+        cancelled: isCancelled,
+        startIndex: 0,
+        idleFramesRequired: 4,
+      });
+      if (isCancelled()) return;
+
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => resolve());
       });
-      if (cancelled || runId !== hydrationRunIdRef.current) return;
+      if (isCancelled()) return;
+
       const wbRecalc = wbRef.current;
       if (!wbRecalc) return;
       try {
@@ -227,15 +299,41 @@ export function usePatchWorkbookOpLogEffects(
       } catch (e) {
         logDebug("patch-workbook-yjs", "post-hydrate formula recalc failed", e);
       }
-      // Only mark hydrated after recalc so `yops.observe` and user input do not interleave with a stale `currentSheetId`.
+
+      // Recalc can be slow; drain anything merged during it, then settle again.
+      const wbTail = wbRef.current;
+      if (!wbTail) return;
+      nextIndex = await drainOpLogWithQuietFrames({
+        yops,
+        wb: wbTail,
+        runId,
+        hydrationRunIdRef,
+        cancelled: isCancelled,
+        startIndex: nextIndex,
+        idleFramesRequired: 2,
+      });
+      if (isCancelled()) return;
+
+      // Only mark hydrated after replay + recalc + tail drain so `yops.observe` and local `onOp`
+      // do not interleave with a stale grid or drop late snapshot batches.
       if (!cancelled && runId === hydrationRunIdRef.current) {
         hydratedRef.current = true;
+        onHydrationChange?.(true);
       }
     };
 
     void run();
     return () => {
       cancelled = true;
+      onHydrationChange?.(false);
     };
-  }, [synced, roomId, yops, canShowWorkbook, wbRef, suppressYjsOpsRef]);
+  }, [
+    synced,
+    roomId,
+    yops,
+    canShowWorkbook,
+    wbRef,
+    suppressYjsOpsRef,
+    onHydrationChange,
+  ]);
 }

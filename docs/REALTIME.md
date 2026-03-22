@@ -97,6 +97,8 @@ Persistence: **`performance_yjs_snapshots`** and **`patch_templates.snapshot`**;
 
 **Are workbooks rebuilt from “all history” forever?** No. The browser replays the **`opLog`** after sync, but **`opLog` length is capped** by compaction (≤ **200** batches between compactions; often **1** batch — a full `luckysheetfile` replace — after compaction). Postgres stores one **Yjs binary snapshot** per doc, not an unbounded event log. Cost still grows with **workbook size** (big grids), not unbounded edit count.
 
+**Client vs server snapshot timing:** The API applies the persisted Yjs snapshot from Postgres inside **`bindState`** asynchronously. The WebSocket can report “synced” before that snapshot merge finishes, so the web client **waits for extra idle frames** after the first `opLog` drain and **blocks local edits** until hydration completes (overlay **Loading workbook…**). That avoids racing the FortuneSheet **placeholder** grid and ending up with a blank sheet if the operator edits immediately after open or right after a template upload.
+
 ---
 
 ## Limits (single API process)

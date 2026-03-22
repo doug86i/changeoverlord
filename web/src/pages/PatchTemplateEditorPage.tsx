@@ -25,11 +25,14 @@ export function PatchTemplateEditorPage() {
 
   const workbookReady = Boolean(templateId && tplQ.isSuccess && tplQ.data);
 
-  const { wbRef, onOp, conn, synced } = usePatchWorkbookCollab({
+  const { wbRef, onOp, conn, synced, workbookHydrated } = usePatchWorkbookCollab({
     roomId: templateId,
     mode: "template",
     workbookReady,
   });
+
+  const blockingWorkbook =
+    workbookReady && !workbookHydrated && conn !== "error";
 
   if (!templateId) return null;
   if (tplQ.isLoading) return <p className="muted">Loading…</p>;
@@ -62,7 +65,9 @@ export function PatchTemplateEditorPage() {
             ? "Realtime connection error — check network / login"
             : !synced
               ? "Syncing…"
-              : "Live (saved to library)"}
+              : !workbookHydrated
+                ? "Loading workbook…"
+                : "Live (saved to library)"}
         </span>
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
@@ -79,6 +84,15 @@ export function PatchTemplateEditorPage() {
           overflow: "hidden",
         }}
       >
+        {blockingWorkbook ? (
+          <div
+            className="patch-workbook-host__loading"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            Loading workbook…
+          </div>
+        ) : null}
         <PatchWorkbookErrorBoundary key={templateId}>
           <Workbook
             key={templateId}

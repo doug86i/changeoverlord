@@ -46,15 +46,20 @@ export function usePatchWorkbookCollab(opts: {
   onOp: (ops: Op[]) => void;
   conn: "connecting" | "connected" | "error";
   synced: boolean;
+  /** FortuneSheet has replayed Yjs `opLog` (incl. late server snapshot); safe to edit. */
+  workbookHydrated: boolean;
 } {
   const { roomId, mode, workbookReady, onLocalOp } = opts;
   const wbRef = useRef<WorkbookInstance>(null);
   /** True while running post-hydration `calculateFormula` — those patches must not become Yjs ops. */
   const suppressYjsOpsForFormulaRecalcRef = useRef(false);
+  /** Synchronous gate so `onOp` ignores input before hydration even if React state lags. */
+  const localOpsAllowedRef = useRef(false);
   const [conn, setConn] = useState<"connecting" | "connected" | "error">(
     "connecting",
   );
   const [synced, setSynced] = useState(false);
+  const [workbookHydrated, setWorkbookHydrated] = useState(false);
 
   const ydoc = useMemo(() => new Y.Doc(), [roomId]);
   const yops = useMemo(() => ydoc.getArray<string>("opLog"), [ydoc]);
@@ -62,6 +67,7 @@ export function usePatchWorkbookCollab(opts: {
   const onOp = useCallback(
     (ops: Op[]) => {
       if (suppressYjsOpsForFormulaRecalcRef.current) return;
+      if (!localOpsAllowedRef.current) return;
       onLocalOp?.();
       ydoc.transact(() => {
         yops.push([JSON.stringify(ops)]);
@@ -70,10 +76,17 @@ export function usePatchWorkbookCollab(opts: {
     [ydoc, yops, onLocalOp],
   );
 
+  const onHydrationChange = useCallback((hydrated: boolean) => {
+    localOpsAllowedRef.current = hydrated;
+    setWorkbookHydrated(hydrated);
+  }, []);
+
   useEffect(() => {
     if (!roomId) return;
 
     setSynced(false);
+    localOpsAllowedRef.current = false;
+    setWorkbookHydrated(false);
 
     if (mode === "template") {
       logDebug("patch-workbook", "Template editor Yjs provider starting", {
@@ -124,7 +137,8 @@ export function usePatchWorkbookCollab(opts: {
     synced,
     workbookReady,
     suppressYjsOpsForFormulaRecalcRef,
+    onHydrationChange,
   );
 
-  return { wbRef, onOp, conn, synced };
+  return { wbRef, onOp, conn, synced, workbookHydrated };
 }

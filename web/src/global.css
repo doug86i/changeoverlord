@@ -1367,6 +1367,7 @@ a.patch-sidebar-perf-link:hover {
 /* FortuneSheet — always light: pin light-theme tokens so toolbar icons, menus,
    and cell canvas stay readable regardless of the app's light/dark theme. */
 .patch-workbook-host {
+  position: relative;
   --color-bg: #f4f5f7;
   --color-surface: #ffffff;
   --color-border: #d1d5db;
@@ -1374,6 +1375,20 @@ a.patch-sidebar-perf-link:hover {
   --color-text-muted: #52525b;
   --color-overlay: rgba(0, 0, 0, 0.45);
   accent-color: var(--color-brand);
+}
+
+/** Blocks clicks until Yjs opLog replay finishes (avoids racing an empty placeholder grid). */
+.patch-workbook-host__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  pointer-events: auto;
 }
 
 .patch-workbook-host .fortune-container {

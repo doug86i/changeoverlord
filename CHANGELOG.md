@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Web — patch / RF workbook:** Opening a performance patch sheet or **Edit spreadsheet** (template) right after navigation or upload could show a **blank** grid: Yjs reported synced before the server finished merging the DB snapshot, and remote `opLog` updates were ignored until hydration finished. The client now **drains the log until quiescent** (extra animation frames), **defers local `onOp`** until replay completes, and shows **Loading workbook…** over the grid until then.
+
 ### Changed
 
 - **Web — stage chat:** Only two states — compact **Chat** button or **full panel** with **Minimize** (removed the extra bar + **Hide** + session “tucked” state).
