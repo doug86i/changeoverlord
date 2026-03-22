@@ -12,7 +12,7 @@
 
 **Recently addressed (2026-03 doc sweep — medium/low):** **#6** **`POST …/performances/:id/swap`** runs inside **`db.transaction`**; template **`POST …/replace`** writes the new file then updates DB, **`unlink`**s the new path on DB failure, then removes the old file; **#9** **`realtime-sse.ts`** uses **`safeWrite`** (try/catch, **`writableEnded`** check); **#10** **`hhmmToMinutes`** rejects non-**`HH:mm`**, out-of-range values (**`NaN`**); **`validatePerformanceSchedule`** returns explicit error strings; **#11** **`pool.on("error", …)`** in **`db/client.ts`**; **#44** **`POST /files/:id/convert-to-pdf`** returns generic **`Could not convert to PDF`** to clients, logs detail; **#46** performance create wraps **`insert(performances)`** + **`insert(performanceYjsSnapshots)`** in **`db.transaction`**; **#47** collab WebSocket rejects missing performance/template (**`collab-ws.ts`** DB lookup before **`setupWSConnection`**); **#48** per-IP SSE cap via **`reserveSseSlot`** (**`sse-ip-cap.ts`**, max 20); **#52** index **`stages_default_patch_template_id_key`** (**`0007_stages_default_patch_template_index.sql`**); **#53** pool **`connectionTimeoutMillis`** / **`idleTimeoutMillis`**; **`pool.end()`** on SIGTERM/SIGINT (**`index.ts`**); **#56** shift endpoint uses **`db.transaction`** around the update loop.
 
-**Recently addressed (2026-03 — UX / lists / realtime):** **#17** **`RealtimeSync`** **`invalidateQueries({ exact: false })`** so **`["allStagesForClock"]`** invalidates **`["allStagesForClock", …]`**; **#41** **`@fastify/helmet`** with **`contentSecurityPolicy: false`** (no CSP for now — comment in **`app.ts`**); **#42** login **`rateLimit`** 15 / 5 min, message *Too many attempts, try again in 5 minutes.*; **#49** **`ErrorBoundary`** friendly copy + **Copy technical details** only when **`isClientDebugLoggingEnabled`**; **`PatchWorkbookErrorBoundary`** always offers copy (see §49); **#7** **`loadSheetsForPatchTemplateRow`** throws when disk read fails and Yjs snapshot empty; **preview** / **sheets-export** → **503**; **#54** paginated **`GET /events`** and **`GET /patch-templates`** (default limit **200**, max **500**, **`hasMore`**); web **Load more**; Clock / My stage today use **`fetchAllEvents()`** / **`fetchAllPatchTemplates()`**.
+**Recently addressed (2026-03 — UX / lists / realtime):** **#17** **`RealtimeSync`** **`invalidateQueries({ exact: false })`** so **`["allStagesForClock"]`** invalidates **`["allStagesForClock", …]`**; **#41** **`@fastify/helmet`** with **`contentSecurityPolicy: false`** (no CSP for now — comment in **`app.ts`**); **#42** login **`rateLimit`** 15 / 5 min, message *Too many attempts, try again in 5 minutes.*; **#49** **`ErrorBoundary`** friendly copy + **Copy technical details** only when **`isClientDebugLoggingEnabled`**; **`PatchWorkbookErrorBoundary`** always offers copy (see §49); **#7** **`loadSheetsForPatchTemplateRow`** throws when disk read fails and Yjs snapshot empty; **preview** / **sheets-export** → **503**; **#54** paginated **`GET /events`** and **`GET /patch-templates`** (default limit **200**, max **500**, **`hasMore`**); web **Load more**; Clock / My stage today use **`fetchAllEvents()`** / **`fetchAllPatchTemplates()`**; **#83** duplicate sheet tabs on collab — idempotent **`addSheet`** (**`workbook-ops.ts`**), remote op filter + consecutive identical **`onOp`** dedup (**`patchWorkbookCollab.ts`**).
 
 ---
 
@@ -435,39 +435,20 @@ Fix: add `flex-shrink: 0` (and `white-space: nowrap` where appropriate) to each 
 
 **Update (2026):** The collab server sends **`fullState`** (`Sheet[]` from **`sheets_json`**) on connect/reconnect; the client remounts **`<Workbook data={…}>`** from that payload before applying live **`op`** batches. Remote **`applyOp`** failures are logged in the hook; reload the patch page if the grid errors. See [`docs/DECISIONS.md`](DECISIONS.md) (FortuneSheet fork section).
 
-### 83. Duplicate sheet tabs on remote peers after **Add sheet** *(open)*
+### 83. Duplicate sheet tabs on remote peers after **Add sheet** *(addressed — 2026-03)*
 
-**Current architecture (2026):** Patch collab uses a **WebSocket JSON op relay** and Postgres **`sheets_json`** — **Yjs is not in the stack anymore** (removed in a large refactor to match FortuneSheet’s recommended pattern). This issue **survived that change**: it is not Yjs-specific, it is **structural-op idempotency** + duplicate batches.
+**Root cause:** FortuneSheet **`addSheet`** is **not idempotent**; applying the **same** batch twice appends twice. Duplicate batches reached the relay from **double `onOp`** (e.g. React 18 Strict Mode) and from **multiple WebSocket messages** for one user action; remotes ran **`applyOp`** for every broadcast.
 
-**Symptom:** User A adds a new sheet tab; user B (and other remotes) sometimes end up with **two** tabs for the same logical add (or extra empty tabs). The **authoritative** workbook in Postgres (**`sheets_json`**) and **Export JSON** can also reflect duplicates once the relay has applied duplicate batches and debounced persist has run.
+**Mitigation (current code):**
 
-**Why a simple reload often does nothing:** On connect/reconnect the server sends **`fullState`** built from **`sheets_json`**. If duplicates are **already saved**, every refresh just **reloads the same duplicate sheets**. Reload only “fixes” transient **client-only** glitches — not persisted bad state.
+| Layer | Behaviour |
+|--------|-----------|
+| **`applyOpBatchToSheets`** ([`api/src/lib/workbook-ops.ts`](../api/src/lib/workbook-ops.ts)) | **`addSheet`**: if the new sheet’s **`id`** is already in the workbook, **skip** (server state + persist stay correct when duplicate batches arrive). |
+| **`usePatchWorkbookCollab`** ([`web/src/lib/patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts)) | **Outgoing:** if **`JSON.stringify(ops)`** matches the **immediately previous** send (same synchronous double-invoke), **do not send**; ref clears on a microtask. **Incoming:** **`filterRedundantRemoteOps`** drops **`addSheet`** for ids already present (and respects **`deleteSheet`** / full **`luckysheetfile`** replace ordering). |
 
-**Why it’s hard:** FortuneSheet **`addSheet`** / **`deleteSheet`** / row-column structural ops are **not idempotent**. Applying the **same** op batch twice appends twice. Cell-level **`replace`** patches are usually harmless when duplicated; structural ops are not.
+**Still not idempotent:** other structural ops (**`deleteSheet`**, row/column insert/delete) — reopen if those show duplicate-apply bugs.
 
-**What we’ve tried (current stack)**
-
-| Attempt | Notes |
-|--------|--------|
-| **WebSocket op relay** (`collab-ws-relay.ts`) | Server applies each message with **`applyOpBatchToSheets`** and broadcasts to **other** sockets only. **Still vulnerable** if the **editor** sends **two** WebSocket messages for the same structural change (e.g. double **`onOp`**) — the server applies both and persists duplicates. |
-| **`setAutoFreeze(false)`** (Immer) | Fixes **freeze / replay** crashes inside **`addSheet`**; does **not** stop duplicate tabs. |
-| **FortuneSheet fork** — **`initSheetData`** / **`getSheetIndex`** / read-only **`addSheet`** guards | Stops **crashes** on bad payloads; does **not** dedupe two **valid** **`addSheet`** batches. |
-
-**Historical (removed with the Yjs → relay refactor)** — kept so we don’t repeat dead ends:
-
-| Attempt | Notes |
-|--------|--------|
-| **Yjs** + opLog + client replay | Duplicate pushes to the log → duplicate **`applyOp`** on peers; compaction / **`sheets-export`** bootstrap reduced some races; **did not** fix this class of bug. **Removed** for complexity and Strict Mode interaction, not because duplicates went away. |
-| **React Strict Mode `onOp` dedup** (`lastPushedOpsRef`) | Helped **dev** double-invoke only; **removed** with relay. **Production** never had that double-invoke; duplicates remain. Restoring this dedup **before `socket.send`** (production too) is a leading fix candidate. |
-| **Skip opLog drain when REST bootstrap** | Avoided double-apply on first paint in the Yjs era; superseded by **`fullState`**. |
-
-**Likely directions (not implemented)**
-
-- Restore **client-side** dedup on **`onOp`**: drop **consecutive identical** serialized **`Op[]`** before **`socket.send`** (especially batches containing structural ops) — **production**, not only Strict Mode.
-- **Server-side:** dedupe or ignore duplicate structural batches (needs heuristics or client op ids).
-- **Fork:** idempotent **`addSheet`** when sheet **`id`** already exists.
-
-**Workaround for operators when duplicates are already saved:** **Export JSON** → remove the extra **`luckysheetfile`** entries in the file (or fix in an external editor) → **Import JSON** for that act/template so **`sheets_json`** is rewritten. **Reload alone will not remove** duplicates already in the database. If the product UI later supports deleting duplicate tabs cleanly, use that and wait for persist.
+**Workaround if duplicates are already in `sheets_json`:** **Export JSON** → remove extra **`luckysheetfile`** entries → **Import JSON** for that act/template. **Reload alone** does not remove persisted duplicates.
 
 **Code:** [`web/src/lib/patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts), [`api/src/plugins/collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts).
 

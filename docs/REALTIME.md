@@ -89,7 +89,7 @@ The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON message
 
 - **Server → client (on connect):** `{ "type": "fullState", "sheets": Sheet[] }` — current workbook from Postgres (or the in-memory room if already warm).
 - **Client → server:** `{ "type": "op", "data": Op[] }` — same batches FortuneSheet emits from **`onOp`**.
-- **Server → other clients:** `{ "type": "op", "data": Op[] }` — broadcast after the server applies the batch to its copy with **`applyOpBatchToSheets`** (`api/src/lib/workbook-ops.ts`).
+- **Server → other clients:** `{ "type": "op", "data": Op[] }` — broadcast after the server applies the batch to its copy with **`applyOpBatchToSheets`** (`api/src/lib/workbook-ops.ts`). **`addSheet`** is **idempotent** there when the sheet **`id`** already exists; the web client also filters redundant remote **`addSheet`** ops before **`applyOp`** so duplicate batches do not create extra tabs.
 
 **Rules:**
 

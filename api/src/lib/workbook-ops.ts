@@ -77,8 +77,14 @@ function applyOpBatch(
 
     if (op.op === "addSheet" && op.value) {
       const newSheet = op.value as Sheet;
+      const sid =
+        newSheet.id != null && String(newSheet.id).trim() !== ""
+          ? String(newSheet.id)
+          : "";
+      // Idempotent: duplicate addSheet batches (double onOp / replay) must not append twice.
+      if (sid && sheetById.has(sid)) continue;
       sheets.push(newSheet);
-      if (newSheet.id) sheetById.set(String(newSheet.id), newSheet);
+      if (sid) sheetById.set(sid, newSheet);
       continue;
     }
 

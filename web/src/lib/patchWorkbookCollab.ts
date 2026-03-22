@@ -45,6 +45,51 @@ function sheetIdExists(wb: WorkbookInstance, id: string): boolean {
   );
 }
 
+/**
+ * Drop addSheet ops for sheet ids already present, and skip duplicates within the same batch.
+ * Tracks deleteSheet / full workbook replace so delete-then-add still works.
+ * See docs/KNOWN_ISSUES.md §83 (structural ops are not idempotent in FortuneSheet).
+ */
+function filterRedundantRemoteOps(wb: WorkbookInstance, ops: Op[]): Op[] {
+  const idSet = new Set(
+    (wb.getAllSheets() as Sheet[])
+      .map((s) => (s.id != null ? String(s.id).trim() : ""))
+      .filter((x) => x !== ""),
+  );
+  const out: Op[] = [];
+  for (const op of ops) {
+    if (op.op === "replace" && op.path?.[0] === "luckysheetfile" && Array.isArray(op.value)) {
+      idSet.clear();
+      for (const s of op.value as Sheet[]) {
+        if (s.id != null && String(s.id).trim() !== "") idSet.add(String(s.id));
+      }
+      out.push(op);
+      continue;
+    }
+    if (op.op === "addSheet" && op.value) {
+      const newSheet = op.value as Sheet;
+      const sid =
+        newSheet.id != null && String(newSheet.id).trim() !== ""
+          ? String(newSheet.id)
+          : "";
+      if (sid) {
+        if (idSet.has(sid)) continue;
+        idSet.add(sid);
+      }
+      out.push(op);
+      continue;
+    }
+    if (op.op === "deleteSheet" && op.value) {
+      const delId = String((op.value as { id: string }).id ?? "");
+      if (delId.trim() !== "") idSet.delete(delId);
+      out.push(op);
+      continue;
+    }
+    out.push(op);
+  }
+  return out;
+}
+
 /** After remote `applyOp`, refresh formulas without pushing ops to the server. */
 function flushRemoteFormulaRecalc(
   wb: WorkbookInstance,
@@ -132,6 +177,8 @@ export function usePatchWorkbookCollab(opts: {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressLocalOpsRef = useRef(false);
   const intentionalDisconnectRef = useRef(false);
+  /** Dedupes identical consecutive onOp batches (e.g. React Strict Mode double invoke). */
+  const lastPushedOpsJsonRef = useRef<string | null>(null);
   const pageVisible = usePageVisible();
 
   const [conn, setConn] = useState<"connecting" | "connected" | "error">("connecting");
@@ -180,7 +227,9 @@ export function usePatchWorkbookCollab(opts: {
           const wb = wbRef.current;
           if (!wb) return;
           try {
-            wb.applyOp(msg.data as Op[]);
+            const filtered = filterRedundantRemoteOps(wb, msg.data as Op[]);
+            if (filtered.length === 0) return;
+            wb.applyOp(filtered);
             flushRemoteFormulaRecalc(wb, suppressLocalOpsRef);
           } catch (e) {
             logDebug("patch-workbook-collab", "applyOp failed for remote batch", e);
@@ -254,6 +303,14 @@ export function usePatchWorkbookCollab(opts: {
       if (suppressLocalOpsRef.current) return;
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const serialized = JSON.stringify(ops);
+      if (serialized === lastPushedOpsJsonRef.current) return;
+      lastPushedOpsJsonRef.current = serialized;
+      queueMicrotask(() => {
+        if (lastPushedOpsJsonRef.current === serialized) {
+          lastPushedOpsJsonRef.current = null;
+        }
+      });
       onLocalOp?.();
       try {
         ws.send(JSON.stringify({ type: "op", data: ops }));

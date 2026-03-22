@@ -6,9 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Docs
+### Fixed
 
-- **KNOWN_ISSUES #83**, **USER_GUIDE** (patch collab), **DECISIONS** — duplicate sheet tabs (survived Yjs → relay refactor); **reload does not fix** persisted **`sheets_json`**; workarounds and split **current vs historical** mitigations.
+- **Web / API:** Patch collab — duplicate sheet tabs after **Add sheet** mitigated: **`applyOpBatchToSheets`** skips **`addSheet`** when that sheet **`id`** already exists; **`patchWorkbookCollab`** filters redundant remote **`addSheet`** ops before **`applyOp`** and skips consecutive identical **`onOp`** payloads before **`WebSocket.send`**. See **`docs/KNOWN_ISSUES.md`** §83.
 
 ### Changed
 
