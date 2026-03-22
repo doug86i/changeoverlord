@@ -119,6 +119,7 @@ export function StageChatDock() {
 
   const [expanded, setExpanded] = useState(false);
   const [flash, setFlash] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [sendScope, setSendScope] = useState<"stage" | "event">("stage");
   const [draft, setDraft] = useState("");
   const [authorDraft, setAuthorDraft] = useState(() => {
@@ -169,6 +170,13 @@ export function StageChatDock() {
       setDraft("");
     },
   });
+
+  const trySend = useCallback(() => {
+    if (!draft.trim() || sendMut.isPending || !eventId || !contextStageId) return;
+    void sendMut.mutateAsync().catch(() => {
+      /* surfaced below */
+    });
+  }, [draft, sendMut, eventId, contextStageId]);
 
   const onChatPush = useCallback(
     (msg: RealtimeChatPushV1) => {
@@ -284,43 +292,71 @@ export function StageChatDock() {
             <div ref={listEndRef} />
           </div>
           <div className="stage-chat-dock__composer">
-            <label className="muted" style={{ display: "block", marginBottom: "0.35rem" }}>
-              Your name (stored in this browser)
-              <input
-                type="text"
-                className="stage-chat-dock__input"
-                value={authorDraft}
-                onChange={(e) => setAuthorDraft(e.target.value)}
-                maxLength={80}
-                placeholder="e.g. FOH"
-                aria-label="Display name for chat"
-              />
-            </label>
-            <div className="stage-chat-dock__scope">
-              <label>
+            <div className="stage-chat-dock__composer-tools">
+              <button
+                type="button"
+                className="icon-btn"
+                aria-expanded={settingsOpen}
+                aria-controls="stage-chat-dock-settings"
+                id="stage-chat-dock-options-btn"
+                onClick={() => setSettingsOpen((o) => !o)}
+              >
+                Options
+              </button>
+              <span className="muted stage-chat-dock__send-hint">
+                Enter sends · Shift+Enter newline
+              </span>
+            </div>
+            <div
+              id="stage-chat-dock-settings"
+              className="stage-chat-dock__settings-block"
+              role="region"
+              aria-labelledby="stage-chat-dock-options-btn"
+              hidden={!settingsOpen}
+            >
+              <label className="muted stage-chat-dock__settings-label">
+                Your name (stored in this browser)
                 <input
-                  type="radio"
-                  name="chat-scope"
-                  checked={sendScope === "stage"}
-                  onChange={() => setSendScope("stage")}
-                />{" "}
-                This stage only
+                  type="text"
+                  className="stage-chat-dock__input"
+                  value={authorDraft}
+                  onChange={(e) => setAuthorDraft(e.target.value)}
+                  maxLength={80}
+                  placeholder="e.g. FOH"
+                  aria-label="Display name for chat"
+                />
               </label>
-              <label>
-                <input
-                  type="radio"
-                  name="chat-scope"
-                  checked={sendScope === "event"}
-                  onChange={() => setSendScope("event")}
-                />{" "}
-                Whole event
-              </label>
+              <div className="stage-chat-dock__scope">
+                <label>
+                  <input
+                    type="radio"
+                    name="chat-scope"
+                    checked={sendScope === "stage"}
+                    onChange={() => setSendScope("stage")}
+                  />{" "}
+                  This stage only
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="chat-scope"
+                    checked={sendScope === "event"}
+                    onChange={() => setSendScope("event")}
+                  />{" "}
+                  Whole event
+                </label>
+              </div>
             </div>
             <textarea
               className="stage-chat-dock__textarea"
               rows={3}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" || e.shiftKey) return;
+                e.preventDefault();
+                trySend();
+              }}
               maxLength={2000}
               placeholder="Message…"
               aria-label="Chat message"
@@ -329,9 +365,7 @@ export function StageChatDock() {
               type="button"
               className="primary"
               disabled={sendMut.isPending || !draft.trim()}
-              onClick={() => void sendMut.mutateAsync().catch(() => {
-                /* ErrorBoundary / toast optional */
-              })}
+              onClick={() => trySend()}
             >
               {sendMut.isPending ? "Sending…" : "Send"}
             </button>
