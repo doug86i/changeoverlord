@@ -121,7 +121,6 @@ export function PatchTemplateLibrarySettings() {
   const qc = useQueryClient();
   const replaceRef = useRef<HTMLInputElement>(null);
   const replaceJsonRef = useRef<HTMLInputElement>(null);
-  const newWorkbookJsonRef = useRef<HTMLInputElement>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -190,23 +189,6 @@ export function PatchTemplateLibrarySettings() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
-    },
-  });
-
-  const importNewWorkbookJson = useMutation({
-    mutationFn: async ({ text, name }: { text: string; name: string }) => {
-      const body = JSON.parse(text) as unknown;
-      const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
-      return apiSend<{ patchTemplate: { id: string } }>(
-        `/api/v1/patch-templates/sheets-import${q}`,
-        "POST",
-        body,
-      );
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
-      void qc.invalidateQueries({ queryKey: ["events"] });
-      setNewName("");
     },
   });
 
@@ -303,31 +285,6 @@ export function PatchTemplateLibrarySettings() {
         >
           Create blank template
         </button>
-        <button
-          type="button"
-          disabled={importNewWorkbookJson.isPending}
-          onClick={() => newWorkbookJsonRef.current?.click()}
-        >
-          Import workbook JSON
-        </button>
-        <input
-          ref={newWorkbookJsonRef}
-          type="file"
-          accept=".json,application/json"
-          style={{ display: "none" }}
-          onChange={async (e) => {
-            const f = e.target.files?.[0];
-            e.target.value = "";
-            if (!f) return;
-            try {
-              const text = await readFileAsText(f);
-              importNewWorkbookJson.mutate({ text, name: newName });
-            } catch (err) {
-              importNewWorkbookJson.reset();
-              window.alert((err as Error).message);
-            }
-          }}
-        />
       </div>
 
       {listQ.isLoading && <p className="muted">Loading templates…</p>}
@@ -535,7 +492,6 @@ export function PatchTemplateLibrarySettings() {
         replaceTpl.isError ||
         deleteTpl.isError ||
         duplicateTpl.isError ||
-        importNewWorkbookJson.isError ||
         replaceWorkbookJson.isError) && (
         <p role="alert" style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
           {(createTpl.error ??
@@ -544,7 +500,6 @@ export function PatchTemplateLibrarySettings() {
             replaceTpl.error ??
             deleteTpl.error ??
             duplicateTpl.error ??
-            importNewWorkbookJson.error ??
             replaceWorkbookJson.error)?.message}
         </p>
       )}
