@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — **`addSheet`** ignored **read-only** contexts (`allowEdit === false`), so **remote add-tab** ops on **phone / read-only** viewers did not insert the sheet and **`initSheetData`** crashed; **`deleteSheet`** also skipped, breaking remote deletes. **Collab replay** with a **`sheetData`** payload now runs **`addSheet`**; **`deleteSheet`** always applies for sync.
 - **Web:** **Patch / RF collab** — initial **“Loading workbook…”** could hang when another user kept editing: hydration waited for several consecutive **empty** animation frames on the Yjs `opLog`, which never happened while ops kept arriving. The quiet phase now also ends after a short **tail idle timeout** (~0.9s / ~0.5s); further ops apply via the normal **post-hydrate** observer.
 - **Web:** **Patch (phone)** — **reset document / main scroll** on entering the patch route so the layout is not offset by **scroll position from the previous page** (React Router).
 - **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — **`getSheetIndex`** now matches sheet **`id`** with **`String(...)`** so **string vs number** ids after **Yjs** sync no longer yield a **null** index; fixes **add-sheet** crashes on mobile collab viewers (**`initSheetData`** after **`addSheet`**).

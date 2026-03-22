@@ -116,6 +116,7 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 - **`patches/@fortune-sheet+core+1.0.4.patch`** includes:
   - **Touch pan:** upstream overlay **`touchmove`** applied **cumulative** finger delta to **current** `scrollTop` / `scrollLeft` on every frame, so panning felt **much faster than the finger** on mobile. Patched to anchor scroll to **`initialScrollLeft` / `initialScrollTop`** captured at **`touchstart`** (`initial − delta` each move) for **1:1** tracking.
   - **`getSheetIndex`:** strict **`===`** on sheet **`id`** breaks after **Yjs** / JSON round-trips when one path uses a **string** id and another a **number**; **`@fortune-sheet/react`** then calls **`initSheetData`** with a **null** index and can throw (**“Something went wrong”** when adding a sheet on a collab client). Patched to compare **`String(sheet.id)`** and to return **null** when **`id`** is nullish.
+  - **`addSheet` / `deleteSheet` vs read-only:** **`addSheet`** returned immediately when **`ctx.allowEdit === false`**, but **read-only** patch viewers (e.g. phone) still receive peer **`addSheet`** ops with a full **`sheetData`** payload — the sheet was never inserted, then **`initSheetData`** crashed. Patched so **`allowEdit === false`** only blocks **user** adds (no **`sheetData`**); **`deleteSheet`** no longer bails on **`allowEdit === false`** so remote tab deletes apply on viewers (UI remains non-editable).
 - Prefer **upstream PRs** to **ruilisi/fortune-sheet** when practical; remove the patch after merge.
 
 ---
