@@ -14,6 +14,7 @@ COPY package.json package-lock.json* ./
 COPY api/package.json api/
 COPY web/package.json web/
 COPY patches patches
+COPY vendor vendor
 
 RUN --mount=type=cache,target=/root/.npm \
     npm install

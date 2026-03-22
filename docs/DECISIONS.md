@@ -12,12 +12,12 @@ Canonical choices before implementation. Update when something changes.
 - **Export scope** (separate packages): **whole event**, **one stage** (all its days), or **one stage-day** — so preparers move **only** the slice they own.
 - **Import** always creates **new** records (see **IDs** below) so nothing is silently overwritten.
 - Operators can **delete** obsolete events/stages/days in the UI when a newer package has been imported or prep was wrong.
-- **“Replace with new”** (optional UX): **delete** the old scope then **import** again — same effect as replace without a dangerous merge. Automated “swap” can be a later convenience.
+- **"Replace with new"** (optional UX): **delete** the old scope then **import** again — same effect as replace without a dangerous merge. Automated "swap" can be a later convenience.
 
 ### Time (local event)
 
 - Each **event = one physical location** — schedule times are **local event time** in v1 (store and display as local; no cross-timezone rules).
-- **Server time API** answers “what time is it now” on the host for countdowns; comparing to the running order uses **event-local** times.
+- **Server time API** answers "what time is it now" on the host for countdowns; comparing to the running order uses **event-local** times.
 
 ### v1 deployment posture
 
@@ -36,7 +36,7 @@ Canonical choices before implementation. Update when something changes.
 ### Visual UI
 
 - **Two first-class themes**: **light** (daylight / outdoor prep) and **dark** (venue). Shared **design tokens** (spacing, type, radius, colours) — **no** one-off screens.
-- **Brand accent** from **DHSL logo** — **industrial red** for interactive / “now” emphasis; **re-sample** hex from bundled **`dhsl-logo.svg`** when added. See the **Visual design** section below.
+- **Brand accent** from **DHSL logo** — **industrial red** for interactive / "now" emphasis; **re-sample** hex from bundled **`dhsl-logo.svg`** when added. See the **Visual design** section below.
 - **Default** follows **`prefers-color-scheme`**; **manual** theme toggle in Settings (persist locally).
 
 ### Internationalisation
@@ -54,7 +54,7 @@ Canonical choices before implementation. Update when something changes.
 ### Event package import
 
 - **Always import as new** entities (new UUIDs) — never merge by reusing old IDs from another server unless we add an explicit **advanced** flow later.
-- **Deletion** of old data is manual (or bulk “delete event”) so crews stay in control on the **live** machine.
+- **Deletion** of old data is manual (or bulk "delete event") so crews stay in control on the **live** machine.
 - Export **manifest** must record **scope** (event / stage / stage-day) so imports validate expected contents.
 
 ---
@@ -73,7 +73,7 @@ Canonical choices before implementation. Update when something changes.
 
 ---
 
-## Limits (avoid “computer says no” on stage)
+## Limits (avoid "computer says no" on stage)
 
 Set **generous** server-side maximums; **soft** warnings in UI before hard failures where possible.
 
@@ -84,7 +84,7 @@ Set **generous** server-side maximums; **soft** warnings in UI before hard failu
 | **Spreadsheet** | **50k cells** per performance **workbook** (configurable; tune if multi-sheet totals differ) | Warn before limit; prefer scrolling over hard cap if performance allows |
 | **Request body** | Match largest upload + headroom | Same as upload limit |
 
-If a limit is hit, message must be **short, actionable** (“File too large — max 100 MB — try compressing the PDF”) — **no** stack traces to end users.
+If a limit is hit, message must be **short, actionable** ("File too large — max 100 MB — try compressing the PDF") — **no** stack traces to end users.
 
 ---
 
@@ -92,7 +92,7 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 
 - Support **current** and **previous major** versions of **Chrome, Firefox, Safari, Edge** (desktop + mobile).
 - Avoid **brand-new** APIs without fallbacks; assume devices are **reasonably up to date** (crew phones/tablets refreshed within a few years).
-- **Fullscreen** clock: progressive enhancement if Fullscreen API missing (still show clock, “tap for fullscreen” optional).
+- **Fullscreen** clock: progressive enhancement if Fullscreen API missing (still show clock, "tap for fullscreen" optional).
 
 ---
 
@@ -111,13 +111,20 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 
 *Rationale: one language end-to-end, strong typing, Fastify is fast and simple, Drizzle keeps migrations SQL-first.*
 
-### FortuneSheet — `patch-package` (core)
+### FortuneSheet — fork (`doug86i/fortune-sheet`, branch `dhsl/v1.0.4`)
 
-- **`patches/@fortune-sheet+core+1.0.4.patch`** includes:
-  - **Touch pan:** upstream overlay **`touchmove`** applied **cumulative** finger delta to **current** `scrollTop` / `scrollLeft` on every frame, so panning felt **much faster than the finger** on mobile. Patched to anchor scroll to **`initialScrollLeft` / `initialScrollTop`** captured at **`touchstart`** (`initial − delta` each move) for **1:1** tracking.
-  - **`getSheetIndex`:** strict **`===`** on sheet **`id`** breaks after **Yjs** / JSON round-trips when one path uses a **string** id and another a **number**; **`@fortune-sheet/react`** then calls **`initSheetData`** with a **null** index and can throw (**“Something went wrong”** when adding a sheet on a collab client). Patched to compare **`String(sheet.id)`** and to return **null** when **`id`** is nullish.
-  - **`addSheet` / `deleteSheet` vs read-only:** **`addSheet`** returned immediately when **`ctx.allowEdit === false`**, but **read-only** patch viewers (e.g. phone) still receive peer **`addSheet`** ops with a full **`sheetData`** payload — the sheet was never inserted, then **`initSheetData`** crashed. Patched so **`allowEdit === false`** only blocks **user** adds (no **`sheetData`**); **`deleteSheet`** no longer bails on **`allowEdit === false`** so remote tab deletes apply on viewers (UI remains non-editable).
-- Prefer **upstream PRs** to **ruilisi/fortune-sheet** when practical; remove the patch after merge.
+The project consumes **`@fortune-sheet/core`** and **`@fortune-sheet/react`** from **local tarballs** (`vendor/fortune-sheet-core-1.0.4.tgz`, `vendor/fortune-sheet-react-1.0.4.tgz`) built from a **source-level fork** of `ruilisi/fortune-sheet` v1.0.4.
+
+**Why fork instead of `patch-package`:** `patch-package` edited compiled 80k-line dist bundles — fragile, unreadable, no type checking, breaks on upstream version bumps. The fork applies fixes as **TypeScript source commits** (`packages/core/src/`) with the upstream build tooling (`father-build`), then `npm pack` produces tarballs committed to `vendor/`.
+
+**Commits on `dhsl/v1.0.4`** (each isolated):
+
+1. **Touch pan** (`modules/mobile.ts`): anchor scroll to `initialScrollLeft`/`initialScrollTop` at `touchstart` instead of cumulative delta. Fixes iOS pan speed.
+2. **`getSheetIndex`** (`utils/index.ts`): compare `String(id)` for Yjs string/number round-trip safety; return `null` when id is nullish.
+3. **`addSheet`** (`modules/sheet.ts`): only block when `allowEdit === false` AND no `sheetData`; collab replay with `sheetData` runs on read-only viewers.
+4. **`deleteSheet`** (`modules/sheet.ts`): remove `allowEdit === false` guard so remote deletes apply everywhere.
+
+**To update the fork:** clone `doug86i/fortune-sheet`, checkout `dhsl/v1.0.4`, edit TypeScript source in `packages/core/src/`, run `yarn install && npm run build`, then `npm pack` in `packages/core/` and `packages/react/`, copy `.tgz` to `vendor/`, `npm install` in main project. Prefer **upstream PRs** when practical; drop fork commits when merged.
 
 ---
 
@@ -184,7 +191,7 @@ Goals: **clean**, **modern**, and **consistent** — readable in **bright daylig
 | **One system** | Shared spacing scale, type scale, radius, and component patterns — no one-off screens. |
 | **Clarity over decoration** | Flat surfaces, subtle borders or shadows only where hierarchy needs it; no busy gradients on core work surfaces. |
 | **Glanceable at distance** | Timeline and clock: large time labels, strong figure/ground contrast, limited simultaneous accents. |
-| **Touch-first where it matters** | Minimum 44×44 px tap targets on primary actions (prev/next band, clock, tab switches). |
+| **Touch-first where it matters** | Minimum 44x44 px tap targets on primary actions (prev/next band, clock, tab switches). |
 
 ### DHSL logo → UI (brand cues)
 
@@ -194,7 +201,7 @@ The **Doug Hunt** wordmark drives palette and personality; the app chrome stays 
 |---------------|----------------|
 | **Industrial red** | Primary accent — links, focus rings, "now playing" row, primary buttons. Token `--color-brand` ≈ `#E30613` — re-sample from official `dhsl-logo.svg` when it lands. |
 | **Wide, geometric caps** | Optional wide `letter-spacing` on the app title or section headers only — not on body copy or spreadsheet cells. |
-| **Slight rounding** on letterforms | Consistent `border-radius` on controls and cards (6–8px) — crisp, not playful blobs. |
+| **Slight rounding** on letterforms | Consistent `border-radius` on controls and cards (6-8px) — crisp, not playful blobs. |
 | **High contrast** | Red reads on white (daylight) and on near-black (venue) — same accent in both themes. |
 
 **Neutrals:** cool greys for backgrounds and borders so the red stays the single loud colour.
@@ -212,13 +219,13 @@ Both themes ship in v1. Default follows `prefers-color-scheme` (OS), with a manu
 
 CSS variables (`:root[data-theme]` in `web/src/global.css`):
 
-- **Background / surface / elevated** — 2–3 layers (page, card, modal).
+- **Background / surface / elevated** — 2-3 layers (page, card, modal).
 - **Text** — primary, secondary, muted; never rely on grey-on-grey below WCAG AA contrast.
 - **Accent** — one primary accent (DHSL brand red); one semantic set (success / warning / danger) for schedule state.
 - **Borders** — hairline separators; slightly stronger in dark mode.
 - **Radius** — one small (inputs, chips) and one medium (cards, sheets).
 
-Typography: one sans family (system stack). Hierarchy = size + weight (600 for section titles, 400–500 for body).
+Typography: one sans family (system stack). Hierarchy = size + weight (600 for section titles, 400-500 for body).
 
 ### Surfaces by feature
 

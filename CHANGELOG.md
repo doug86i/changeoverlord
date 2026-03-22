@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **FortuneSheet:** Replaced `patch-package` patches (fragile edits to compiled 80k-line dist bundles) with a **source-level fork** (`doug86i/fortune-sheet`, branch `dhsl/v1.0.4`). All four fixes (touch pan, `getSheetIndex`, `addSheet`/`deleteSheet` collab guards) are now TypeScript source commits with proper build tooling. Packages consumed as local tarballs in `vendor/`.
+
 ### Fixed
 
 - **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — **`addSheet`** ignored **read-only** contexts (`allowEdit === false`), so **remote add-tab** ops on **phone / read-only** viewers did not insert the sheet and **`initSheetData`** crashed; **`deleteSheet`** also skipped, breaking remote deletes. **Collab replay** with a **`sheetData`** payload now runs **`addSheet`**; **`deleteSheet`** always applies for sync.

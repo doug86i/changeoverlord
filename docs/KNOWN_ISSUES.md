@@ -284,9 +284,9 @@ Possible race: doc destroyed after async `writeState` while a new client attache
 
 [`global.css`](../web/src/global.css) — document stacking scale (skip-link, overlays, header, nav).
 
-### 36. Remove FortuneSheet `patch-package` patches
+### 36. FortuneSheet dependency management
 
-**Status:** **Done** — the previous `@fortune-sheet/*` patches (default font order, context-menu column count) were removed; `patches/` may contain only **`.gitkeep`**. **`patch-package`** remains for future patches; see [`DEVELOPMENT.md`](DEVELOPMENT.md) § *Patches*.
+**Status:** **Done** — FortuneSheet is now consumed from a **source-level fork** (`doug86i/fortune-sheet`, branch `dhsl/v1.0.4`) as local tarballs in `vendor/`. The previous `patch-package` patches against compiled dist bundles have been removed. See [`DECISIONS.md`](DECISIONS.md) § *FortuneSheet — fork* for the full rationale and update procedure.
 
 ### 55. Dockerfile.fast runs as root
 

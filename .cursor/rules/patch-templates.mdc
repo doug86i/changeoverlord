@@ -5,12 +5,13 @@ alwaysApply: true
 
 # Patch templates (FortuneSheet workbooks)
 
-## Avoid patching the FortuneSheet editor
+## FortuneSheet fork (`doug86i/fortune-sheet`)
 
-- **Do NOT** use **`patch-package`** (or other vendor-source edits) on **`@fortune-sheet/core`**, **`@fortune-sheet/react`**, or **`@zenmrp/fortune-sheet-excel`** for routine work. Prefer **template JSON** (formulas, helper columns, conditional formatting), the **build script** (`scripts/build-v7-template.mjs`), or operator Excel/JSON — not modifying the editor packages.
+- **`@fortune-sheet/core`** and **`@fortune-sheet/react`** are consumed from **local tarballs** in **`vendor/`**, built from a **source-level fork** (`doug86i/fortune-sheet`, branch **`dhsl/v1.0.4`**). See **`docs/DECISIONS.md`** for the full list of patched commits and update procedure.
+- **Do NOT use `patch-package`** on FortuneSheet packages. All fixes go into the **fork's TypeScript source** (`packages/core/src/`), are built with the upstream tooling, and re-packed as tarballs.
 - **Do NOT add runtime hooks** (e.g. `onOp` interceptors, mutation observers) that alter cell values after user input to work around FortuneSheet limitations. Cell data belongs to the user.
 - If FortuneSheet lacks a feature (e.g. auto-uppercase, data validation enforcement), handle it **in the template** or **document the limitation** — not by modifying the editor.
-- **Last resort only:** If an upstream bug **blocks core function** and workarounds are insufficient, **`patch-package`** may be used after reporting upstream; document in **`docs/DECISIONS.md`** and add **`CHANGELOG.md`** when behaviour changes.
+- **Fork fixes** should be **minimal and isolated** (one commit per bug). Prefer **upstream PRs** to `ruilisi/fortune-sheet` when practical; drop fork commits after merge.
 
 ## Templates are user-controlled
 

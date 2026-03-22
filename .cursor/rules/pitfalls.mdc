@@ -11,7 +11,7 @@ alwaysApply: true
 - **Do NOT attempt to reconstruct sheet state from the Yjs opLog on the server** for arbitrary live editing. The opLog contains serialized FortuneSheet ops that only FortuneSheet's `applyOp` can replay; the Yjs snapshot in the DB is the source of truth. **Exception:** controlled **server-side replay** in **`api/src/lib/yjs-oplog-replay.ts`** (export / preview / template flows) mutates sheet JSON directly — do **not** extend that path without understanding FortuneSheet op shapes and row/column index semantics.
 - **Do NOT modify the FortuneSheet collaboration bridge** (the `onOp` → `yops.push` → `observe` → `applyOp` flow in **`web/src/lib/patchWorkbookCollab.ts`** / **`web/src/lib/patchWorkbookYjs.ts`**, wired from `PatchPage.tsx` / `PatchTemplateEditorPage.tsx`) unless you deeply understand both FortuneSheet ops and Yjs transactions.
 - **Do NOT forget `ydoc.destroy()`** in cleanup effects when creating `Y.Doc` instances.
-- **FortuneSheet + `patch-package`:** avoid by default; **last resort** only per **`.cursor/rules/patch-templates.mdc`** (document in **`docs/DECISIONS.md`**).
+- **FortuneSheet** is consumed from a **source-level fork** (`doug86i/fortune-sheet`) as tarballs in **`vendor/`**. Do **NOT** use `patch-package` on FortuneSheet; all fixes go into the fork's TypeScript source. See **`.cursor/rules/patch-templates.mdc`** and **`docs/DECISIONS.md`**.
 
 ## Redis
 
