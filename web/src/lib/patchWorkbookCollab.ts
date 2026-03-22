@@ -56,6 +56,8 @@ export function usePatchWorkbookCollab(opts: {
   synced: boolean;
   /** FortuneSheet has replayed Yjs `opLog` (incl. late server snapshot); safe to edit. */
   workbookHydrated: boolean;
+  /** Immer / `applyOp` failed — grid may be wrong; reload page or leave and re-enter the room. */
+  workbookReplayError: string | null;
 } {
   const {
     roomId,
@@ -77,6 +79,9 @@ export function usePatchWorkbookCollab(opts: {
   );
   const [synced, setSynced] = useState(false);
   const [workbookHydrated, setWorkbookHydrated] = useState(false);
+  const [workbookReplayError, setWorkbookReplayError] = useState<string | null>(
+    null,
+  );
 
   const ydoc = useMemo(() => new Y.Doc(), [roomId ?? ""]);
   const yops = useMemo(() => ydoc.getArray<string>("opLog"), [ydoc]);
@@ -105,12 +110,20 @@ export function usePatchWorkbookCollab(opts: {
     setWorkbookHydrated(hydrated);
   }, []);
 
+  const onReplayFailure = useCallback(
+    (detail: { message: string }) => {
+      setWorkbookReplayError(detail.message);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!roomId) return;
 
     setSynced(false);
     localOpsAllowedRef.current = false;
     setWorkbookHydrated(false);
+    setWorkbookReplayError(null);
 
     if (mode === "template") {
       logDebug("patch-workbook", "Template editor Yjs provider starting", {
@@ -186,7 +199,8 @@ export function usePatchWorkbookCollab(opts: {
     workbookReady,
     suppressYjsOpsForFormulaRecalcRef,
     onHydrationChange,
+    onReplayFailure,
   );
 
-  return { wbRef, onOp, conn, synced, workbookHydrated };
+  return { wbRef, onOp, conn, synced, workbookHydrated, workbookReplayError };
 }

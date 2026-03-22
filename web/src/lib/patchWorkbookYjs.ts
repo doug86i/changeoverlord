@@ -10,14 +10,34 @@ import { logDebug } from "./debug";
 /** Must match `ydoc.transact(..., origin)` in onOp handlers for patch/template workbooks. */
 export const PATCH_WORKBOOK_Y_ORIGIN = "fortune-local";
 
+/** Compact, non-secret summary of an `Op[]` batch for logs when replay fails. */
+function summarizeOpsForDebug(ops: Op[]): { count: number; head: string } {
+  const count = ops?.length ?? 0;
+  if (count === 0) return { count: 0, head: "empty" };
+  const bits = ops.slice(0, 4).map((raw) => {
+    const o = raw as Record<string, unknown>;
+    if (typeof o.op === "string") return o.op;
+    const path = o.path;
+    if (Array.isArray(path) && path.length > 0) {
+      return `path:${path.slice(0, 5).join("/")}`;
+    }
+    if (typeof o.t === "string") return o.t;
+    return "?";
+  });
+  return { count, head: bits.join("|") };
+}
+
 type FortuneBatchCall = { name: string; args: unknown[] };
 
 /**
  * `applyOp` / Immer patches do not clear FortuneSheet’s `formulaCellInfoMap`. If that map was built
  * from the placeholder sheet (or is otherwise stale), `execFunctionGroup` uses wrong edges and
- * dependent formulas do not refresh when you edit inputs. `jfrefreshgrid` runs `runExecFunction`,
- * which rebuilds `setFormulaCellInfo` for the range and re-runs `execFunctionGroup` (see upstream
- * `@fortune-sheet/core` `jfrefreshgrid` / `runExecFunction`).
+ * dependent formulas do not refresh when you edit inputs. Upstream exposes **`jfrefreshgrid`** as a
+ * **named export** from **`@fortune-sheet/core`**, but **`Workbook.batchCallApis`** only forwards to
+ * the frozen **`api`** object — **`jfrefreshgrid` is not on `api`**, so calling it by name logged
+ * *API jfrefreshgrid does not exist* and did nothing. We use **`api.calculateFormula`** per sheet
+ * (via **`batchCallApis`**) plus global **`calculateFormula()`** to refresh values and function
+ * groups after collab batches.
  */
 function fullDataRange(sheet: Sheet): { row: [number, number]; column: [number, number] } {
   const data = sheet.data;
@@ -69,15 +89,20 @@ function sheetIdExists(wb: WorkbookInstance, id: string): boolean {
 }
 
 /**
- * Rebuild formula maps / recalc across sheets. Must temporarily `activateSheet` each sheet for
- * `jfrefreshgrid`; without restoring the prior active sheet, everyone ends up on the **last**
- * sheet (especially bad when remote Yjs ops trigger recalc after e.g. adding a tab).
+ * Rebuild formula maps / recalc across sheets. Must temporarily `activateSheet` each sheet; without
+ * restoring the prior active sheet, everyone ends up on the **last** sheet (especially bad when
+ * remote Yjs ops trigger recalc after e.g. adding a tab).
  */
 function flushWorkbookFormulaRecalc(
   wb: WorkbookInstance,
   suppressYjsOpsRef?: MutableRefObject<boolean>,
-  options?: { preserveActiveSheet?: boolean },
+  options?: {
+    preserveActiveSheet?: boolean;
+    /** When true, skip recalc (e.g. Immer replay aborted — workbook context may be inconsistent). */
+    skipIfBroken?: MutableRefObject<boolean>;
+  },
 ): void {
+  if (options?.skipIfBroken?.current) return;
   const preserve = options?.preserveActiveSheet === true;
   if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
   try {
@@ -92,10 +117,10 @@ function flushWorkbookFormulaRecalc(
         const sheetId = sheet.id;
         if (sheetId == null || sheetId === "") continue;
         try {
-          const range = [fullDataRange(sheet)];
+          const range = fullDataRange(sheet);
           const calls: FortuneBatchCall[] = [
             { name: "activateSheet", args: [{ id: sheetId }] },
-            { name: "jfrefreshgrid", args: [null, range] },
+            { name: "calculateFormula", args: [sheetId, range] },
           ];
           flushSync(() => {
             wb.batchCallApis(calls);
@@ -103,7 +128,7 @@ function flushWorkbookFormulaRecalc(
         } catch (e) {
           logDebug(
             "patch-workbook-yjs",
-            "jfrefreshgrid / activateSheet skipped for sheet",
+            "per-sheet calculateFormula / activateSheet skipped for sheet",
             { sheetId },
             e,
           );
@@ -155,6 +180,15 @@ function flushWorkbookFormulaRecalc(
  * extra animation frames so late Yjs merges (e.g. server `bindState` DB snapshot applied after
  * the first empty sync) are not missed — `yops.observe` ignores remote ops until `hydratedRef`.
  */
+export type OpLogDrainResult = {
+  /** Next index to apply (equals `yops.length` when fully caught up). */
+  index: number;
+  /** Immer / `applyOp` failed — caller must not treat the workbook as hydrated. */
+  aborted: boolean;
+  abortBatchIndex?: number;
+  abortMessage?: string;
+};
+
 /** Returns next index to apply (equals `yops.length` when fully caught up). */
 async function drainOpLogWithQuietFrames(opts: {
   yops: Y.Array<string>;
@@ -171,7 +205,13 @@ async function drainOpLogWithQuietFrames(opts: {
    * log as quiescent anyway; later ops are applied via `yops.observe` after hydration.
    */
   maxQuietWaitMs?: number;
-}): Promise<number> {
+  roomId?: string;
+  onApplyOpFailure?: (detail: {
+    batchIndex: number;
+    message: string;
+    opSummary: { count: number; head: string };
+  }) => void;
+}): Promise<OpLogDrainResult> {
   const {
     yops,
     wb,
@@ -181,27 +221,49 @@ async function drainOpLogWithQuietFrames(opts: {
     startIndex,
     idleFramesRequired,
     maxQuietWaitMs = 0,
+    roomId,
+    onApplyOpFailure,
   } = opts;
   let i = startIndex;
   let idleFrames = 0;
   /** Wall-clock start of “caught up to yops.length” streak (reset whenever new ops arrive). */
   let quietStart: number | null = null;
   while (idleFrames < idleFramesRequired) {
-    if (cancelled() || runId !== hydrationRunIdRef.current) return i;
+    if (cancelled() || runId !== hydrationRunIdRef.current) {
+      return { index: i, aborted: false };
+    }
     while (i < yops.length) {
-      if (cancelled() || runId !== hydrationRunIdRef.current) return i;
+      if (cancelled() || runId !== hydrationRunIdRef.current) {
+        return { index: i, aborted: false };
+      }
       const item = yops.get(i);
       const batchIndex = i;
       i += 1;
+      let ops: Op[] = [];
       try {
-        const ops = JSON.parse(item) as Op[];
+        ops = JSON.parse(item) as Op[];
         wb.applyOp(ops);
       } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        const opSummary = summarizeOpsForDebug(ops);
         logDebug(
           "patch-workbook-yjs",
-          `opLog replay batch ${batchIndex} failed`,
+          "opLog replay aborted",
+          {
+            roomId,
+            batchIndex,
+            message,
+            opSummary,
+          },
           e,
         );
+        onApplyOpFailure?.({ batchIndex, message, opSummary });
+        return {
+          index: i,
+          aborted: true,
+          abortBatchIndex: batchIndex,
+          abortMessage: message,
+        };
       }
       idleFrames = 0;
       quietStart = null;
@@ -212,7 +274,9 @@ async function drainOpLogWithQuietFrames(opts: {
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
     });
-    if (cancelled() || runId !== hydrationRunIdRef.current) return i;
+    if (cancelled() || runId !== hydrationRunIdRef.current) {
+      return { index: i, aborted: false };
+    }
     if (i < yops.length) {
       idleFrames = 0;
       quietStart = null;
@@ -224,7 +288,7 @@ async function drainOpLogWithQuietFrames(opts: {
       }
     }
   }
-  return i;
+  return { index: i, aborted: false };
 }
 
 /**
@@ -245,16 +309,32 @@ export function usePatchWorkbookOpLogEffects(
   suppressYjsOpsRef?: MutableRefObject<boolean>,
   /** Fires when FortuneSheet may / may not accept edits (initial replay + late snapshot catch-up). */
   onHydrationChange?: (hydrated: boolean) => void,
+  /**
+   * Immer / `applyOp` failed during replay or live observe — workbook may be inconsistent; operator
+   * should reload or leave the room and return.
+   */
+  onReplayFailure?: (detail: {
+    phase: "hydrate" | "observe";
+    message: string;
+    batchIndex?: number;
+    opSummary?: { count: number; head: string };
+  }) => void,
 ): void {
   const hydratedRef = useRef(false);
   /** Bumps on each hydration layout effect so stale async `run()` cannot set `hydratedRef`. */
   const hydrationRunIdRef = useRef(0);
+  /** After a failed `applyOp`, skip further remote applies and formula flush (avoids cascade errors). */
+  const replayBrokenRef = useRef(false);
+  /** After hydrate/apply failure, do not re-enter the layout replay loop until `roomId` changes. */
+  const giveUpHydrationRef = useRef(false);
   /** Coalesce multiple remote Yjs inserts in one frame into a single recalc. */
   const remoteRecalcNeededRef = useRef(false);
   const remoteRecalcRafRef = useRef<number | null>(null);
 
   useEffect(() => {
     hydratedRef.current = false;
+    replayBrokenRef.current = false;
+    giveUpHydrationRef.current = false;
     remoteRecalcNeededRef.current = false;
     if (remoteRecalcRafRef.current != null) {
       cancelAnimationFrame(remoteRecalcRafRef.current);
@@ -272,6 +352,7 @@ export function usePatchWorkbookOpLogEffects(
 
   useEffect(() => {
     const queueRemoteFormulaRecalc = () => {
+      if (replayBrokenRef.current) return;
       remoteRecalcNeededRef.current = true;
       if (remoteRecalcRafRef.current != null) return;
       remoteRecalcRafRef.current = requestAnimationFrame(() => {
@@ -279,15 +360,16 @@ export function usePatchWorkbookOpLogEffects(
         if (!remoteRecalcNeededRef.current) return;
         remoteRecalcNeededRef.current = false;
         const wb = wbRef.current;
-        if (!wb) return;
+        if (!wb || replayBrokenRef.current) return;
         // Remote peers apply edits via Immer `applyPatches` only — FortuneSheet does not run
         // `execFunctionGroup` for those mutations, so dependent formulas stay stale until recalc.
         requestAnimationFrame(() => {
           const w = wbRef.current;
-          if (!w) return;
+          if (!w || replayBrokenRef.current) return;
           try {
             flushWorkbookFormulaRecalc(w, suppressYjsOpsRef, {
               preserveActiveSheet: true,
+              skipIfBroken: replayBrokenRef,
             });
           } catch (e) {
             logDebug("patch-workbook-yjs", "remote formula recalc rAF failed", e);
@@ -297,7 +379,7 @@ export function usePatchWorkbookOpLogEffects(
     };
 
     const handler = (event: YArrayEvent<string>, transaction: Transaction) => {
-      if (!hydratedRef.current) return;
+      if (!hydratedRef.current || replayBrokenRef.current) return;
       if (transaction.origin === PATCH_WORKBOOK_Y_ORIGIN) return;
       let appliedRemote = false;
       for (const d of event.changes.delta) {
@@ -305,12 +387,29 @@ export function usePatchWorkbookOpLogEffects(
         const inserts = Array.isArray(d.insert) ? d.insert : [d.insert];
         for (const item of inserts) {
           if (typeof item !== "string") continue;
+          let ops: Op[] = [];
           try {
-            const ops = JSON.parse(item) as Op[];
+            ops = JSON.parse(item) as Op[];
             wbRef.current?.applyOp(ops);
             appliedRemote = true;
-          } catch {
-            /* ignore bad remote payload */
+          } catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            const opSummary = summarizeOpsForDebug(ops);
+            logDebug(
+              "patch-workbook-yjs",
+              "remote opLog applyOp failed — stopping further remote applies",
+              { roomId, message, opSummary },
+              e,
+            );
+            replayBrokenRef.current = true;
+            giveUpHydrationRef.current = true;
+            hydratedRef.current = false;
+            onHydrationChange?.(false);
+            onReplayFailure?.({
+              phase: "observe",
+              message,
+              opSummary,
+            });
           }
         }
       }
@@ -325,7 +424,7 @@ export function usePatchWorkbookOpLogEffects(
       }
       remoteRecalcNeededRef.current = false;
     };
-  }, [yops, wbRef, suppressYjsOpsRef]);
+  }, [yops, wbRef, suppressYjsOpsRef, roomId, onHydrationChange, onReplayFailure]);
 
   useLayoutEffect(() => {
     if (!roomId) {
@@ -333,6 +432,10 @@ export function usePatchWorkbookOpLogEffects(
       return;
     }
     if (!synced || !canShowWorkbook) {
+      onHydrationChange?.(false);
+      return;
+    }
+    if (giveUpHydrationRef.current) {
       onHydrationChange?.(false);
       return;
     }
@@ -358,9 +461,24 @@ export function usePatchWorkbookOpLogEffects(
       }
       const isCancelled = () => cancelled || runId !== hydrationRunIdRef.current;
 
+      const onApplyOpFailure = (detail: {
+        batchIndex: number;
+        message: string;
+        opSummary: { count: number; head: string };
+      }) => {
+        replayBrokenRef.current = true;
+        giveUpHydrationRef.current = true;
+        onReplayFailure?.({
+          phase: "hydrate",
+          message: detail.message,
+          batchIndex: detail.batchIndex,
+          opSummary: detail.opSummary,
+        });
+      };
+
       // First drain + quiet frames: catches server snapshot applied after an initial empty sync
       // (`api` bindState loads Postgres asynchronously).
-      let nextIndex = await drainOpLogWithQuietFrames({
+      let drain1 = await drainOpLogWithQuietFrames({
         yops,
         wb,
         runId,
@@ -369,8 +487,14 @@ export function usePatchWorkbookOpLogEffects(
         startIndex: 0,
         idleFramesRequired: 4,
         maxQuietWaitMs: 900,
+        roomId,
+        onApplyOpFailure,
       });
       if (isCancelled()) return;
+      if (drain1.aborted) {
+        onHydrationChange?.(false);
+        return;
+      }
 
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => resolve());
@@ -379,30 +503,40 @@ export function usePatchWorkbookOpLogEffects(
 
       const wbRecalc = wbRef.current;
       if (!wbRecalc) return;
-      try {
-        flushWorkbookFormulaRecalc(wbRecalc, suppressYjsOpsRef);
-      } catch (e) {
-        logDebug("patch-workbook-yjs", "post-hydrate formula recalc failed", e);
+      if (!replayBrokenRef.current) {
+        try {
+          flushWorkbookFormulaRecalc(wbRecalc, suppressYjsOpsRef, {
+            skipIfBroken: replayBrokenRef,
+          });
+        } catch (e) {
+          logDebug("patch-workbook-yjs", "post-hydrate formula recalc failed", e);
+        }
       }
 
       // Recalc can be slow; drain anything merged during it, then settle again.
       const wbTail = wbRef.current;
       if (!wbTail) return;
-      nextIndex = await drainOpLogWithQuietFrames({
+      let drain2 = await drainOpLogWithQuietFrames({
         yops,
         wb: wbTail,
         runId,
         hydrationRunIdRef,
         cancelled: isCancelled,
-        startIndex: nextIndex,
+        startIndex: drain1.index,
         idleFramesRequired: 2,
         maxQuietWaitMs: 500,
+        roomId,
+        onApplyOpFailure,
       });
       if (isCancelled()) return;
+      if (drain2.aborted) {
+        onHydrationChange?.(false);
+        return;
+      }
 
       // Only mark hydrated after replay + recalc + tail drain so `yops.observe` and local `onOp`
       // do not interleave with a stale grid or drop late snapshot batches.
-      if (!cancelled && runId === hydrationRunIdRef.current) {
+      if (!cancelled && runId === hydrationRunIdRef.current && !replayBrokenRef.current) {
         hydratedRef.current = true;
         onHydrationChange?.(true);
       }
@@ -421,5 +555,6 @@ export function usePatchWorkbookOpLogEffects(
     wbRef,
     suppressYjsOpsRef,
     onHydrationChange,
+    onReplayFailure,
   ]);
 }

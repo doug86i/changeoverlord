@@ -81,6 +81,8 @@ make dev-fast-rebuild
 
 **Caveats:** This path is **not** identical to the single **`app`** container (different process layout, **development** `NODE_ENV` on the API). Use **`make dev`** before a release or when debugging image-only issues.
 
+**React Strict Mode (dev only):** In **`import.meta.env.DEV`**, React 18 **double-invokes** effects and can tear down a **WebSocket** during the synthetic unmount (e.g. *WebSocket is closed before the connection is established* in the console). That noise is **expected** in development and should **not** appear in production builds (no double invoke). Collab (**Yjs** / patch workbook) reconnects on the real mount.
+
 **Do not** run **`make dev-fast`** and **`make dev`** at the same time with the same **`DATA_DIR`**: both stacks include a Postgres service that bind-mounts **`${DATA_DIR}/db`** — two containers must not use the same data directory. Stop one stack (`make dev-down` or **`make dev-fast-down`**) before starting the other. **Port 80:** both stacks default the UI to host port **80**; you cannot bind it twice — stop one stack first, or set **`FAST_WEB_PORT=5173`** (or **`HOST_PORT=8080`** for classic) in **`.env`**.
 
 ## Classic local testing (production-like image)

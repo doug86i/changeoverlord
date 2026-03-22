@@ -12,7 +12,7 @@
 
 **Recently addressed (2026-03 doc sweep — medium/low):** **#6** **`POST …/performances/:id/swap`** runs inside **`db.transaction`**; template **`POST …/replace`** writes the new file then updates DB, **`unlink`**s the new path on DB failure, then removes the old file; **#9** **`realtime-sse.ts`** uses **`safeWrite`** (try/catch, **`writableEnded`** check); **#10** **`hhmmToMinutes`** rejects non-**`HH:mm`**, out-of-range values (**`NaN`**); **`validatePerformanceSchedule`** returns explicit error strings; **#11** **`pool.on("error", …)`** in **`db/client.ts`**; **#44** **`POST /files/:id/convert-to-pdf`** returns generic **`Could not convert to PDF`** to clients, logs detail; **#46** performance create wraps **`insert(performances)`** + **`insert(performanceYjsSnapshots)`** in **`db.transaction`**; **#47** collab WebSocket rejects missing performance/template (**`collab-ws.ts`** DB lookup before **`setupWSConnection`**); **#48** per-IP SSE cap via **`reserveSseSlot`** (**`sse-ip-cap.ts`**, max 20); **#52** index **`stages_default_patch_template_id_key`** (**`0007_stages_default_patch_template_index.sql`**); **#53** pool **`connectionTimeoutMillis`** / **`idleTimeoutMillis`**; **`pool.end()`** on SIGTERM/SIGINT (**`index.ts`**); **#56** shift endpoint uses **`db.transaction`** around the update loop.
 
-**Recently addressed (2026-03 — UX / lists / realtime):** **#17** **`RealtimeSync`** **`invalidateQueries({ exact: false })`** so **`["allStagesForClock"]`** invalidates **`["allStagesForClock", …]`**; **#41** **`@fastify/helmet`** with **`contentSecurityPolicy: false`** (no CSP for now — comment in **`app.ts`**); **#42** login **`rateLimit`** 15 / 5 min, message *Too many attempts, try again in 5 minutes.*; **#49** **`ErrorBoundary`** / **`PatchWorkbookErrorBoundary`** friendly copy + **Copy technical details** only when **`isClientDebugLoggingEnabled`**; **#7** **`loadSheetsForPatchTemplateRow`** throws when disk read fails and Yjs snapshot empty; **preview** / **sheets-export** → **503**; **#54** paginated **`GET /events`** and **`GET /patch-templates`** (default limit **200**, max **500**, **`hasMore`**); web **Load more**; Clock / My stage today use **`fetchAllEvents()`** / **`fetchAllPatchTemplates()`**.
+**Recently addressed (2026-03 — UX / lists / realtime):** **#17** **`RealtimeSync`** **`invalidateQueries({ exact: false })`** so **`["allStagesForClock"]`** invalidates **`["allStagesForClock", …]`**; **#41** **`@fastify/helmet`** with **`contentSecurityPolicy: false`** (no CSP for now — comment in **`app.ts`**); **#42** login **`rateLimit`** 15 / 5 min, message *Too many attempts, try again in 5 minutes.*; **#49** **`ErrorBoundary`** friendly copy + **Copy technical details** only when **`isClientDebugLoggingEnabled`**; **`PatchWorkbookErrorBoundary`** always offers copy (see §49); **#7** **`loadSheetsForPatchTemplateRow`** throws when disk read fails and Yjs snapshot empty; **preview** / **sheets-export** → **503**; **#54** paginated **`GET /events`** and **`GET /patch-templates`** (default limit **200**, max **500**, **`hasMore`**); web **Load more**; Clock / My stage today use **`fetchAllEvents()`** / **`fetchAllPatchTemplates()`**.
 
 ---
 
@@ -180,7 +180,7 @@ See [`REALTIME.md`](REALTIME.md) and [`AGENTS.md`](../AGENTS.md) for the invalid
 
 ### 49. ErrorBoundary user-facing copy *(addressed)*
 
-**Update:** [`web/src/components/ErrorBoundary.tsx`](../web/src/components/ErrorBoundary.tsx) and [`web/src/components/PatchWorkbookErrorBoundary.tsx`](../web/src/components/PatchWorkbookErrorBoundary.tsx) show a **generic** message; **Copy technical details** appears only when **`isClientDebugLoggingEnabled`** (dev build or **`VITE_LOG_DEBUG=true`**). Full detail is for logs / support, not default UI.
+**Update:** [`web/src/components/ErrorBoundary.tsx`](../web/src/components/ErrorBoundary.tsx) shows a **generic** message; **Copy technical details** appears only when **`isClientDebugLoggingEnabled`** (dev build or **`VITE_LOG_DEBUG=true`**). **[`PatchWorkbookErrorBoundary`](../web/src/components/PatchWorkbookErrorBoundary.tsx)** always offers **Copy technical details** (room / collab hints, mode, FortuneSheet version string, UA, timestamp; no secrets) because spreadsheet failures are hard to reproduce without a support bundle.
 
 ### 50. No celldata size limit per sheet in JSON uploads
 
@@ -428,6 +428,12 @@ Fix: add `flex-shrink: 0` (and `white-space: nowrap` where appropriate) to each 
 ### 81. Settings page: buttons can overflow the card / viewport *(addressed)*
 
 **Update:** Mitigated in **`SettingsPage`** (constrained root, password fields **`max-width: min(20rem, 100%)`**, **`box-sizing`**) and **`PatchTemplateLibrarySettings`** / **`StagePatchTemplatePicker`** (flex children **`minWidth: 0`**, **`overflowWrap: "anywhere"`** on long names, upload toolbars as column **`label`**s, stage **`select`** **`width: 100%`**). Re-open if a specific viewport still scrolls horizontally.
+
+### 82. FortuneSheet Yjs `opLog` replay vs initial `data` matrix *(mitigated in web)*
+
+**Risk:** Serialized FortuneSheet ops assume a concrete **`luckysheetfile[].data`** shape (rows/columns materialized). Replaying the full **`opLog`** from index **0** on a **minimal placeholder grid** could throw **`[Immer] Cannot apply patch, path doesn't resolve`** and leave the editor inconsistent.
+
+**Update (Mar 2026):** [`web/src/pages/PatchPage.tsx`](../web/src/pages/PatchPage.tsx) and [`web/src/pages/PatchTemplateEditorPage.tsx`](../web/src/pages/PatchTemplateEditorPage.tsx) fetch **`GET …/sheets-export`** before mounting **`Workbook`** so the initial matrix matches the server snapshot; [`web/src/lib/patchWorkbookYjs.ts`](../web/src/lib/patchWorkbookYjs.ts) **aborts** replay on **`applyOp`** errors, skips risky formula flush, and surfaces **out of sync** copy. Residual edge cases (e.g. **`bindState`** race in **#51**, divergent op history) may still require a full reload — see [`docs/DECISIONS.md`](DECISIONS.md) (FortuneSheet fork section).
 
 ---
 

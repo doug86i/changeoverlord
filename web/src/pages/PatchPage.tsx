@@ -2,7 +2,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Workbook } from "@fortune-sheet/react";
-import { apiGet, apiSend, downloadWorkbookJson, readFileAsText } from "../api/client";
+import {
+  apiGet,
+  apiSend,
+  downloadWorkbookJson,
+  fetchPatchWorkbookBootstrapSheets,
+  readFileAsText,
+} from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
@@ -78,6 +84,17 @@ export function PatchPage() {
     enabled: Boolean(performanceId),
   });
 
+  const bootstrapQ = useQuery({
+    queryKey: ["patchWorkbookBootstrap", "performance", performanceId],
+    queryFn: () =>
+      fetchPatchWorkbookBootstrapSheets(
+        `/api/v1/performances/${performanceId}/sheets-export`,
+      ),
+    enabled: Boolean(performanceId),
+    staleTime: 60_000,
+    retry: 1,
+  });
+
   const importPerfWorkbookJson = useMutation({
     mutationFn: async (text: string) => {
       const id = performanceId;
@@ -111,19 +128,35 @@ export function PatchPage() {
     dirtyRef.current = true;
   }, []);
 
-  const workbookReady = Boolean(performanceId && perfQ.isSuccess && perfQ.data);
+  const workbookReady = Boolean(
+    performanceId &&
+      perfQ.isSuccess &&
+      perfQ.data &&
+      (!bootstrapQ.isPending || bootstrapQ.isError),
+  );
 
-  const { wbRef, onOp, conn, synced, workbookHydrated } = usePatchWorkbookCollab({
-    roomId: performanceId,
-    mode: "performance",
-    workbookReady,
-    onLocalOp: markDirty,
-    pauseWhenHidden: isPhone,
-    readOnly: isPhone,
-  });
+  const bootstrapSheets =
+    bootstrapQ.isError ||
+    bootstrapQ.data == null ||
+    bootstrapQ.data.length === 0
+      ? WORKBOOK_PLACEHOLDER
+      : bootstrapQ.data;
+
+  const { wbRef, onOp, conn, synced, workbookHydrated, workbookReplayError } =
+    usePatchWorkbookCollab({
+      roomId: performanceId,
+      mode: "performance",
+      workbookReady,
+      onLocalOp: markDirty,
+      pauseWhenHidden: isPhone,
+      readOnly: isPhone,
+    });
 
   const blockingWorkbook =
-    workbookReady && !workbookHydrated && conn !== "error";
+    workbookReady &&
+    !workbookHydrated &&
+    conn !== "error" &&
+    !workbookReplayError;
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -164,13 +197,15 @@ export function PatchPage() {
 
   const connLabel = conn === "error"
     ? "Connection error"
-    : !synced
-      ? "Syncing…"
-      : !workbookHydrated
-        ? "Loading workbook…"
-        : "Live";
+    : workbookReplayError
+      ? "Out of sync"
+      : !synced
+        ? "Syncing…"
+        : !workbookHydrated
+          ? "Loading workbook…"
+          : "Live";
 
-  const connClass = conn === "error"
+  const connClass = conn === "error" || workbookReplayError
     ? "status-danger"
     : !synced || !workbookHydrated
       ? "status-warn"
@@ -217,6 +252,34 @@ export function PatchPage() {
 
   const workbookInner = (
     <>
+      {workbookReplayError ? (
+        <p
+          role="alert"
+          className="status-danger"
+          style={{ margin: "0 0 0.75rem", fontSize: "0.9rem" }}
+        >
+          Workbook out of sync — the live edit history could not be applied safely. Reload the page,
+          switch to another band and back, or re-open this sheet later. ({workbookReplayError})
+        </p>
+      ) : null}
+      {bootstrapQ.isError ? (
+        <p
+          role="alert"
+          className="status-warn"
+          style={{ margin: "0 0 0.75rem", fontSize: "0.9rem" }}
+        >
+          Could not load the saved sheet layout from the server (
+          {(bootstrapQ.error as Error).message}). Using a minimal grid; collaboration may still
+          apply.{" "}
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => void bootstrapQ.refetch()}
+          >
+            Retry
+          </button>
+        </p>
+      ) : null}
       {blockingWorkbook ? (
         <div
           className="patch-workbook-host__loading"
@@ -226,17 +289,37 @@ export function PatchPage() {
           Loading workbook…
         </div>
       ) : null}
-      <PatchWorkbookErrorBoundary key={performanceId}>
-        <Workbook
+      {bootstrapQ.isPending ? (
+        <div
+          className="patch-workbook-host__loading"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          Loading sheet layout…
+        </div>
+      ) : (
+        <PatchWorkbookErrorBoundary
           key={performanceId}
-          ref={wbRef}
-          data={WORKBOOK_PLACEHOLDER}
-          onOp={onOp}
-          showToolbar={!isPhone}
-          showFormulaBar={!isPhone}
-          showSheetTabs
-        />
-      </PatchWorkbookErrorBoundary>
+          roomId={performanceId}
+          collabDebug={{
+            conn,
+            synced,
+            workbookHydrated,
+            workbookReplayError,
+          }}
+        >
+          <Workbook
+            key={performanceId}
+            ref={wbRef}
+            data={bootstrapSheets}
+            onOp={onOp}
+            allowEdit={!isPhone}
+            showToolbar={!isPhone}
+            showFormulaBar={!isPhone}
+            showSheetTabs
+          />
+        </PatchWorkbookErrorBoundary>
+      )}
     </>
   );
 

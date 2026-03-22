@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { Workbook } from "@fortune-sheet/react";
-import { apiGet } from "../api/client";
+import { apiGet, fetchPatchWorkbookBootstrapSheets } from "../api/client";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import {
   WORKBOOK_PLACEHOLDER,
@@ -23,16 +23,43 @@ export function PatchTemplateEditorPage() {
     enabled: Boolean(templateId),
   });
 
-  const workbookReady = Boolean(templateId && tplQ.isSuccess && tplQ.data);
-
-  const { wbRef, onOp, conn, synced, workbookHydrated } = usePatchWorkbookCollab({
-    roomId: templateId,
-    mode: "template",
-    workbookReady,
+  const bootstrapQ = useQuery({
+    queryKey: ["patchWorkbookBootstrap", "template", templateId],
+    queryFn: () =>
+      fetchPatchWorkbookBootstrapSheets(
+        `/api/v1/patch-templates/${templateId}/sheets-export`,
+      ),
+    enabled: Boolean(templateId),
+    staleTime: 60_000,
+    retry: 1,
   });
 
+  const workbookReady = Boolean(
+    templateId &&
+      tplQ.isSuccess &&
+      tplQ.data &&
+      (!bootstrapQ.isPending || bootstrapQ.isError),
+  );
+
+  const bootstrapSheets =
+    bootstrapQ.isError ||
+    bootstrapQ.data == null ||
+    bootstrapQ.data.length === 0
+      ? WORKBOOK_PLACEHOLDER
+      : bootstrapQ.data;
+
+  const { wbRef, onOp, conn, synced, workbookHydrated, workbookReplayError } =
+    usePatchWorkbookCollab({
+      roomId: templateId,
+      mode: "template",
+      workbookReady,
+    });
+
   const blockingWorkbook =
-    workbookReady && !workbookHydrated && conn !== "error";
+    workbookReady &&
+    !workbookHydrated &&
+    conn !== "error" &&
+    !workbookReplayError;
 
   if (!templateId) return null;
   if (tplQ.isLoading) return <p className="muted">Loading…</p>;
@@ -60,14 +87,21 @@ export function PatchTemplateEditorPage() {
         }}
       >
         <h1 style={{ margin: 0 }}>Edit patch template</h1>
-        <span className="muted" style={{ fontSize: "0.85rem" }}>
+        <span
+          className={
+            conn === "error" || workbookReplayError ? "status-danger" : "muted"
+          }
+          style={{ fontSize: "0.85rem" }}
+        >
           {conn === "error"
             ? "Realtime connection error — check network / login"
-            : !synced
-              ? "Syncing…"
-              : !workbookHydrated
-                ? "Loading workbook…"
-                : "Live — edits save automatically"}
+            : workbookReplayError
+              ? "Workbook out of sync — reload or leave this page and return"
+              : !synced
+                ? "Syncing…"
+                : !workbookHydrated
+                  ? "Loading workbook…"
+                  : "Live — edits save automatically"}
         </span>
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
@@ -88,6 +122,34 @@ export function PatchTemplateEditorPage() {
           overflow: "hidden",
         }}
       >
+        {workbookReplayError ? (
+          <p
+            role="alert"
+            className="status-danger"
+            style={{ margin: "0 0 0.75rem", fontSize: "0.9rem" }}
+          >
+            Workbook out of sync — the live edit history could not be applied safely. Reload the
+            page or leave this editor and return. ({workbookReplayError})
+          </p>
+        ) : null}
+        {bootstrapQ.isError ? (
+          <p
+            role="alert"
+            className="status-warn"
+            style={{ margin: "0 0 0.75rem", fontSize: "0.9rem" }}
+          >
+            Could not load the template file from storage (
+            {(bootstrapQ.error as Error).message}). Using a minimal grid; collaboration may still
+            apply.{" "}
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => void bootstrapQ.refetch()}
+            >
+              Retry
+            </button>
+          </p>
+        ) : null}
         {blockingWorkbook ? (
           <div
             className="patch-workbook-host__loading"
@@ -97,17 +159,37 @@ export function PatchTemplateEditorPage() {
             Loading workbook…
           </div>
         ) : null}
-        <PatchWorkbookErrorBoundary key={templateId}>
-          <Workbook
+        {bootstrapQ.isPending ? (
+          <div
+            className="patch-workbook-host__loading"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            Loading sheet layout…
+          </div>
+        ) : (
+          <PatchWorkbookErrorBoundary
             key={templateId}
-            ref={wbRef}
-            data={WORKBOOK_PLACEHOLDER}
-            onOp={onOp}
-            showToolbar
-            showFormulaBar
-            showSheetTabs
-          />
-        </PatchWorkbookErrorBoundary>
+            roomId={templateId}
+            collabDebug={{
+              conn,
+              synced,
+              workbookHydrated,
+              workbookReplayError,
+            }}
+          >
+            <Workbook
+              key={templateId}
+              ref={wbRef}
+              data={bootstrapSheets}
+              onOp={onOp}
+              allowEdit
+              showToolbar
+              showFormulaBar
+              showSheetTabs
+            />
+          </PatchWorkbookErrorBoundary>
+        )}
       </div>
     </div>
   );

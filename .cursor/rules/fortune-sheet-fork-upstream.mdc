@@ -1,0 +1,38 @@
+---
+description: Keep doug86i/fortune-sheet fork mergeable with ruilisi/fortune-sheet upstream
+alwaysApply: true
+---
+
+# FortuneSheet fork — upstream compatibility
+
+Canonical consumer: **`vendor/*.tgz`**, branch **`dhsl/v1.0.4`**, details in **`docs/DECISIONS.md`**. Complements **`.cursor/rules/patch-templates.mdc`** (product/template rules).
+
+## Git workflow (fork clone)
+
+- Add remote **`upstream`** → `https://github.com/ruilisi/fortune-sheet.git` (or `git@github.com:ruilisi/fortune-sheet.git`).
+- **Base branch** should match the **npm version** this app pins (e.g. tag **`v1.0.4`**). Do not mix upstream `main` onto a branch meant to track **`v1.0.4`** without a deliberate version bump in **this** repo.
+- **One commit per logical fix** (touch pan, getSheetIndex, applyOp guard, …). Message: imperative, **why** + **symptom** (helps upstream PR and cherry-pick).
+- **No drive-by changes:** no mass Prettier on unrelated files, no dependency bumps unrelated to the fix, no generated **`dist/`** committed in the fork repo (build only for **`npm pack`**).
+
+## Source boundaries
+
+- Prefer edits under **`packages/core/src/`** and **`packages/react/src/`** only. Avoid changing **`packages/formula-parser`** unless the fix truly belongs there.
+- After edits: **`yarn install`** (if needed), **`npm run build`** at repo root, then **`npm pack`** in **`packages/core/`** and **`packages/react/`**.
+
+## Merging upstream later
+
+1. **`git fetch upstream`**
+2. Merge or rebase **`upstream/main`** (or the relevant release branch/tag) onto **`dhsl/v1.0.4`**, or create **`dhsl/v1.0.5`** from new upstream tag and **cherry-pick** DHSL commits.
+3. Resolve conflicts **in TypeScript source**, rebuild, run a quick smoke (build succeeds).
+4. In **this** repo: copy new **`.tgz`** to **`vendor/`**, refresh **`package-lock.json`** integrity (`npm install` with the **`file:./vendor/...`** pattern per **DECISIONS**).
+5. Update **`docs/DECISIONS.md`**: drop bullets for commits that landed upstream; note new fork-only commits.
+
+## Upstream-first
+
+- Open **PRs to `ruilisi/fortune-sheet`** when the change is generally useful; keep fork commit messages aligned with PR description.
+- If upstream merges a fix, **revert or drop** the matching commit on **`dhsl/*`** on next merge to reduce drift.
+
+## This repo (`changeoverlord`)
+
+- Never hand-edit **`node_modules/@fortune-sheet/*`**. Never **`patch-package`** FortuneSheet (see **patch-templates** rule).
+- Tarball updates and lockfile integrity belong in the **same commit** as the behavioural change when practical.
