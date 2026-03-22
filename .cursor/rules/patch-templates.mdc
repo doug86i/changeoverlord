@@ -8,7 +8,7 @@ alwaysApply: true
 ## FortuneSheet fork (`doug86i/fortune-sheet`)
 
 - **`@fortune-sheet/core`** and **`@fortune-sheet/react`** are consumed from **local tarballs** in **`vendor/`**, built from a **source-level fork** (`doug86i/fortune-sheet`, branch **`dhsl/v1.0.4`**). See **`docs/DECISIONS.md`** for the full list of patched commits and update procedure.
-- **Do NOT use `patch-package`** on FortuneSheet packages. All fixes go into the **fork's TypeScript source** (`packages/core/src/`), are built with the upstream tooling, and re-packed as tarballs.
+- **Do NOT use `patch-package`** on FortuneSheet packages. All fixes go into the **fork's TypeScript source** (`packages/core/src/`), are built with the upstream tooling, and re-packed as tarballs. After each fork **`git commit`**, **`git push origin dhsl/v1.0.4`** on **`doug86i/fortune-sheet`** in the same session as the **`vendor/`** update (**`AGENTS.md`**, **`fortune-sheet-fork-upstream.mdc`**).
 - **Do NOT add runtime hooks** (e.g. `onOp` interceptors, mutation observers) that alter cell values after user input to work around FortuneSheet limitations. Cell data belongs to the user.
 - If FortuneSheet lacks a feature (e.g. auto-uppercase, data validation enforcement), handle it **in the template** or **document the limitation** — not by modifying the editor.
 - **Fork fixes** should be **minimal and isolated** (one commit per bug). Prefer **upstream PRs** to `ruilisi/fortune-sheet` when practical; drop fork commits after merge.

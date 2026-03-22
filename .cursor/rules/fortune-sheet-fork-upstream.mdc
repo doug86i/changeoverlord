@@ -12,12 +12,13 @@ Canonical consumer: **`vendor/*.tgz`**, branch **`dhsl/v1.0.4`**, details in **`
 - Add remote **`upstream`** → `https://github.com/ruilisi/fortune-sheet.git` (or `git@github.com:ruilisi/fortune-sheet.git`).
 - **Base branch** should match the **npm version** this app pins (e.g. tag **`v1.0.4`**). Do not mix upstream `main` onto a branch meant to track **`v1.0.4`** without a deliberate version bump in **this** repo.
 - **One commit per logical fix** (touch pan, getSheetIndex, applyOp guard, …). Message: imperative, **why** + **symptom** (helps upstream PR and cherry-pick).
+- **Push after commit:** On **`doug86i/fortune-sheet`**, after **`git commit`** on **`dhsl/v1.0.4`**, run **`git push origin dhsl/v1.0.4`** before finishing the agent task that also updates **`vendor/*.tgz`** in **this** repo (when network and credentials allow). Fork history on GitHub must not lag a local-only commit.
 - **No drive-by changes:** no mass Prettier on unrelated files, no dependency bumps unrelated to the fix, no generated **`dist/`** committed in the fork repo (build only for **`npm pack`**).
 
 ## Source boundaries
 
 - Prefer edits under **`packages/core/src/`** and **`packages/react/src/`** only. Avoid changing **`packages/formula-parser`** unless the fix truly belongs there.
-- After edits: **`yarn install`** (if needed), **`npm run build`** at repo root, then **`npm pack`** in **`packages/core/`** and **`packages/react/`**.
+- After edits: **`yarn install`** (if needed), **`npm run build`** at repo root, then **`npm pack`** in **`packages/core/`** and **`packages/react/`**. (**`git commit`** / **`git push`** follow the **Git workflow** bullets above.)
 
 ## Merging upstream later
 

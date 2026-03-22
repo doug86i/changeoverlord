@@ -31,9 +31,10 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 #### FortuneSheet fork — updating tarballs
 
 1. Clone **`doug86i/fortune-sheet`**, checkout **`dhsl/v1.0.4`**, edit TypeScript in the fork (see **[`.cursor/rules/fortune-sheet-fork-upstream.mdc`](.cursor/rules/fortune-sheet-fork-upstream.mdc)** for git/upstream hygiene).
-2. In the fork repo: **`yarn install`** (if needed), **`npm run build`** at the repo root, then **`npm pack`** in **`packages/core/`** and **`packages/react/`**.
-3. Copy the resulting **`.tgz`** files into this repo’s **`vendor/`** (replace the existing **`fortune-sheet-*-1.0.4.tgz`** names unless you deliberately bump the version everywhere).
-4. In **this** repo, refresh **`package-lock.json`** so npm extracts the new bytes — for example **`npm install -w @changeoverlord/web @fortune-sheet/react@file:./vendor/fortune-sheet-react-1.0.4.tgz`** and the same pattern for **`@fortune-sheet/core`** on **`api`**, or delete **`node_modules/@fortune-sheet`** and reinstall after replacing tarballs.
+2. In the fork repo: **`git commit`** each logical fix on **`dhsl/v1.0.4`**, then **`git push origin dhsl/v1.0.4`** so **GitHub is the source of truth** for the fork (agents: do this in the **same** session as updating **`vendor/`** here — do not leave commits **only** on a local clone).
+3. In the fork repo: **`yarn install`** (if needed), **`npm run build`** at the repo root, then **`npm pack`** in **`packages/core/`** and **`packages/react/`**.
+4. Copy the resulting **`.tgz`** files into this repo’s **`vendor/`** (replace the existing **`fortune-sheet-*-1.0.4.tgz`** names unless you deliberately bump the version everywhere).
+5. In **this** repo, refresh **`package-lock.json`** so npm extracts the new bytes — for example **`npm install -w @changeoverlord/web @fortune-sheet/react@file:./vendor/fortune-sheet-react-1.0.4.tgz`** and the same pattern for **`@fortune-sheet/core`** on **`api`**, or delete **`node_modules/@fortune-sheet`** and reinstall after replacing tarballs.
 
 Prefer **upstream PRs** to **`ruilisi/fortune-sheet`** when practical; drop fork-only commits when they land upstream (track in **DECISIONS**).
 
