@@ -8,6 +8,14 @@ import { logDebug } from "./debug";
 export const isClientDebugFileIngestEnabled =
   import.meta.env.VITE_CLIENT_LOG_FILE === "true";
 
+/** Stable id for this browser tab — use to separate NDJSON lines from multiple windows. */
+const CLIENT_LOG_TAB_ID =
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `tab-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+
+let clientLogSeq = 0;
+
 type ClientDebugLine = {
   ts: string;
   scope: string;
@@ -22,6 +30,51 @@ let warnedMissingEndpoint = false;
 
 const FLUSH_MS = 200;
 const MAX_BATCH = 50;
+
+/** Exposed for rare console debugging (`getClientLogTabId()` in DevTools). */
+export function getClientLogTabId(): string {
+  return CLIENT_LOG_TAB_ID;
+}
+
+/**
+ * Per-line context merged into NDJSON `meta` (and console `logDebug`) for collab diagnosis.
+ * No secrets; keep fields coarse (no full query strings).
+ */
+function nextClientLogEnvelope(): Record<string, unknown> {
+  clientLogSeq += 1;
+  const env: Record<string, unknown> = {
+    tabId: CLIENT_LOG_TAB_ID,
+    seq: clientLogSeq,
+    viteMode: import.meta.env.MODE,
+    strictDev: import.meta.env.DEV,
+  };
+
+  if (typeof window !== "undefined") {
+    env.path = window.location.pathname;
+    env.searchLen = window.location.search.length;
+  }
+  if (typeof document !== "undefined") {
+    env.vis = document.visibilityState;
+  }
+  if (typeof navigator !== "undefined") {
+    env.online = navigator.onLine;
+    const c = navigator as Navigator & {
+      connection?: { effectiveType?: string; downlink?: number };
+    };
+    if (c.connection?.effectiveType) {
+      env.net = c.connection.effectiveType;
+    }
+  }
+  if (typeof window !== "undefined" && window.screen) {
+    env.sw = window.screen.width;
+    env.sh = window.screen.height;
+  }
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
+    env.t = Math.round(performance.now());
+  }
+
+  return env;
+}
 
 function sanitizeMeta(meta: Record<string, unknown>): Record<string, unknown> {
   try {
@@ -93,6 +146,7 @@ export function summarizeOpsForClientLog(ops: Op[]): {
 
 /**
  * Patch workbook collab: mirror to `logDebug` and optionally append NDJSON via the API.
+ * Automatically adds **`tabId`**, monotonic **`seq`**, path, visibility, etc. (see LOGGING.md).
  * Do not put secrets in `meta`.
  */
 export function logClientDebugCollab(
@@ -107,11 +161,12 @@ export function logClientDebugCollab(
   const rest =
     restEntries.length > 0 ? Object.fromEntries(restEntries) : undefined;
 
-  if (rest) {
-    logDebug(scope, message, rest);
-  } else {
-    logDebug(scope, message);
-  }
+  const merged: Record<string, unknown> = {
+    ...nextClientLogEnvelope(),
+    ...(rest ?? {}),
+  };
+
+  logDebug(scope, message, merged);
 
   if (!isClientDebugFileIngestEnabled) return;
 
@@ -120,7 +175,7 @@ export function logClientDebugCollab(
     scope,
     message,
     ...(roomId ? { roomId } : {}),
-    ...(rest ? { meta: sanitizeMeta(rest) } : {}),
+    meta: sanitizeMeta(merged),
   };
   queue.push(line);
   scheduleFlush();

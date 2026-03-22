@@ -96,6 +96,12 @@ export function usePatchWorkbookCollab(opts: {
    * future identical ops still go through.
    */
   const lastPushedOpsRef = useRef<string | null>(null);
+  /** Latest collab flags for NDJSON (avoid stale closures in FortuneSheet `onOp`). */
+  const collabDebugRef = useRef({
+    conn: "connecting" as "connecting" | "connected" | "error",
+    synced: false,
+    workbookHydrated: false,
+  });
   const [conn, setConn] = useState<"connecting" | "connected" | "error">(
     "connecting",
   );
@@ -114,6 +120,10 @@ export function usePatchWorkbookCollab(opts: {
     };
   }, [ydoc]);
 
+  useEffect(() => {
+    collabDebugRef.current = { conn, synced, workbookHydrated };
+  }, [conn, synced, workbookHydrated]);
+
     const onOp = useCallback(
       (ops: Op[]) => {
         if (readOnly) return;
@@ -124,6 +134,8 @@ export function usePatchWorkbookCollab(opts: {
         logClientDebugCollab("patch-workbook-collab", "onOp called", {
           roomId,
           mode,
+          readOnly,
+          ...collabDebugRef.current,
           isDuplicate,
           opsSummary: summarizeOpsForClientLog(ops),
           ...(serialized.length <= 24_000
@@ -144,6 +156,8 @@ export function usePatchWorkbookCollab(opts: {
           logClientDebugCollab("patch-workbook-collab", "yops.push", {
             roomId,
             mode,
+            readOnly,
+            ...collabDebugRef.current,
             opsSummary: summarizeOpsForClientLog(ops),
             ...(serialized.length <= 24_000
               ? { opBatchJson: serialized }

@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** Client NDJSON collab lines include a per-tab **`tabId`**, monotonic **`seq`**, **`yOrigin`** / **`opLogLen`** on Yjs **`observe`** events, and sender **`conn` / `synced` / `workbookHydrated`** — see **`docs/LOGGING.md`**.
 - **Web:** **Patch / RF** and **template editor** load **`GET …/sheets-export`** before mounting FortuneSheet so the initial grid matches the server snapshot, then replay the Yjs `opLog` — reduces Immer *path doesn't resolve* crashes when the op history assumed more rows/columns than the old placeholder.
 - **Web:** **`batchCallApis`** collab recalc uses **`calculateFormula`** per sheet instead of **`jfrefreshgrid`** (that name is not on FortuneSheet’s frozen **`api`** object, so it only logged a warning).
 - **Docs / Cursor:** **`DECISIONS.md`**, **`KNOWN_ISSUES.md`** (**#82**) — Immer `opLog` replay vs `data` matrix; **#49** updated for **`PatchWorkbookErrorBoundary`** copy behaviour. **`.cursor/rules/fortune-sheet-fork-upstream.mdc`** documents fork ↔ upstream merge hygiene; **`docs/DEVELOPMENT.md`** notes React Strict Mode dev WebSocket teardown noise.

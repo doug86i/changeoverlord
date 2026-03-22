@@ -14,6 +14,20 @@ import { logDebug } from "./debug";
 /** Must match `ydoc.transact(..., origin)` in onOp handlers for patch/template workbooks. */
 export const PATCH_WORKBOOK_Y_ORIGIN = "fortune-local";
 
+/** NDJSON / console: classify Yjs `transaction.origin` without throwing on symbols. */
+function formatYjsOrigin(origin: unknown): string {
+  if (origin === PATCH_WORKBOOK_Y_ORIGIN) return "fortune-local";
+  if (origin === undefined) return "undefined";
+  if (origin === null) return "null";
+  if (typeof origin === "string") {
+    return origin.length > 80 ? `${origin.slice(0, 80)}…` : origin;
+  }
+  if (typeof origin === "number" || typeof origin === "boolean") {
+    return String(origin);
+  }
+  return typeof origin;
+}
+
 /**
  * When the workbook was bootstrapped from `sheets-export` (server-side opLog replay), the initial
  * `data` prop already contains all sheets created by historical `addSheet` ops. Replaying those
@@ -439,6 +453,10 @@ export function usePatchWorkbookOpLogEffects(
             logClientDebugCollab("patch-workbook-yjs", "observe handling ops", {
               roomId,
               itemLen,
+              yOrigin: formatYjsOrigin(transaction.origin),
+              opLogLen: yops.length,
+              yjsSynced: synced,
+              hydratedGate: hydratedRef.current,
               opsSummary: summarizeOpsForClientLog(ops),
             });
 
@@ -449,6 +467,9 @@ export function usePatchWorkbookOpLogEffects(
                 {
                   roomId,
                   itemLen,
+                  yOrigin: formatYjsOrigin(transaction.origin),
+                  opLogLen: yops.length,
+                  yjsSynced: synced,
                   opsSummary: summarizeOpsForClientLog(ops),
                 },
               );
@@ -457,6 +478,9 @@ export function usePatchWorkbookOpLogEffects(
             logClientDebugCollab("patch-workbook-yjs", "observe applyOp", {
               roomId,
               itemLen,
+              yOrigin: formatYjsOrigin(transaction.origin),
+              opLogLen: yops.length,
+              yjsSynced: synced,
               opsSummary: summarizeOpsForClientLog(ops),
               ...(item.length <= 24_000
                 ? { opBatchJson: item }
@@ -496,7 +520,15 @@ export function usePatchWorkbookOpLogEffects(
       }
       remoteRecalcNeededRef.current = false;
     };
-  }, [yops, wbRef, suppressYjsOpsRef, roomId, onHydrationChange, onReplayFailure]);
+  }, [
+    yops,
+    wbRef,
+    suppressYjsOpsRef,
+    roomId,
+    synced,
+    onHydrationChange,
+    onReplayFailure,
+  ]);
 
   useLayoutEffect(() => {
     if (!roomId) {
@@ -546,7 +578,12 @@ export function usePatchWorkbookOpLogEffects(
         logClientDebugCollab(
           "patch-workbook-yjs",
           "bootstrap fast-path hydration (drain skipped)",
-          { roomId, opLogLength: yops.length },
+          {
+            roomId,
+            opLogLength: yops.length,
+            yjsSynced: synced,
+            hasBootstrapData,
+          },
         );
 
         if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;

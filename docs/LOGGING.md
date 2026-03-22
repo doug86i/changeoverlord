@@ -48,7 +48,23 @@ Browsers do not persist console output. For **patch workbook** troubleshooting, 
 |--------|------------------|
 | **API** | Set **`CLIENT_LOG_FILE`** to a path under the **monorepo root** or the **`api/`** workspace cwd (e.g. **`/app/logs/client-debug.ndjson`** in Docker — **`logs/`** is a sibling of **`api/`** when the API runs as **`npm run dev -w @changeoverlord/api`** with cwd **`/app/api`**). If unset, **`POST /api/v1/debug/client-log`** is **not registered**. |
 | **Web** | Set **`VITE_CLIENT_LOG_FILE=true`** at Vite dev/build time so **`logClientDebugCollab`** in **`web/src/lib/clientDebugLog.ts`** batches POSTs. Default **`make dev-fast`**: enabled in **`docker-compose.fast.yml`** with **`./logs`** mounted into the API container. |
-| **Output** | One JSON object per line (timestamp, scope, message, optional **`roomId`**, optional **`meta`**). Tail with **`tail -f logs/client-debug.ndjson`**. |
+| **Output** | One JSON object per line (timestamp, scope, message, optional **`roomId`**, **`meta`**). Tail with **`tail -f logs/client-debug.ndjson`**. |
+
+**`meta` envelope (automatic):** every **`logClientDebugCollab`** line merges a per-tab context so you can separate windows and sort by time:
+
+| Field | Meaning |
+|--------|---------|
+| **`tabId`** | Random UUID for this browser tab — **same `tabId`** ⇒ same window; multiple ids ⇒ multiple tabs or reloads. |
+| **`seq`** | Monotonic counter per tab (order of log calls). |
+| **`t`** | `performance.now()` (ms since navigation), rounded — compare ordering inside one tab. |
+| **`path`** | `location.pathname` (no query string; length in **`searchLen`** only). |
+| **`vis`** | `document.visibilityState`. |
+| **`viteMode`** | `import.meta.env.MODE` (`development` / `production`). |
+| **`strictDev`** | `true` when **`import.meta.env.DEV`** (React Strict Mode may double-invoke). |
+| **`online`** / **`net`** | `navigator.onLine` and **`connection.effectiveType`** when available. |
+| **`sw` / `sh`** | Screen width / height (coarse). |
+
+**Collab-specific `meta` (when relevant):** **`conn`**, **`synced`**, **`workbookHydrated`**, **`readOnly`**, **`mode`** (performance vs template) on sender lines; **`yOrigin`**, **`opLogLen`**, **`yjsSynced`**, **`hydratedGate`** on **`observe`** lines. In DevTools: **`getClientLogTabId()`** (exported from **`web/src/lib/clientDebugLog.ts`**) prints this tab’s id.
 
 **Security:** do not enable **`CLIENT_LOG_FILE`** on untrusted networks without understanding that authenticated session holders can append to that file. Omit **`meta`** fields that could contain secrets (the collab path logs op summaries / bounded JSON only).
 
