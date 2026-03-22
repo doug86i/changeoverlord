@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API:** Collab relay — **`persistRoom`** no longer clears **`dirty`** after the DB round-trip when new ops arrived during **`await`** (debounced flush could drop the follow-up save). **`sheetMutationSeq`** tracks mutations; concurrent edits reschedule flush. Last-socket disconnect no longer **`rooms.delete`** while **`dirty`** or persist skipped/failed, so in-memory workbooks are reused on reconnect instead of reloading stale Postgres.
 - **Web:** Patch / RF uses shared **`PHONE_MAX_MEDIA`** (**`max-width: 767px`**, same as **`global.css`**) for phone layout, collab **read-only**, and **WebSocket** pause when hidden. After remote collab ops, **`suppressLocalOps`** clears after **microtask + one** animation frame (was two rAF), reducing dropped **`onOp`** with multiple tabs.
 - **API:** **`applyOpBatchToSheets`** **`insertRowCol`** now follows FortuneSheet’s **`index` / `count` / `direction`** (server **`sheets_json`** stayed wrong on row/column insert when only **`start`/`end`** were read).
 - **API:** **Event import** — embedded **`workbooks[].sheets`** are normalized with **`parseWorkbookJsonRoot`** (same **`normalizeSheetFromRaw`** path as template JSON import) before **`performance_workbooks`** insert; invalid workbook JSON returns **400** with a clear message.

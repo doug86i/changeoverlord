@@ -83,7 +83,8 @@ Use **`make dev-fast`** (or classic stack) so the API and Vite proxy match **[`d
    Component **`collab-ws-relay`** logs each applied batch as **`relay op batch applied`** with:
    - **`broadcast`:** **`fullState-to-peers`** (structural: new/delete tab or whole-workbook replace) vs **`op`** (cell edits).
    - **`sheetCount`**, **`structural`**, **`opCount`**, **`kinds`** (op names, truncated), **`addSheetIds`** (including **`(no-id)`** when Fortune omitted an id — server cannot dedupe).
-   - **`workbook persisted`** (debug) after debounced flush; **`skip persist: sheets failed minimum persist checks`** (warn) if tabs lack ids.
+   - **`workbook persisted`** (debug) after debounced flush; **`workbook persisted; follow-up flush scheduled (edits during write)`** (debug) when ops landed during the DB round-trip; **`skip persist: sheets failed minimum persist checks`** (warn) if tabs lack ids.
+   - **`collab room closed with unsaved sheets; keeping in-memory room for reconnect`** (warn) — last client disconnected while **`dirty`** (persist not written yet); next **`fullState`** comes from memory, not Postgres.
    - **`collab ws: client json parse failed`** (debug) — malformed frame; **`collab ws: client message rejected`** (warn) — Zod shape mismatch (first few **`issues`** only); **`collab ws: op payload is not an array`** (warn).
 
 2. **Browser console**  

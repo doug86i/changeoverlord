@@ -41,6 +41,8 @@ type RoomState = {
   sheets: Sheet[];
   persistTimer: ReturnType<typeof setTimeout> | null;
   dirty: boolean;
+  /** Incremented on each successful in-memory mutation; used to avoid clearing `dirty` after a stale DB write. */
+  sheetMutationSeq: number;
 };
 
 const rooms = new Map<string, RoomState>();
@@ -76,6 +78,8 @@ async function persistRoom(room: RoomState): Promise<void> {
     );
     return;
   }
+  const storageKey = roomKey(room.kind, room.entityId);
+  const seqAtClone = room.sheetMutationSeq;
   const payload = structuredClone(room.sheets) as unknown[];
   try {
     if (room.kind === "performance") {
@@ -97,8 +101,20 @@ async function persistRoom(room: RoomState): Promise<void> {
         .where(eq(patchTemplates.id, room.entityId));
       broadcastInvalidate([["patchTemplates"], ["patchTemplate"], ["events"]]);
     }
-    room.dirty = false;
-    relayLog.debug({ kind: room.kind, id: room.entityId }, "workbook persisted");
+    if (room.sheetMutationSeq !== seqAtClone) {
+      room.dirty = true;
+      schedulePersist(storageKey, room);
+      relayLog.debug(
+        { kind: room.kind, id: room.entityId },
+        "workbook persisted; follow-up flush scheduled (edits during write)",
+      );
+    } else {
+      room.dirty = false;
+      relayLog.debug({ kind: room.kind, id: room.entityId }, "workbook persisted");
+      if (room.sockets.size === 0) {
+        rooms.delete(storageKey);
+      }
+    }
   } catch (err) {
     relayLog.error({ err, kind: room.kind, id: room.entityId }, "persist failed");
   }
@@ -195,6 +211,7 @@ export function broadcastFullStateToPerformanceRoom(
   if (!room) return;
   room.sheets = structuredClone(sheets);
   room.dirty = true;
+  room.sheetMutationSeq += 1;
   const msg = JSON.stringify({ type: "fullState", sheets: room.sheets });
   for (const sock of room.sockets) {
     try {
@@ -213,6 +230,7 @@ export function broadcastFullStateToTemplateRoom(templateId: string, sheets: She
   if (!room) return;
   room.sheets = structuredClone(sheets);
   room.dirty = true;
+  room.sheetMutationSeq += 1;
   const msg = JSON.stringify({ type: "fullState", sheets: room.sheets });
   for (const sock of room.sockets) {
     try {
@@ -272,6 +290,7 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
       sheets,
       persistTimer: null,
       dirty: seededDefault,
+      sheetMutationSeq: 0,
     };
     rooms.set(key, room);
     if (seededDefault) schedulePersist(key, room);
@@ -289,9 +308,19 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         clearTimeout(room.persistTimer);
         room.persistTimer = null;
       }
-      void persistRoom(room).finally(() => {
-        rooms.delete(key);
-      });
+      void persistRoom(room)
+        .catch((err) => relayLog.error({ err, key }, "persistRoom rejected"))
+        .finally(() => {
+          if (room.sockets.size > 0) return;
+          if (room.dirty) {
+            relayLog.warn(
+              { kind: room.kind, id: room.entityId, key },
+              "collab room closed with unsaved sheets; keeping in-memory room for reconnect",
+            );
+            return;
+          }
+          rooms.delete(key);
+        });
     }
   }
 
@@ -370,6 +399,7 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         } else {
           broadcastOp(room, sock, ops);
         }
+        room.sheetMutationSeq += 1;
         schedulePersist(key, room);
         relayLog.debug(
           {
@@ -466,6 +496,7 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         } else {
           broadcastOp(room, sock, ops);
         }
+        room.sheetMutationSeq += 1;
         schedulePersist(key, room);
         relayLog.debug(
           {
