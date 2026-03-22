@@ -49,13 +49,37 @@ function activateFirstCoherentSheet(wb: WorkbookInstance): void {
   });
 }
 
+function getActiveSheetId(wb: WorkbookInstance): string | undefined {
+  const sheets = wb.getAllSheets() as Sheet[];
+  const active = sheets.find((s) => s.status === 1);
+  if (active?.id == null || String(active.id).trim() === "") return undefined;
+  return String(active.id);
+}
+
+function sheetIdExists(wb: WorkbookInstance, id: string): boolean {
+  return (wb.getAllSheets() as Sheet[]).some(
+    (s) => s.id != null && String(s.id) === id,
+  );
+}
+
+/**
+ * Rebuild formula maps / recalc across sheets. Must temporarily `activateSheet` each sheet for
+ * `jfrefreshgrid`; without restoring the prior active sheet, everyone ends up on the **last**
+ * sheet (especially bad when remote Yjs ops trigger recalc after e.g. adding a tab).
+ */
 function flushWorkbookFormulaRecalc(
   wb: WorkbookInstance,
   suppressYjsOpsRef?: MutableRefObject<boolean>,
+  options?: { preserveActiveSheet?: boolean },
 ): void {
+  const preserve = options?.preserveActiveSheet === true;
   if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
   try {
-    activateFirstCoherentSheet(wb);
+    if (!preserve) {
+      activateFirstCoherentSheet(wb);
+    }
+    const savedActiveId = getActiveSheetId(wb);
+
     const sheets = wb.getAllSheets() as Sheet[];
     for (const sheet of sheets) {
       const sheetId = sheet.id;
@@ -76,6 +100,12 @@ function flushWorkbookFormulaRecalc(
     flushSync(() => {
       wb.calculateFormula();
     });
+
+    if (savedActiveId && sheetIdExists(wb, savedActiveId)) {
+      flushSync(() => {
+        wb.batchCallApis([{ name: "activateSheet", args: [{ id: savedActiveId }] }]);
+      });
+    }
   } finally {
     if (suppressYjsOpsRef) {
       requestAnimationFrame(() => {
@@ -207,7 +237,9 @@ export function usePatchWorkbookOpLogEffects(
         requestAnimationFrame(() => {
           const w = wbRef.current;
           if (!w) return;
-          flushWorkbookFormulaRecalc(w, suppressYjsOpsRef);
+          flushWorkbookFormulaRecalc(w, suppressYjsOpsRef, {
+            preserveActiveSheet: true,
+          });
         });
       });
     };

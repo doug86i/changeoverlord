@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Patch / RF collab** — after **remote** Yjs updates, formula recalc cycled **`activateSheet`** across every tab and left all users on the **last** sheet; restoring the **previously active** sheet after recalc fixes **random tab jumps** when someone **adds or renames sheets**.
 - **Web:** **Patch (phone)** — **`wheel`** events are stopped in **capture** on the workbook host so **synthetic wheel** from touch (iOS) does not run FortuneSheet’s **`handleGlobalWheel`** on top of overlay touch pan (which caused **one-way / stuck** vertical scrolling).
 - **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — overlay **`touchmove`** used cumulative finger delta against **already-updated** scroll each frame (pan felt **much faster** than the finger on iOS). Patched to anchor scroll to **`touchstart`**; phone patch CSS drops **`touch-action: pan`** on the grid window so programmatic pan is not doubled with native scrolling.
 - **Web:** **Patch page** — resizing between phone and desktop breakpoints no longer destroys the FortuneSheet workbook; single render path keeps the `<Workbook>` mounted across breakpoint transitions, and the visibility-aware collab reconnects when `pauseWhenHidden` is disabled.
