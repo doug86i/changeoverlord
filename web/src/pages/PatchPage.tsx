@@ -20,6 +20,8 @@ export function PatchPage() {
   const { performanceId } = useParams<{ performanceId: string }>();
   const dirtyRef = useRef(false);
   const perfJsonImportRef = useRef<HTMLInputElement>(null);
+  /** Phone patch host: block synthetic `wheel` so touch pan is not doubled with FortuneSheet `handleGlobalWheel`. */
+  const patchWorkbookHostRef = useRef<HTMLDivElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
   const isPhone = useMediaQuery("(max-width: 767px)");
@@ -115,6 +117,22 @@ export function PatchPage() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [conn, isPhone]);
+
+  useEffect(() => {
+    if (!isPhone || !workbookReady) return;
+    const host = patchWorkbookHostRef.current;
+    if (!host) return;
+    const opts: AddEventListenerOptions = { capture: true, passive: false };
+    const onWheelCapture = (e: WheelEvent) => {
+      // iOS (and some browsers) emit `wheel` during touch pan. FortuneSheet's
+      // handleGlobalWheel moves by fixed row steps and toggles scroll locks,
+      // which fights overlay touch scrolling and can lock vertical direction.
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    host.addEventListener("wheel", onWheelCapture, opts);
+    return () => host.removeEventListener("wheel", onWheelCapture, opts);
+  }, [isPhone, workbookReady]);
 
   if (!performanceId) return null;
   if (perfQ.isLoading) return <p className="muted">Loading…</p>;
@@ -358,6 +376,7 @@ export function PatchPage() {
 
         {/* Workbook — always at child 3; survives phone↔desktop transitions */}
         <div
+          ref={patchWorkbookHostRef}
           className={
             `patch-workbook-host${isPhone ? " patch-workbook-host--readonly patch-workbook-host--phone" : ""}`
           }
