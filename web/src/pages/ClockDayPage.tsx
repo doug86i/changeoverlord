@@ -83,7 +83,6 @@ export function ClockDayPage() {
   const kioskMode = searchParams.get("kiosk") === "1";
 
   const arenaRef = useRef<HTMLDivElement>(null);
-  const [fsIntent, setFsIntent] = useState(false);
   const [isFs, setIsFs] = useState(false);
 
   const dayQ = useQuery({
@@ -304,7 +303,8 @@ export function ClockDayPage() {
   const goPrev = useCallback(() => setFocusIdx((i) => Math.max(0, i - 1)), []);
   const goNext = useCallback(() => setFocusIdx((i) => Math.min(sorted.length - 1, i + 1)), [sorted.length]);
 
-  const fillViewport = kioskMode || fsIntent || isFs;
+  /** Kiosk URL only — do not tie to fullscreen intent or `isFs`; switching layout unmounts the arena and kills fullscreen. */
+  const fillViewport = kioskMode;
 
   useEffect(() => {
     const onFs = () => {
@@ -325,12 +325,12 @@ export function ClockDayPage() {
     if (!el) return;
     if (isArenaFullscreen(el)) {
       void exitFullscreenSafe();
-      setFsIntent(false);
       return;
     }
-    setFsIntent(true);
     requestAnimationFrame(() => {
-      void requestFullscreenOn(el).catch(() => setFsIntent(false));
+      void requestFullscreenOn(el).catch(() => {
+        /* user gesture / policy — stay on manager layout */
+      });
     });
   }, []);
 
@@ -461,16 +461,6 @@ export function ClockDayPage() {
       {isFs && (
         <button type="button" className="primary" onClick={toggleFullscreen}>
           Exit fullscreen (F)
-        </button>
-      )}
-      {fsIntent && !isFs && (
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={() => setFsIntent(false)}
-          title="Leave fullscreen layout if the browser did not enter fullscreen"
-        >
-          Exit large layout
         </button>
       )}
       <button type="button" className="primary" onClick={toggleFullscreen}>

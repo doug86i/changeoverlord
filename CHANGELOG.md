@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Stage day clock** — **Fullscreen (F)** no longer toggles a separate “fill” layout (that remounted the arena and **ended fullscreen** immediately); fullscreen runs on the same **arena** node while the manager layout stays mounted (**kiosk** **`?kiosk=1`** is unchanged).
 - **Web:** **Clock** picker (`ClockPage`) uses **`["events","allForClock"]`** so its list does not read **`useInfiniteQuery`** **`["events"]`** cache (fixes **`events.map is not a function`**).
 - **Docker:** **Fast stack** (`docker-compose.fast.yml`) — start **api** / **web** as root long enough to **`chown`** the **`node_modules`** named volumes, then **`su node`** so **`npm install`** / Vite are not blocked by **EACCES** on fresh or root-owned volumes.
 
