@@ -258,5 +258,5 @@ Typography: one sans family (system stack). Hierarchy = size + weight (600 for s
 - **[`../AGENTS.md`](../AGENTS.md)** — AI assistants and architecture obligations
 - **[`ROADMAP.md`](ROADMAP.md)** — product vision and roadmap
 - **[`DEVELOPMENT.md`](DEVELOPMENT.md)** — local Docker workflow
-- **[`REALTIME.md`](REALTIME.md)** — SSE live invalidation vs Yjs collaboration
+- **[`REALTIME.md`](REALTIME.md)** — SSE live invalidation vs patch workbook WebSocket collaboration
 - **[`LICENSING.md`](LICENSING.md)** — repo + dependency licences

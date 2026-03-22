@@ -16,7 +16,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 |----------|----------------|
 | **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing (`make dev-fast` / `make dev`), Docker rebuilds, patches, new machine setup, doc maintenance |
 | **[`DECISIONS.md`](DECISIONS.md)** | Locked product and engineering choices (stack, API, limits, auth, visual design tokens) |
-| **[`REALTIME.md`](REALTIME.md)** | Live schedule updates (SSE) vs patch grid collaboration (Yjs + WebSockets) |
+| **[`REALTIME.md`](REALTIME.md)** | Live schedule updates (SSE) vs patch grid collaboration (WebSocket JSON op relay) |
 | **[`LOGGING.md`](LOGGING.md)** | Structured logging — API Pino / `req.log`, web `logDebug`, optional fast-stack **client NDJSON** file (`logs/client-debug.ndjson`), `LOG_LEVEL`, no secrets |
 | **[`KNOWN_ISSUES.md`](KNOWN_ISSUES.md)** | Known issues and technical debt — code, infra, CSS, realtime, collab (**#83** duplicate tabs), follow-ups |
 | **[`PATCH_TEMPLATE_JSON.md`](PATCH_TEMPLATE_JSON.md)** | FortuneSheet JSON patch template upload — file shape, preserved fields, API |

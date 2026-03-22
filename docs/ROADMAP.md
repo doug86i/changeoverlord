@@ -113,7 +113,7 @@ All tier-1 features from the original requirements are implemented:
 | Connection status banners (SSE + WebSocket) | **Done** |
 | Keyboard shortcuts + help overlay (?) | **Done** |
 | Offline resilience (offlineFirst, beforeunload warning) | **Done** |
-| Collaborative patch/RF workbook (Yjs + FortuneSheet) | **Done** |
+| Collaborative patch/RF workbook (FortuneSheet + WebSocket op relay) | **Done** |
 | Patch phone read-only view (full FortuneSheet, menu for context, visibility-aware sync) | **Done** |
 | Global patch template library (Excel upload, JSON upload, presets, edit, preview) | **Done** |
 | Auth (optional shared password, session cookie) | **Done** |

@@ -74,7 +74,7 @@ On the **stage day page**, each performance supports:
 
 ### Export and import
 
-- **Export** — From an event's detail page, click **Export event** to download a JSON package of all stages, days, performances, and per-performance workbook **`sheets`** (FortuneSheet JSON). Packages use **`version`: 2**; older exports with base64 Yjs snapshots are not imported by current builds.
+- **Export** — From an event's detail page, click **Export event** to download a JSON package of all stages, days, performances, and per-performance workbook **`sheets`** (FortuneSheet JSON). Packages use **`version`: 2**; **v1** event packages are not imported by current builds.
 - **Import** — On the Events page, click **Import event** to load a previously exported package. The import creates a new event (with " (imported)" suffix).
 
 Typical URL shape as you drill in: `/events/:eventId` → `/stages/:stageId` → `/stage-days/:stageDayId`.

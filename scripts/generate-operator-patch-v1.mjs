@@ -2,7 +2,7 @@
 /**
  * Operator Patch Reference v1 — generated entirely in Node (no Excel, no v7 script reuse).
  *
- * Design goals (FortuneSheet + formulajs + Yjs):
+ * Design goals (FortuneSheet + formulajs):
  * 1. Single sheet — no cross-sheet recalc ordering.
  * 2. Stand summaries use COUNTIF only with LITERAL criteria (no "*" wildcards — formulajs treats * as text).
  * 3. Hidden normalizer column: LOWER(TRIM(stand)) so operators can type "Tall" / "tall"; counts match "tall".
