@@ -4,6 +4,30 @@ Place **Excel** (`.xlsx`, etc.) or **FortuneSheet JSON** (`.json`) files here if
 
 The app does **not** read this folder at runtime. **Blank** patch sheets are **not** library rows: when a stage has **no** default template, new performances use an **empty** grid in the browser only (see **`web/src/lib/patchWorkbookCollab.ts`**).
 
+## Operator patch reference v1 (FortuneSheet-first)
+
+**Generated JSON:** `OPERATOR_PATCH_REFERENCE_v1.json` — built by **`scripts/generate-operator-patch-v1.mjs`** (pure Node, **no Excel**). Use this when you want a **known-good** layout for live formula updates in the app.
+
+### Design (why it behaves better than ad-hoc Excel)
+
+- **Single sheet** — no cross-sheet dependency ordering.
+- **Stand counts** use **`COUNTIF` only with literal text** (`"tall"`, `"short"`, `"round"`). The engine does **not** treat `*` as a wildcard in criteria; this template avoids that pitfall entirely.
+- **Normalizer column** (auto): **`LOWER(TRIM(stand))`** so operators can type **Tall** / **tall**; counts still match **`tall`**.
+- **SatBox preview slots** (column **K**): **`IFERROR(VLOOKUP(...,0),"")`** into **Item** only — small, predictable formula set.
+- **Dense `data` + full `calcChain`** — every formula cell is on the chain (required for incremental recalc).
+
+### Regenerating
+
+```bash
+node scripts/generate-operator-patch-v1.mjs > examples/OPERATOR_PATCH_REFERENCE_v1.json
+```
+
+### Importing
+
+Same as any workbook JSON: **Settings → Import workbook JSON** or **`PUT /api/v1/patch-templates/:id/sheets-import`**.
+
+---
+
 ## DH Pick & Patch v7.0
 
 **Source Excel:** `DH Pick & Patch TEMPLATE v7.0 - human made.xlsx` — the human-authored master (still has multiple sheets on disk; the **generated JSON** is a single-sheet workbook).

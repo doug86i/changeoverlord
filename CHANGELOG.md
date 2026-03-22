@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`examples/OPERATOR_PATCH_REFERENCE_v1.json`** + **`scripts/generate-operator-patch-v1.mjs`** — new **single-sheet** operator patch reference built **without Excel** (pure Node): **literal `COUNTIF`** stand summaries (no `*` criteria), **`LOWER(TRIM())`** normalizer column, compact **`VLOOKUP`** label preview, **dense `data`** and **full `calcChain`** for reliable incremental recalc in FortuneSheet.
+
 - **API — Excel CF extraction:** Direct `.xlsx` template uploads now extract conditional formatting rules from the raw OOXML XML (`api/src/lib/excel-cf-extract.ts`). The `@zenmrp/fortune-sheet-excel` library does not support CF; the new module parses `conditionalFormatting` blocks, resolves dxf styles and theme colours, and maps `beginsWith`/`cellIs`/`expression` rules to FortuneSheet's `luckysheet_conditionformat_save` format.
 
 - **`examples/DH_Pick_Patch_TEMPLATE_v7.json`** — single-sheet **Channel List** reference workbook: patch data **A–J**, stand/mic summaries **M–N**, compact SatBox label grid **M–R** with same-sheet **`VLOOKUP`** lookups (no cross-sheet formulas, no AA–AD helpers). Conditional formatting: SatBox prefix colours (upper + lower) and grey empty label cells (`changeoverlordWorkbook: 1` envelope).
