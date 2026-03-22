@@ -382,36 +382,49 @@ export function usePatchWorkbookOpLogEffects(
       if (!hydratedRef.current || replayBrokenRef.current) return;
       if (transaction.origin === PATCH_WORKBOOK_Y_ORIGIN) return;
       let appliedRemote = false;
-      for (const d of event.changes.delta) {
-        if (d.insert === undefined) continue;
-        const inserts = Array.isArray(d.insert) ? d.insert : [d.insert];
-        for (const item of inserts) {
-          if (typeof item !== "string") continue;
-          let ops: Op[] = [];
-          try {
-            ops = JSON.parse(item) as Op[];
-            wbRef.current?.applyOp(ops);
-            appliedRemote = true;
-          } catch (e) {
-            const message = e instanceof Error ? e.message : String(e);
-            const opSummary = summarizeOpsForDebug(ops);
-            logDebug(
-              "patch-workbook-yjs",
-              "remote opLog applyOp failed — stopping further remote applies",
-              { roomId, message, opSummary },
-              e,
-            );
-            replayBrokenRef.current = true;
-            giveUpHydrationRef.current = true;
-            hydratedRef.current = false;
-            onHydrationChange?.(false);
-            onReplayFailure?.({
-              phase: "observe",
-              message,
-              opSummary,
-            });
+      // Suppress outbound onOp while applying remote ops. applyOp runs through
+      // setContextWithProduce → emitOp → onOp; without suppression, the re-derived
+      // patches echo back to Yjs and the other peer applies them again — harmless
+      // for idempotent replace ops but creates duplicates for addSheet/deleteSheet.
+      // flushSync ensures the React state updater (and onOp) fires synchronously
+      // while the suppress flag is still set.
+      if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
+      try {
+        for (const d of event.changes.delta) {
+          if (d.insert === undefined) continue;
+          const inserts = Array.isArray(d.insert) ? d.insert : [d.insert];
+          for (const item of inserts) {
+            if (typeof item !== "string") continue;
+            let ops: Op[] = [];
+            try {
+              ops = JSON.parse(item) as Op[];
+              flushSync(() => {
+                wbRef.current?.applyOp(ops);
+              });
+              appliedRemote = true;
+            } catch (e) {
+              const message = e instanceof Error ? e.message : String(e);
+              const opSummary = summarizeOpsForDebug(ops);
+              logDebug(
+                "patch-workbook-yjs",
+                "remote opLog applyOp failed — stopping further remote applies",
+                { roomId, message, opSummary },
+                e,
+              );
+              replayBrokenRef.current = true;
+              giveUpHydrationRef.current = true;
+              hydratedRef.current = false;
+              onHydrationChange?.(false);
+              onReplayFailure?.({
+                phase: "observe",
+                message,
+                opSummary,
+              });
+            }
           }
         }
+      } finally {
+        if (suppressYjsOpsRef) suppressYjsOpsRef.current = false;
       }
       if (appliedRemote) queueRemoteFormulaRecalc();
     };

@@ -70,7 +70,7 @@ export function usePatchWorkbookCollab(opts: {
   const wbRef = useRef<WorkbookInstance>(null);
   const providerRef = useRef<InstanceType<typeof WebsocketProvider> | null>(null);
   const pageVisible = usePageVisible();
-  /** True while running post-hydration `calculateFormula` — those patches must not become Yjs ops. */
+  /** True while applying remote ops or running formula recalc — prevents onOp from echoing back to Yjs. */
   const suppressYjsOpsForFormulaRecalcRef = useRef(false);
   /** Synchronous gate so `onOp` ignores input before hydration even if React state lags. */
   const localOpsAllowedRef = useRef(false);
