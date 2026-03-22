@@ -33,9 +33,17 @@ If a session touches several unrelated concerns, use **several commits** so hist
 
 - `stuff`, `changes`, `fixes`, `work on project`, `wip`, `updates`
 
+### Project examples (same bar as `docs/DEVELOPMENT.md`)
+
+| Prefer | Avoid |
+|--------|--------|
+| `Add set-length option to performance form` | `changes`, `fixes`, `wip` |
+| `Fix bulk add range when event dates shown` | `stuff`, `updates`, `work on project` |
+| `Refactor stage day time helpers` | vague one-word subjects |
+
 ## Scope with other project rules
 
-- Pair commits with **`CHANGELOG.md`** / **`make dev-fast`** or **`make dev`** / docs as **[`AGENTS.md`](../AGENTS.md)** requires — a single logical commit may include the matching changelog line and user-guide tweak in the **same** commit when they belong together.
+- When a slice includes the matching **`CHANGELOG.md`** line or **`docs/USER_GUIDE.md`** tweak, commit them **in the same commit** as that slice. Full workflow order: **[`agents-process.mdc`](agents-process.mdc)** / **[`AGENTS.md`](../../AGENTS.md)**.
 
 ## If Git is unavailable
 

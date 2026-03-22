@@ -33,6 +33,6 @@ If you are unsure, add a one-line **`### Changed`** or **`### Fixed`** note — 
 
 ## Process link
 
-This rule is part of the same workflow as **`local-docker-deploy.mdc`**, **`git-commits.mdc`**, and **[`AGENTS.md`](../AGENTS.md)** (development process + end-of-task checklist). Do not mark a coding task complete without **`CHANGELOG.md`** updated when an entry is required.
+Checklist order and deploy steps: **[`agents-process.mdc`](agents-process.mdc)** / **[`AGENTS.md`](../../AGENTS.md)**. Do not mark a coding task complete without **`CHANGELOG.md`** updated when an entry is required.
 
-A **changelog-worthy** slice often matches **one Git commit** — see **`git-commits.mdc`** for committing each logical unit separately.
+A **changelog-worthy** slice often matches **one Git commit** — see **`git-commits.mdc`**.

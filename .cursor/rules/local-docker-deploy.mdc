@@ -92,13 +92,15 @@ Skip only for **docs-only** or **comment-only** edits with zero effect on build/
 - **Fast:** **`docker compose -f docker-compose.fast.yml logs -f api`**
 - Set **`LOG_LEVEL=debug`** in **`.env`** for verbose structured logs (see **DEVELOPMENT.md**).
 
-## End-of-task checklist (same as [`AGENTS.md`](../../AGENTS.md) “Local testing”)
+## End-of-task (Docker steps)
 
-1. From repo root, run **`make dev-fast`** or **`make dev`** (skip only for docs-only / comment-only with no build effect).
+After code/build-affecting work:
+
+1. From repo root, run **`make dev-fast`** or **`make dev`** (skip only for docs-only / comment-only with no build effect — see **[`agents-process.mdc`](agents-process.mdc)**).
 2. **Verify** the stack: e.g. **`curl -sS http://127.0.0.1/api/v1/health`** (fast or classic when UI is on port 80) or **`curl -sS http://127.0.0.1:3000/api/v1/health`** (fast API direct), or **`docker compose ps`** for the file you used.
-3. **Tell the user the exact base URL** (below). If the **classic** UI/API still looks stale, **`make dev-fresh`**.
-4. **`CHANGELOG.md`**: if the task changed shipped code, Docker, or migrations, add an **`[Unreleased]`** entry — see **[`changelog.mdc`](changelog.mdc)** (skip pure docs/comment-only).
-5. **`git commit`**: during the session, commit **each logical unit** with a clear message — see **[`git-commits.mdc`](git-commits.mdc)** (skip if not a Git repo or the user asked to defer commits).
+3. **Tell the user the exact base URL** (§ *Tell the user where to click* below). If the **classic** UI/API still looks stale, **`make dev-fresh`**.
+
+**Changelog, user guide, Git commits** — follow **[`agents-process.mdc`](agents-process.mdc)** (ordering matches **[`AGENTS.md`](../../AGENTS.md)**).
 
 ## Tell the user where to click
 
