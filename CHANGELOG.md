@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API:** **`CLIENT_LOG_FILE`** path check failed when the API cwd is the **`api/`** workspace (**`/app/api`** in Docker): **`/app/logs/...`** was treated as outside cwd, so **`POST /api/v1/debug/client-log`** was never registered and ingest returned **404**. Resolution now allows the monorepo parent directory when basename is **`api`**.
 - **Web:** **Patch collab** — disable Immer **`autoFreeze`** (`setAutoFreeze(false)` in `main.tsx`) so React 18 updater replays cannot hit frozen objects from a previous `produce`; fixes **`Unable to delete property`** crash when a remote user adds a sheet.
 - **Web:** **Patch collab** — deduplicate `onOp` pushes caused by React 18 Strict Mode double-invoking `useState` updaters. FortuneSheet's `setContextWithProduce` fires `emitOp` → `onOp` inside the updater, so every local edit pushed ops to Yjs **twice** in dev mode; idempotent `replace` ops were invisible but `addSheet`/`deleteSheet` created **duplicate sheets** on remotes.
 - **Web:** **Patch collab** — skip the entire client-side opLog drain when `sheets-export` bootstrap data is available. The bootstrap already reflects the full Yjs opLog replayed server-side; draining the same history client-side double-applied `addSheet` ops (duplicate sheets) and cell-level patches (Immer *path doesn't resolve* errors). Live ops from remote peers after page load still apply normally via the `yops.observe` handler.

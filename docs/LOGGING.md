@@ -46,7 +46,7 @@ Browsers do not persist console output. For **patch workbook** troubleshooting, 
 
 | Piece | Env / behaviour |
 |--------|------------------|
-| **API** | Set **`CLIENT_LOG_FILE`** to a path **under the API process cwd** (e.g. **`/app/logs/client-debug.ndjson`** in Docker, or **`logs/client-debug.ndjson`** when running the API from the repo root). If unset, **`POST /api/v1/debug/client-log`** is **not registered**. |
+| **API** | Set **`CLIENT_LOG_FILE`** to a path under the **monorepo root** or the **`api/`** workspace cwd (e.g. **`/app/logs/client-debug.ndjson`** in Docker — **`logs/`** is a sibling of **`api/`** when the API runs as **`npm run dev -w @changeoverlord/api`** with cwd **`/app/api`**). If unset, **`POST /api/v1/debug/client-log`** is **not registered**. |
 | **Web** | Set **`VITE_CLIENT_LOG_FILE=true`** at Vite dev/build time so **`logClientDebugCollab`** in **`web/src/lib/clientDebugLog.ts`** batches POSTs. Default **`make dev-fast`**: enabled in **`docker-compose.fast.yml`** with **`./logs`** mounted into the API container. |
 | **Output** | One JSON object per line (timestamp, scope, message, optional **`roomId`**, optional **`meta`**). Tail with **`tail -f logs/client-debug.ndjson`**. |
 

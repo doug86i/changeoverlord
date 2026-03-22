@@ -6,16 +6,30 @@ import { clientDebugLogBody } from "../../schemas/api.js";
 
 const bootLog = createLogger("client-debug-log");
 
+/**
+ * Allow log paths under the API cwd, or under the monorepo root when the process cwd is the
+ * **`api/`** workspace (`npm run dev -w @changeoverlord/api` → **`/app/api`** in Docker). Compose
+ * sets **`CLIENT_LOG_FILE=/app/logs/...`** which is sibling to **`api/`**, not a child of it.
+ */
 function resolveSafeLogFile(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  const resolved = path.resolve(process.cwd(), trimmed);
+  const resolved = path.isAbsolute(trimmed)
+    ? path.normalize(trimmed)
+    : path.resolve(process.cwd(), trimmed);
   const cwd = path.resolve(process.cwd());
-  const prefix = cwd.endsWith(path.sep) ? cwd : `${cwd}${path.sep}`;
-  if (resolved !== cwd && !resolved.startsWith(prefix)) {
-    return null;
+  const roots = [cwd];
+  if (path.basename(cwd) === "api") {
+    roots.push(path.resolve(cwd, ".."));
   }
-  return resolved;
+  for (const root of roots) {
+    const norm = path.normalize(root);
+    const prefix = norm.endsWith(path.sep) ? norm : `${norm}${path.sep}`;
+    if (resolved === norm || resolved.startsWith(prefix)) {
+      return resolved;
+    }
+  }
+  return null;
 }
 
 /**
