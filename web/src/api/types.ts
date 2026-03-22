@@ -24,6 +24,8 @@ export type StageRow = {
   defaultPatchTemplateId?: string | null;
   /** True when a default patch workbook template is selected. */
   hasPatchTemplate?: boolean;
+  /** Urgent line on stage clocks (synced via API). */
+  clockMessage?: string | null;
 };
 
 /** Patch/RF workbook template. `stageId` null = global; set = local to that stage. */

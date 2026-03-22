@@ -209,8 +209,8 @@ web/
       SearchDialog.tsx            # global search modal (Ctrl+K, /)
       KeyboardShortcuts.tsx       # ? help overlay + useGlobalShortcuts hook
       PerformanceBandNav.tsx      # prev/next/jump band navigation
-      MiniClock.tsx               # small server-synced clock widget
       ClockEndOfDayOverlay.tsx    # post-last-act / next-day crew messaging on clock
+      ClockArena.tsx              # unified stage clock face (contained + kiosk/fullscreen)
       FileAttachments.tsx         # drag-drop upload, inline PDF viewer, extract
       PatchPageSidebar.tsx        # patch page sticky context (clock, changeover, files)
       ExportImportTools.tsx       # export/import event buttons

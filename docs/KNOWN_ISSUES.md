@@ -322,7 +322,7 @@ Possible race: doc destroyed after async `writeState` while a new client attache
 
 ### 62. Server-time sync pattern duplicated five times
 
-The same `useQuery(["serverTime"])` + `offsetMs` + `setInterval` + `now = new Date(tick + offsetMs)` pattern is independently implemented in [`ClockPage.tsx`](../web/src/pages/ClockPage.tsx), [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx), [`StageDayPage.tsx`](../web/src/pages/StageDayPage.tsx), [`PatchPageSidebar.tsx`](../web/src/components/PatchPageSidebar.tsx), and [`MiniClock.tsx`](../web/src/components/MiniClock.tsx). Tick intervals vary (250ms vs 1000ms) without clear reason. Fix: extract a `useServerTime(opts?: { tickIntervalMs?: number })` hook that returns `{ now: Date; isLoading: boolean }`.
+The same `useQuery(["serverTime"])` + `offsetMs` + `setInterval` + `now = new Date(tick + offsetMs)` pattern is independently implemented in [`ClockPage.tsx`](../web/src/pages/ClockPage.tsx), [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx), [`StageDayPage.tsx`](../web/src/pages/StageDayPage.tsx), and [`PatchPageSidebar.tsx`](../web/src/components/PatchPageSidebar.tsx). Tick intervals vary (250ms vs 1000ms) without clear reason. Fix: extract a `useServerTime(opts?: { tickIntervalMs?: number })` hook that returns `{ now: Date; isLoading: boolean }`.
 
 ### 63. Duplicated clock/countdown logic across three files
 
@@ -367,7 +367,7 @@ No page component sets `document.title`, so browser tabs always show the generic
 
 ### 71. Inline `toLocaleTimeString` in five places instead of shared formatter
 
-[`ClockPage.tsx`](../web/src/pages/ClockPage.tsx), [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx), [`PatchPageSidebar.tsx`](../web/src/components/PatchPageSidebar.tsx), [`MiniClock.tsx`](../web/src/components/MiniClock.tsx), and [`StageChatDock.tsx`](../web/src/components/StageChatDock.tsx) each call `toLocaleTimeString` with slightly different options (some include seconds, some use 24-hour, some omit seconds). Fix: add a shared `formatWallClock(date, opts?)` to `dateFormat.ts` and reuse it.
+[`ClockPage.tsx`](../web/src/pages/ClockPage.tsx), [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx), [`PatchPageSidebar.tsx`](../web/src/components/PatchPageSidebar.tsx), and [`StageChatDock.tsx`](../web/src/components/StageChatDock.tsx) each call `toLocaleTimeString` with slightly different options (some include seconds, some use 24-hour, some omit seconds). Fix: add a shared `formatWallClock(date, opts?)` to `dateFormat.ts` and reuse it.
 
 ### 72. ExportEventButton uses raw `fetch` instead of shared download helper
 

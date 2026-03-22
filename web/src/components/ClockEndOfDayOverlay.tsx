@@ -10,6 +10,8 @@ export function ClockEndOfDayOverlay({
   nextDayLabel,
   nextPerformances,
   nextDayLoading,
+  /** When true, overlay is confined to the clock arena (stage manager split view). */
+  anchored = false,
 }: {
   mode: Mode;
   stageName: string;
@@ -19,9 +21,14 @@ export function ClockEndOfDayOverlay({
   nextDayLabel?: string;
   nextPerformances?: PerformanceRow[];
   nextDayLoading?: boolean;
+  anchored?: boolean;
 }) {
   return (
-    <div className="clock-end-overlay" role="region" aria-live="polite">
+    <div
+      className={`clock-end-overlay${anchored ? " clock-end-overlay--anchored" : ""}`}
+      role="region"
+      aria-live="polite"
+    >
       <div className="clock-end-overlay-inner">
         {mode === "grace_next" && (
           <>

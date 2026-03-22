@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **API / Web:** **Stage clock urgent message** — `stages.clock_message`, **`PATCH /api/v1/stages/:id/clock-message`**, synced to all clock UIs via existing **`stage`** SSE invalidation; flashing overlay on **kiosk** and stage-manager preview.
+- **Web:** **`ClockArena`** — single responsive arena layout for **`ClockDayPage`** (split view + kiosk + fullscreen).
+
 ### Security
 
 - **API:** **Rider / plot attachments** — after extension allowlisting, buffers are checked against **magic bytes** (PDF, common images, Office docs, etc.); optional **`RIDER_EXTRA_EXTENSIONS`** skips magic for listed extensions (see **`.env.example`**).
