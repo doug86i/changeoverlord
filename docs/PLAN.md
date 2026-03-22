@@ -78,8 +78,8 @@ This document captures the agreed **vision**, **architecture**, and **roadmap** 
 
 - **One [`docker-compose.yml`](../docker-compose.yml)** for **Linux, macOS, and Windows** (Docker Desktop).
 - Header documents **defaults** for: **`DATA_DIR`**, **`HOST_PORT`**, **`APP_IMAGE_TAG`**.
-- The **`app`** image is a self-contained Node container serving the compiled SPA (`web/dist`) via **`@fastify/static`** and the API (`api/dist`) — no nginx or bind-mounts. Source changes require rebuilding the image (`make dev`).
-- Deeper host-specific overrides only if needed: **`compose.override.example.yml`** pattern; prefer **`.env`** first.
+- The **`app`** image is a self-contained Node container serving the compiled SPA (`web/dist`) via **`@fastify/static`** and the API (`api/dist`) — no nginx or bind-mounts. Source changes require rebuilding the image (**`make dev`**, which merges **`docker-compose.dev.yml`**). Operators can **`docker compose pull && docker compose up -d`** using only **`docker-compose.yml`**.
+- Deeper host-specific overrides: optional **`docker-compose.override.yml`** (see **`compose.override.example.yml`**); prefer **`.env`** first. **Source builds** use **`docker-compose.dev.yml`** with **`make dev`**, not the override.
 
 ### 4.3 Data on one host tree (`DATA_DIR`)
 

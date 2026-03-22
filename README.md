@@ -10,17 +10,28 @@ Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, *
 
 **Requirements:** [Docker](https://docs.docker.com/get-docker/) with Compose v2 (Linux, macOS, or Windows with Docker Desktop).
 
+### Run the published app image (typical LAN / show laptop)
+
+Uses **only** **`docker-compose.yml`** — pulls **`ghcr.io/doug86i/changeoverlord/app`** from GitHub Container Registry (no local build).
+
 ```bash
 git clone https://github.com/doug86i/changeoverlord.git
 cd changeoverlord
+cp .env.example .env   # optional: edit HOST_PORT, DATA_DIR, SESSION_SECRET, …
+docker compose pull && docker compose up -d
+```
+
+### Develop from source (rebuild API + web in Docker)
+
+```bash
 make dev
-# same as: docker compose up -d --build
+# same as: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
 Open **http://\<this-machine\>/** — default **port 80** (no `:port` in the URL). If port 80 is busy, set **`HOST_PORT`** in **`.env`** (copy from **`.env.example`**) and use that port instead.
 
 - **`.env`** is optional and **infrastructure-only** (paths, port, log level, secrets for Compose). Product behaviour (password, schedules, etc.) lives in the **app**.
-- After the first image build, runtime can be **offline** — no registry pull needed for already-local images.
+- After the first **`pull`** (deploy) or **`make dev`** (develop), runtime can be **offline** for already-local images.
 
 **Fresh database during development:** if migrations get out of sync, stop Compose and remove **`data/db/`** (only on throwaway data), then run **`make dev`** again. **Back up `DATA_DIR`** before wiping on a machine with real prep data.
 
@@ -91,7 +102,8 @@ Persistent data defaults to **`./data`** on the host (`data/db/`, `data/uploads/
 
 | Path | Role |
 |------|------|
-| `docker-compose.yml` | Postgres + app |
+| `docker-compose.yml` | Postgres + app (**GHCR** image; `docker compose pull` + `up`) |
+| `docker-compose.dev.yml` | Adds **`build: .`** — merged by **`make dev`** |
 | `Dockerfile` | Build `web/` + `api/`, run Fastify |
 | `api/` | REST API, Drizzle schema, migrations |
 | `web/` | Vite React SPA |

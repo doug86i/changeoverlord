@@ -1,0 +1,11 @@
+# Merge with docker-compose.yml when building the app image from this repo.
+# Used by `make dev`, `make dev-app`, `make dev-fresh`, and `npm run docker:build:app`.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# Deploy / LAN installs: use only docker-compose.yml (pull pre-built image from GHCR):
+#   docker compose pull && docker compose up -d
+
+services:
+  app:
+    build: .

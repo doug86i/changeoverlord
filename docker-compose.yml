@@ -1,5 +1,12 @@
 # =============================================================================
-# Changeoverlord — single Compose file (Linux / macOS / Windows + Docker Desktop).
+# Changeoverlord — production Compose (Linux / macOS / Windows + Docker Desktop).
+#
+# Deploy / show laptop (pre-built app image from GHCR — no local Dockerfile build):
+#   cp .env.example .env    # optional: HOST_PORT, DATA_DIR, SESSION_SECRET, …
+#   docker compose pull && docker compose up -d
+#
+# Develop from source: use **`make dev`** (merges **`docker-compose.dev.yml`** for `build: .`)
+# or: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`
 #
 # Compose loads `.env` from this directory if present. App behaviour (auth,
 # branding, etc.) is configured in the UI — only infrastructure here.
@@ -34,7 +41,7 @@ services:
 
   app:
     image: ghcr.io/doug86i/changeoverlord/app:${APP_IMAGE_TAG:-latest}
-    build: .
+    pull_policy: missing
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://stageops:stageops@db:5432/stageops

@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Docker / deploy:** **`docker-compose.yml`** is **pull-only** for the app service (**`pull_policy: missing`**, no **`build:`**). **`docker-compose.dev.yml`** adds **`build: .`**; **`make dev`** / **`Makefile`** merge both files. Operators can deploy with **`docker compose pull && docker compose up -d`** using only the base compose + **`.env.example`** (see **`README.md`**, **`HANDOVER.md`**).
+
 - **Docs / tooling:** **`docs/REALTIME.md`** documents the **template editor** WebSocket path (**`/ws/v1/collab-template/:templateId`**). **`AGENTS.md`** file map and **`.cursor/rules`** (**`pitfalls.mdc`**, **`code-patterns.mdc`**) aligned with **`docs/CODEBASE_REVIEW.md`** follow-ups (Yjs bridge paths, oplog-replay caveat, `useQueryClient` mutation example). **`[Unreleased]`** changelog merged duplicate **`### Fixed`** blocks.
 
 - **Web — stage files:** **Rider** / **Stage plot** toggles are **hidden** on the stage-wide file list (use each act’s **Files** page). The list **filters out** any row with a `performanceId` so band files never show on the stage screen; a short notice appears if the API/cache returned any. **API:** `GET /files` must pass **exactly one** of `stageId` or `performanceId` (reject both or neither).

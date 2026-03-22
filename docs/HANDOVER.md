@@ -10,7 +10,7 @@ Use this when **moving the project** to another machine or **onboarding** someon
 |-------------|--------|
 | **Git** | To clone the repository. |
 | **Docker** | Desktop or Engine with **Compose v2** (same as root **[`README.md`](../README.md)**). |
-| **Network** | For first **`make dev`**, Docker may pull base images (`node`, `postgres`). After that, local runs can be offline. |
+| **Network** | First **`docker compose pull`** (deploy) or **`make dev`** (develop) may pull images (`postgres`, **`ghcr.io/.../app`**, or Node build bases). After that, local runs can be offline. |
 
 ---
 
@@ -25,7 +25,15 @@ cd <repo-directory>
 
 Copy **`.env.example`** to **`.env`** if you need a non-default **port** (`HOST_PORT`), **data path** (`DATA_DIR`), **log level**, or **session secret** — see **`.env.example`** and **[`DEVELOPMENT.md`](DEVELOPMENT.md)**.
 
-Then from the **repository root**:
+Then from the **repository root**, choose one:
+
+**Deploy** (pre-built app from GHCR — no source build):
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+**Develop** (build app image from this clone):
 
 ```bash
 make dev

@@ -42,7 +42,9 @@ From the **repository root** (where `docker-compose.yml` lives):
 make dev
 ```
 
-This runs **`docker compose up -d --build`** — rebuilds the app image when **`Dockerfile`**, **`api/`**, **`web/`**, **`patches/`**, or workspace **`package.json`** / **`package-lock.json`** change, recreates the container if needed, and starts dependencies. Use this **after each meaningful code change** so what you see in the browser matches production.
+This runs **`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`** — rebuilds the app image when **`Dockerfile`**, **`api/`**, **`web/`**, **`patches/`**, or workspace **`package.json`** / **`package-lock.json`** change, recreates the container if needed, and starts dependencies. Use this **after each meaningful code change** so what you see in the browser matches production.
+
+**Deploy / LAN installs** without building from source: use **only** **`docker-compose.yml`** — **`docker compose pull && docker compose up -d`** (see root **`README.md`**).
 
 The container serves **compiled** assets (`vite build`, `tsc`) from the image — **not** live-mounted source. If you change code and the browser still shows the old app, rebuild without cache:
 
@@ -68,7 +70,8 @@ make dev-down
 
 | Piece | Role |
 |-------|------|
-| `docker-compose.yml` | Ports, `DATABASE_URL`, `WEB_PUBLIC_DIR`, healthchecks |
+| `docker-compose.yml` | Ports, `DATABASE_URL`, `WEB_PUBLIC_DIR`, healthchecks, GHCR **`image`** |
+| `docker-compose.dev.yml` | **`build: .`** — merged by **`make dev`** |
 | `Dockerfile` | Multi-stage build: Vite → `public/`, `tsc` → `api/dist`; **`patches/`** is copied before **`npm install`** in the builder so **`patch-package`** applies (FortuneSheet fixes); the runner uses **`npm install --ignore-scripts`** so production does not need **`patch-package`**. |
 | Postgres | Real DB for all persistent state |
 | SSE (`/api/v1/realtime`) | Live TanStack invalidation after REST mutations — see [`REALTIME.md`](REALTIME.md) |
@@ -111,7 +114,7 @@ What usually costs time:
 - Prefer **`make dev`** over **`make dev-fresh`** unless you suspect bad cache.
 - Touch **`package-lock.json`** only when dependencies change — unnecessary lockfile churn busts the **`npm install`** layer.
 - For a **quick compile** without Docker: **`npm run build`** at the repo root (same as CI) — no image rebuild; use this when you only need to verify TypeScript/Vite.
-- Rebuild **only** the app service: **`docker compose build app && docker compose up -d app`** (Compose still rebuilds when sources change; this is the same scope as **`make dev`** for the `app` image).
+- Rebuild **only** the app service: **`make dev-app`** or **`docker compose -f docker-compose.yml -f docker-compose.dev.yml build app && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app`**.
 - **BuildKit** must be on (Docker Desktop: **Settings → Docker Engine** or ensure `{"features":{"buildkit":true}}`; CLI: `export DOCKER_BUILDKIT=1` — usually the default).
 - **Docker Desktop (Mac / Windows):** give the VM **enough CPUs and RAM** (**Settings → Resources**) — slow builds are often under-resourced VMs. On **Mac**, enabling **VirtioFS** for file sharing (when available) can help I/O-heavy builds.
 

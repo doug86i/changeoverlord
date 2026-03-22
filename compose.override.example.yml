@@ -1,8 +1,9 @@
-# Optional second file: Docker merges this with docker-compose.yml automatically
-# if you rename it to `docker-compose.override.yml` (gitignored).
+# Optional: Docker merges `docker-compose.override.yml` with `docker-compose.yml`
+# automatically (rename this file to `docker-compose.override.yml`; it is gitignored).
 #
-# Prefer setting HOST_PORT (and DATA_DIR) in `.env` — see `.env.example` — so you
-# can stay with a single compose file.
+# Prefer **`.env`** (`HOST_PORT`, `DATA_DIR`, …) — see **`.env.example`** — for most cases.
+#
+# Building the app from source uses **`docker-compose.dev.yml`** via **`make dev`**, not this file.
 
 services:
   app:

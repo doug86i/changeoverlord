@@ -97,6 +97,8 @@
 
 [`docker-compose.yml`](../docker-compose.yml) — `POSTGRES_*` / embedded `DATABASE_URL` hardcoded; consider env-driven overrides for non-local deploys.
 
+**Update:** base compose is **pull-only** for the app image (**`docker compose pull && docker compose up -d`**); **`docker-compose.dev.yml`** adds **`build: .`** for **`make dev`**.
+
 ### 17. SSE invalidation gaps (stale data across browsers)
 
 - `["allStagesForClock", eventIds]` in [`web/src/pages/ClockPage.tsx`](../web/src/pages/ClockPage.tsx) — not invalidated when events/stages/days change.

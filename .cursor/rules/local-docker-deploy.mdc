@@ -19,7 +19,7 @@ Run:
 make dev
 ```
 
-Equivalent: `docker compose up -d --build` using the project **`docker-compose.yml`**.
+Equivalent: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`. **Deploy** without building: `docker compose pull && docker compose up -d` (base **`docker-compose.yml`** only).
 
 If the stack was already up and you still see **stale UI or API** after `make dev`, Docker may have reused cached build layers. Run:
 
@@ -27,7 +27,7 @@ If the stack was already up and you still see **stale UI or API** after `make de
 make dev-fresh
 ```
 
-(`docker compose build --no-cache app && docker compose up -d app`)
+(`docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache app && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app`)
 
 Use the **same working directory** as the repo root (path may contain spaces — quote or `cd` correctly).
 
