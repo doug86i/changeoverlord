@@ -15,12 +15,12 @@ import { createDefaultPatchWorkbookSheets } from "../lib/default-patch-sheets.js
 import {
   applyOpBatchToSheets,
   sheetsFromJsonb,
-  sheetsLookUsableAfterOpLogReplay,
+  sheetsUsableForServing,
   sheetsSafeForCollabPersist,
 } from "../lib/workbook-ops.js";
 
 const WS_MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
-const PERSIST_DEBOUNCE_MS = 2000;
+const PERSIST_DEBOUNCE_MS = 1500;
 
 const relayLog = createLogger("collab-ws-relay");
 
@@ -128,6 +128,32 @@ function broadcastOp(room: RoomState, exclude: { send: (s: string) => void }, op
   }
 }
 
+/** Tab / whole-workbook structural batches: peers get server truth as fullState (see REALTIME.md). */
+function batchHasStructuralOps(ops: Op[]): boolean {
+  for (const op of ops) {
+    if (op.op === "addSheet" || op.op === "deleteSheet") return true;
+    if (op.op === "replace" && op.path?.[0] === "luckysheetfile") return true;
+  }
+  return false;
+}
+
+function broadcastFullStateToPeers(
+  room: RoomState,
+  exclude: { send: (s: string) => void },
+  sheets: Sheet[],
+): void {
+  const msg = JSON.stringify({ type: "fullState", sheets: structuredClone(sheets) });
+  for (const sock of room.sockets) {
+    if (sock !== exclude && sock.send) {
+      try {
+        sock.send(msg);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
 function sendFullState(sock: { send: (s: string) => void }, sheets: Sheet[]): void {
   sock.send(JSON.stringify({ type: "fullState", sheets }));
 }
@@ -206,7 +232,7 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         : await loadSheetsForTemplate(entityId);
     let sheets: Sheet[];
     let seededDefault = false;
-    if (sheetsLookUsableAfterOpLogReplay(raw)) {
+    if (sheetsUsableForServing(raw)) {
       sheets = structuredClone(raw);
     } else {
       sheets = structuredClone(createDefaultPatchWorkbookSheets());
@@ -285,9 +311,18 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
           applyOpBatchToSheets(room.sheets, ops);
         } catch (err) {
           relayLog.warn({ err, performanceId: id }, "applyOp batch failed on server");
+          try {
+            sendFullState(sock, room.sheets);
+          } catch {
+            /* ignore */
+          }
           return;
         }
-        broadcastOp(room, sock, ops);
+        if (batchHasStructuralOps(ops)) {
+          broadcastFullStateToPeers(room, sock, room.sheets);
+        } else {
+          broadcastOp(room, sock, ops);
+        }
         schedulePersist(key, room);
       });
 
@@ -341,9 +376,18 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
           applyOpBatchToSheets(room.sheets, ops);
         } catch (err) {
           relayLog.warn({ err, templateId: id }, "applyOp batch failed on server");
+          try {
+            sendFullState(sock, room.sheets);
+          } catch {
+            /* ignore */
+          }
           return;
         }
-        broadcastOp(room, sock, ops);
+        if (batchHasStructuralOps(ops)) {
+          broadcastFullStateToPeers(room, sock, room.sheets);
+        } else {
+          broadcastOp(room, sock, ops);
+        }
         schedulePersist(key, room);
       });
 

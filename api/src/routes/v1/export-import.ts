@@ -10,6 +10,7 @@ import {
   performanceWorkbooks,
 } from "../../db/schema.js";
 import { normalizePerformanceBandName } from "../../lib/performance-band-name.js";
+import { parseWorkbookJsonRoot } from "../../lib/json-patch-template.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { uuidParam } from "../../schemas/api.js";
 
@@ -145,6 +146,30 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
     }
     const body = parsed.data;
 
+    let workbooksForTx:
+      | { performanceId: string; sheetsJson: unknown[] }[]
+      | undefined;
+    if (body.workbooks && body.workbooks.length > 0) {
+      workbooksForTx = [];
+      for (const w of body.workbooks) {
+        if (!Array.isArray(w.sheets)) continue;
+        try {
+          const sheetsNormalized = parseWorkbookJsonRoot({ sheets: w.sheets });
+          workbooksForTx.push({
+            performanceId: w.performanceId,
+            sheetsJson: structuredClone(sheetsNormalized) as unknown[],
+          });
+        } catch (e) {
+          const msg =
+            e instanceof Error ? e.message : "Invalid workbook sheets";
+          return reply.code(400).send({
+            error: "ValidationError",
+            message: `Event import workbook invalid for performance ${w.performanceId}: ${msg}`,
+          });
+        }
+      }
+    }
+
     try {
       const ev = await db.transaction(async (tx) => {
         const [newEv] = await tx
@@ -202,16 +227,15 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
           idMap.set(p.id, row!.id);
         }
 
-        if (body.workbooks) {
-          for (const w of body.workbooks) {
+        if (workbooksForTx) {
+          for (const w of workbooksForTx) {
             const newPerfId = idMap.get(w.performanceId);
             if (!newPerfId) continue;
-            if (!Array.isArray(w.sheets)) continue;
             await tx
               .insert(performanceWorkbooks)
               .values({
                 performanceId: newPerfId,
-                sheetsJson: structuredClone(w.sheets) as unknown[],
+                sheetsJson: w.sheetsJson,
                 updatedAt: new Date(),
               })
               .onConflictDoNothing();

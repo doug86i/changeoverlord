@@ -20,7 +20,7 @@ import {
 } from "../../lib/workbook-json-envelope.js";
 import {
   sheetsFromJsonb,
-  sheetsLookUsableAfterOpLogReplay,
+  sheetsUsableForServing,
 } from "../../lib/workbook-ops.js";
 import {
   createPerformanceBody,
@@ -125,7 +125,7 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       if (
         templateSheets != null &&
         Array.isArray(templateSheets) &&
-        sheetsLookUsableAfterOpLogReplay(templateSheets as Sheet[])
+        sheetsUsableForServing(templateSheets as Sheet[])
       ) {
         const copy = structuredClone(templateSheets) as unknown[];
         await tx
@@ -157,7 +157,7 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
         seededWorkbook: Boolean(
           seed?.sheetsJson != null &&
             Array.isArray(seed.sheetsJson) &&
-            sheetsLookUsableAfterOpLogReplay(seed.sheetsJson as Sheet[]),
+            sheetsUsableForServing(seed.sheetsJson as Sheet[]),
         ),
       },
       "performance created",
@@ -178,7 +178,7 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(performanceWorkbooks.performanceId, id))
       .limit(1);
     const sheets = sheetsFromJsonb(wb?.sheetsJson);
-    if (!sheetsLookUsableAfterOpLogReplay(sheets)) {
+    if (!sheetsUsableForServing(sheets)) {
       return reply.code(404).send({
         error: "NotFound",
         message: "No patch workbook for this performance",

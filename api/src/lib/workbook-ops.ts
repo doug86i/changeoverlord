@@ -51,24 +51,59 @@ function applyOpBatch(
     if (op.op === "insertRowCol" && op.value) {
       const v = op.value as {
         type: string;
-        start: number;
-        end: number;
-        id?: string;
+        /** FortuneSheet / op.md — primary shape */
+        index?: number;
+        count?: number;
         direction?: string;
+        id?: string;
+        /** Legacy mistaken mirror (ignored when index/count present) */
+        start?: number;
+        end?: number;
       };
       const sh = sheetById.get(v.id ?? (op as { id?: string }).id ?? "");
-      if (!sh?.data) continue;
-      const count = v.end - v.start + 1;
+      if (!sh?.data || sh.data.length === 0) continue;
+
+      let index: number;
+      let count: number;
+      if (v.index !== undefined && v.count !== undefined) {
+        index = Math.max(0, Math.floor(Number(v.index)) || 0);
+        count = Math.max(0, Math.floor(Number(v.count)) || 0);
+      } else if (v.start !== undefined && v.end !== undefined) {
+        index = Math.max(0, Math.floor(Number(v.start)) || 0);
+        count = Math.max(0, Math.floor(Number(v.end)) - Math.floor(Number(v.start)) + 1);
+      } else {
+        continue;
+      }
+      if (count === 0) continue;
+
+      const direction = v.direction === "lefttop" ? "lefttop" : "rightbottom";
+
       if (v.type === "row") {
         const cols = sh.data[0]?.length ?? 0;
         const empties = Array.from({ length: count }, () =>
           Array.from({ length: cols }, () => null),
         );
-        sh.data.splice(v.start, 0, ...empties);
+        if (direction === "lefttop") {
+          if (index === 0) {
+            sh.data.unshift(...empties);
+          } else {
+            sh.data.splice(index, 0, ...empties);
+          }
+        } else {
+          sh.data.splice(index + 1, 0, ...empties);
+        }
       } else if (v.type === "column") {
+        const nullCols = () => Array.from({ length: count }, () => null);
         for (const row of sh.data) {
-          if (Array.isArray(row)) {
-            row.splice(v.start, 0, ...Array.from({ length: count }, () => null));
+          if (!Array.isArray(row)) continue;
+          if (direction === "lefttop") {
+            if (index === 0) {
+              row.unshift(...nullCols());
+            } else {
+              row.splice(index, 0, ...nullCols());
+            }
+          } else {
+            row.splice(index + 1, 0, ...nullCols());
           }
         }
       }
@@ -145,10 +180,11 @@ export function applyOpBatchToSheets(sheets: Sheet[], ops: Op[]): void {
 }
 
 /**
- * True if workbook JSON is safe to serve / persist.
- * Rejects empty arrays, sheets without ids, and sheets with neither `data` nor `celldata`.
+ * True if workbook JSON is safe to **serve** (export, sheets-export 404 gate) or to **seed** a new
+ * room from DB (strict grid signal). Rejects empty arrays, sheets without ids, and sheets with
+ * neither non-empty `data` nor non-empty `celldata`.
  */
-export function sheetsLookUsableAfterOpLogReplay(sheets: Sheet[]): boolean {
+export function sheetsUsableForServing(sheets: Sheet[]): boolean {
   if (!Array.isArray(sheets) || sheets.length === 0) return false;
   for (const s of sheets) {
     if (!s || typeof s !== "object") return false;
@@ -164,7 +200,7 @@ export function sheetsLookUsableAfterOpLogReplay(sheets: Sheet[]): boolean {
 
 /**
  * Minimum bar for writing `sheets_json` from the collab relay. Stricter than nothing (ids +
- * non-empty tab list) but unlike {@link sheetsLookUsableAfterOpLogReplay} allows sheets whose
+ * non-empty tab list) but unlike {@link sheetsUsableForServing} allows sheets whose
  * `data`/`celldata` are empty so operators can persist cleared grids without losing the workbook.
  */
 export function sheetsSafeForCollabPersist(sheets: Sheet[]): boolean {

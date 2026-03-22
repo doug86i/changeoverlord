@@ -34,7 +34,7 @@ import {
 } from "../../lib/workbook-json-envelope.js";
 import {
   sheetsFromJsonb,
-  sheetsLookUsableAfterOpLogReplay,
+  sheetsUsableForServing,
 } from "../../lib/workbook-ops.js";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -131,7 +131,7 @@ async function loadSheetsForPatchTemplateRow(
   uploadsRoot: string,
 ): Promise<Sheet[]> {
   const fromDb = sheetsFromJsonb(row.sheetsJson);
-  if (sheetsLookUsableAfterOpLogReplay(fromDb)) return fromDb;
+  if (sheetsUsableForServing(fromDb)) return fromDb;
   try {
     const buf = await fs.readFile(resolvePathUnderUploadsRoot(uploadsRoot, row.storageKey));
     return templateRowLooksLikeJson(row)
