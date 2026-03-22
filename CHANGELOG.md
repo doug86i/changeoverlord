@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** **Stage clock countdown** (arena, patch sidebar, focus card) uses **minutes:seconds** (**`45:00`**, **`0:30`**) for gaps under **24 hours**; **N days** when the next boundary is a day or more away (replacing mixed **`12m 05s`** / **`2h 15m`** strings).
 - **Web:** **Stage day clock** — arena **above** full-width **controls** (no side-by-side); urgent message flashes **inside the clock arena only** (controls stay usable); **fullscreen** shows the flash across the full arena. Footer shows **Fullscreen** or **Exit fullscreen**, not both at once.
 - **API:** **`hasPassword`** checks in **`auth-guard`** and **`GET /auth/session`** use a short-TTL **`getCachedHasPassword()`** cache; password mutations call **`invalidatePasswordSettingsCache()`**.
 - **API:** **`GET /events/:id/export`** loads **stage days**, **performances**, and **Yjs snapshots** with **`inArray`** batch queries instead of nested per-row selects; **event delete** invalidation resolves **stage-day** ids in one query.

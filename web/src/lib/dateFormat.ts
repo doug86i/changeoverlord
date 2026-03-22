@@ -86,13 +86,22 @@ export function formatCountdownOrDays(seconds: number): string {
 }
 
 /**
- * Clock hero main countdown: **Time left** on stage uses {@link formatCountdown};
- * **next act** labels use {@link formatCountdownOrDays}.
+ * Stage clock hero, patch sidebar countdown, and clock focus “starts in” —
+ * **minutes:seconds** ({@link formatCountdown}: total minutes, not wrapped at 60) for waits under **24 hours**;
+ * **whole days** when the gap is a day or more (easier to read than very large minute counts).
  */
-export function formatClockHeroCountdown(heroLabel: string, seconds: number): string {
-  if (heroLabel === "Time left") return formatCountdown(seconds);
-  if (heroLabel === "Until next act" || heroLabel === "Next act in") {
-    return formatCountdownOrDays(seconds);
+export function formatStageClockCountdown(seconds: number): string {
+  if (seconds < 0) return "0:00";
+  if (seconds >= SECONDS_PER_DAY) {
+    const days = Math.floor(seconds / SECONDS_PER_DAY);
+    return days === 1 ? "1 day" : `${days} days`;
   }
   return formatCountdown(seconds);
+}
+
+/**
+ * Same as {@link formatStageClockCountdown}; `heroLabel` is kept for call sites only (format does not depend on it).
+ */
+export function formatClockHeroCountdown(_heroLabel: string, seconds: number): string {
+  return formatStageClockCountdown(seconds);
 }

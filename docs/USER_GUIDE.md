@@ -171,7 +171,7 @@ If the spreadsheet shows **`sheet not found`** (FortuneSheet error), the workboo
 On a stage day clock (`/clock/day/:stageDayId`):
 
 - **One clock face everywhere** — The **top** of the page shows the same **arena** layout performers see on a TV: band / changeover context, **hero countdown** (sized to fit the panel), **local time**, and footer metadata (stage, date, pace, slot). **Below** that, a full-width **controls** area has **urgent message**, focus card, navigation, and the **schedule** list.
-- **Countdown** — The numbers **scale to fill** the available space as the label/text changes.
+- **Countdown** — The numbers **scale to fill** the available space as the label/text changes. The main readout is **minutes:seconds** (e.g. **`12:05`** = 12 minutes 5 seconds, **`90:00`** = one and a half hours). If the next relevant time is **a day or more** away, it shows **N days** instead of a huge minute count.
 - **Countdown colours** (high-contrast in both light and dark theme):
   - **Green** — more than 5 minutes
   - **Amber** — 1–5 minutes

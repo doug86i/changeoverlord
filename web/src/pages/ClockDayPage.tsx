@@ -17,8 +17,7 @@ import {
   formatDateShort,
   minutesBetween,
   formatDuration,
-  formatCountdownOrDays,
-  formatCountdown,
+  formatStageClockCountdown,
 } from "../lib/dateFormat";
 
 function parseLocal(dayDate: string, hhmm: string): Date {
@@ -571,7 +570,7 @@ export function ClockDayPage() {
                   <div style={{ marginTop: "0.35rem" }}>
                     Starts in{" "}
                     <strong className={warningClass(secondsToNext)}>
-                      {formatCountdownOrDays(secondsToNext)}
+                      {formatStageClockCountdown(secondsToNext)}
                     </strong>
                   </div>
                 )}
@@ -579,7 +578,7 @@ export function ClockDayPage() {
                   <div style={{ marginTop: "0.25rem", fontSize: "0.9rem" }}>
                     Remaining:{" "}
                     <strong className={warningClass(secondsRemaining)}>
-                      {formatCountdown(secondsRemaining)}
+                      {formatStageClockCountdown(secondsRemaining)}
                     </strong>
                   </div>
                 )}
