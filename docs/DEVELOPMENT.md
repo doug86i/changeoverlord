@@ -60,7 +60,7 @@ This uses **`docker-compose.fast.yml`** + **`Dockerfile.fast`**: **Postgres**, a
 - **Open the UI:** **`http://localhost/`** by default (**`FAST_WEB_PORT=80`** in **`.env`** / compose; Vite still listens on **5173** inside the **web** container).
 - **Health (direct API):** **`http://localhost:3000/api/v1/health`** (or **`FAST_API_PORT`**).
 - **Health (through Vite proxy):** **`http://localhost/api/v1/health`** (same host port as the UI).
-- **Patch collab debug file (NDJSON):** default **`docker-compose.fast.yml`** mounts **`./logs`** into the API and sets **`CLIENT_LOG_FILE`** / **`VITE_CLIENT_LOG_FILE`** so **`logClientDebugCollab`** lines from the browser are appended to **`logs/client-debug.ndjson`** on the host (**`tail -f`** while reproducing sheet ops). Detail: **[`LOGGING.md`](LOGGING.md)** (*Client debug log file*).
+- **Patch collab debug file (NDJSON):** **`docker-compose.fast.yml`** mounts **`${DATA_DIR}/logs`** at **`/var/changeoverlord/logs`** (with **`db/`** and **`uploads/`**) and sets **`CLIENT_LOG_FILE`** / **`VITE_CLIENT_LOG_FILE`** so **`logClientDebugCollab`** lines append to **`data/logs/client-debug.ndjson`** by default (**`tail -f`** while reproducing). Detail: **[`LOGGING.md`](LOGGING.md)** (*Client debug log file*).
 
 Stop:
 

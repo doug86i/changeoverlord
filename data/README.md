@@ -15,7 +15,8 @@ Default location is **`./data`** next to `docker-compose.yml`. Override with **`
 | Path | Contents |
 |------|----------|
 | **`db/`** | PostgreSQL data directory (cluster files). |
-| **`uploads/`** | User-uploaded files (template files, future riders/plots) — used by the app container. |
+| **`uploads/`** | User-uploaded files (riders, plots, templates, etc.) — used by the app container. |
+| **`logs/`** | Fast dev stack only: optional **`client-debug.ndjson`** from **`POST /api/v1/debug/client-log`** (patch collab troubleshooting). Created when the API first appends a line. |
 
 Create these automatically: they appear the first time you run Compose (Docker creates the host paths when binding mounts).
 

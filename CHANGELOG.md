@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Docker (fast) / API:** Client collab debug NDJSON is written under **`${DATA_DIR}/logs/client-debug.ndjson`** (Compose mount **`…/logs` → `/var/changeoverlord/logs`**, with **`db/`** and **`uploads/`**). **`POST /api/v1/debug/client-log`** allows paths under **`dirname(UPLOADS_DIR)`** as well as the repo cwd. Docs: **`data/README.md`**, **`docs/LOGGING.md`**.
+
 - **API / Web / DB (breaking):** Replaced **Yjs** patch workbook sync with a **WebSocket JSON op relay** (`fullState` + `op` batches). Persistence is **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`** (migration **`0010_replace_yjs_with_json`** — drops **`performance_yjs_snapshots`** and template **`snapshot` bytea**). Event **export/import** uses **`version`: 2** with workbook **`sheets`** arrays; **v1** packages with base64 Yjs snapshots are no longer supported. See **`docs/DECISIONS.md`**, **`docs/REALTIME.md`**, **`AGENTS.md`**.
 
 ### Added
@@ -23,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Web:** **Patch & RF** and **Edit patch template** show a short **Edits may not save — reconnecting…** banner when the collab WebSocket is not connected while the grid is loaded (e.g. phone tab backgrounded).
 
-- **API / Web / Docker (fast):** **`POST /api/v1/debug/client-log`** (when **`CLIENT_LOG_FILE`** is set) appends **NDJSON** lines from the browser; **`logClientDebugCollab`** batches patch-workbook sender/receiver events. **`make dev-fast`** mounts **`./logs`**, defaults **`CLIENT_LOG_FILE=/app/logs/client-debug.ndjson`** and **`VITE_CLIENT_LOG_FILE=true`**. See **`docs/LOGGING.md`** (*Client debug log file*).
+- **API / Web / Docker (fast):** **`POST /api/v1/debug/client-log`** (when **`CLIENT_LOG_FILE`** is set) appends **NDJSON** lines from the browser; **`logClientDebugCollab`** batches patch-workbook sender/receiver events. **`make dev-fast`** mounts **`${DATA_DIR}/logs`**, defaults **`CLIENT_LOG_FILE=/var/changeoverlord/logs/client-debug.ndjson`** and **`VITE_CLIENT_LOG_FILE=true`**. See **`docs/LOGGING.md`** (*Client debug log file*).
 
 
 ---

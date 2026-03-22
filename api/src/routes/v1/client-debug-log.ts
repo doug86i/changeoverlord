@@ -2,14 +2,15 @@ import type { FastifyPluginAsync } from "fastify";
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { createLogger } from "../../lib/log.js";
+import { getUploadsDir } from "../../lib/uploads-dir.js";
 import { clientDebugLogBody } from "../../schemas/api.js";
 
 const bootLog = createLogger("client-debug-log");
 
 /**
- * Allow log paths under the API cwd, or under the monorepo root when the process cwd is the
- * **`api/`** workspace (`npm run dev -w @changeoverlord/api` → **`/app/api`** in Docker). Compose
- * sets **`CLIENT_LOG_FILE=/app/logs/...`** which is sibling to **`api/`**, not a child of it.
+ * Allow log paths under: monorepo cwd; parent when cwd is **`api/`**; and the host data tree next
+ * to uploads (Compose: **`UPLOADS_DIR=/var/changeoverlord/uploads`** → **`…/logs/`** under the
+ * same **`DATA_DIR`** mount — see **`docker-compose.fast.yml`**).
  */
 function resolveSafeLogFile(raw: string): string | null {
   const trimmed = raw.trim();
@@ -22,6 +23,8 @@ function resolveSafeLogFile(raw: string): string | null {
   if (path.basename(cwd) === "api") {
     roots.push(path.resolve(cwd, ".."));
   }
+  const uploadsRoot = path.normalize(getUploadsDir());
+  roots.push(path.dirname(uploadsRoot));
   for (const root of roots) {
     const norm = path.normalize(root);
     const prefix = norm.endsWith(path.sep) ? norm : `${norm}${path.sep}`;

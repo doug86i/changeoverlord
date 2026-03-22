@@ -46,9 +46,9 @@ Browsers do not persist console output. For **patch workbook** troubleshooting, 
 
 | Piece | Env / behaviour |
 |--------|------------------|
-| **API** | Set **`CLIENT_LOG_FILE`** to a path under the **monorepo root** or the **`api/`** workspace cwd (e.g. **`/app/logs/client-debug.ndjson`** in Docker — **`logs/`** is a sibling of **`api/`** when the API runs as **`npm run dev -w @changeoverlord/api`** with cwd **`/app/api`**). If unset, **`POST /api/v1/debug/client-log`** is **not registered**. |
-| **Web** | Set **`VITE_CLIENT_LOG_FILE=true`** at Vite dev/build time so **`logClientDebugCollab`** in **`web/src/lib/clientDebugLog.ts`** batches POSTs. Default **`make dev-fast`**: enabled in **`docker-compose.fast.yml`** with **`./logs`** mounted into the API container. |
-| **Output** | One JSON object per line (timestamp, scope, message, optional **`roomId`**, **`meta`**). Tail with **`tail -f logs/client-debug.ndjson`**. |
+| **API** | Set **`CLIENT_LOG_FILE`** to a path under the **monorepo root**, under **`dirname(UPLOADS_DIR)`** (Compose: **`/var/changeoverlord/logs/…`** next to **`uploads/`**), or under the **`api/`** workspace parent when cwd is **`api/`**. If unset, **`POST /api/v1/debug/client-log`** is **not registered**. |
+| **Web** | Set **`VITE_CLIENT_LOG_FILE=true`** at Vite dev/build time so **`logClientDebugCollab`** in **`web/src/lib/clientDebugLog.ts`** batches POSTs. Default **`make dev-fast`**: enabled in **`docker-compose.fast.yml`** with **`${DATA_DIR}/logs`** mounted at **`/var/changeoverlord/logs`**. |
+| **Output** | One JSON object per line (timestamp, scope, message, optional **`roomId`**, **`meta`**). Default host path: **`${DATA_DIR:-./data}/logs/client-debug.ndjson`** — e.g. **`tail -f data/logs/client-debug.ndjson`**. |
 
 **`meta` envelope (automatic):** every **`logClientDebugCollab`** line merges a per-tab context so you can separate windows and sort by time:
 
@@ -89,7 +89,7 @@ Use **`make dev-fast`** (or classic stack) so the API and Vite proxy match **[`d
    Set **`VITE_LOG_DEBUG=true`** for the **web** service in **`docker-compose.fast.yml`** (or local **`.env`**) and rebuild/restart **web** so **`logDebug("patch-workbook-collab", …)`** appears in DevTools.
 
 3. **NDJSON file (two browsers / repro)**  
-   Default fast stack: **`./logs/client-debug.ndjson`** (host) with **`VITE_CLIENT_LOG_FILE=true`** and **`CLIENT_LOG_FILE`** on the API. **`logClientDebugCollab`** records:
+   Default fast stack: **`data/logs/client-debug.ndjson`** on the host (or **`$DATA_DIR/logs/…`**) with **`VITE_CLIENT_LOG_FILE=true`** and **`CLIENT_LOG_FILE`** on the API. **`logClientDebugCollab`** records:
    - **`onOp skipped: websocket not open`** / **`readOnly`** / **`suppressLocalOps`** — edits **not** sent to the relay (common “not saving” cause).
    - **`outbound structural op batch sent`** — includes **`addSheetIds`**.
    - **`fullState received`** — **`sheetCount`**, **`midSessionRemount`** when the grid key bumps.

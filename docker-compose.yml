@@ -13,7 +13,7 @@
 #
 # Variable          Default     Purpose
 # ----------------  ----------  -----------------------------------------------
-# DATA_DIR          ./data      Host root for db/, uploads/ (one backup tree).
+# DATA_DIR          ./data      Host root for db/, uploads/ (and fast-stack logs/ — one backup tree).
 # HOST_PORT         80          Published HTTP port (e.g. 8080 if 80 is busy or restricted).
 # APP_IMAGE_TAG     latest      Local/GHCR image tag for the app.
 # LOG_LEVEL         debug       Default for local `make dev`; set `info` in `.env` for quiet LAN deploys — docs/LOGGING.md

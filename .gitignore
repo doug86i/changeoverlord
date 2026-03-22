@@ -5,9 +5,10 @@
 # Runtime data (structure documented in data/README.md)
 data/db/
 data/uploads/
+data/logs/
 # Stray Redis volume if ever created locally — not part of the stack
 data/redis/
-# Client debug NDJSON from fast stack (CLIENT_LOG_FILE)
+# Legacy client-debug path (before DATA_DIR/logs); safe to delete if empty
 logs/
 node_modules/
 # tsc incremental (local + Docker BuildKit cache mount)

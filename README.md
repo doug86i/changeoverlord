@@ -114,7 +114,7 @@ See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for building from source, Doc
 | **[Roadmap](docs/ROADMAP.md)** | User personas, feature requirements, competitive analysis |
 | **[Decisions](docs/DECISIONS.md)** | Engineering and product decisions, visual design |
 | **[Realtime](docs/REALTIME.md)** | SSE vs collab WebSocket architecture |
-| **[Logging](docs/LOGGING.md)** | Structured logs; fast-stack **client NDJSON** (`logs/client-debug.ndjson`) for patch collab troubleshooting |
+| **[Logging](docs/LOGGING.md)** | Structured logs; fast-stack **client NDJSON** (`data/logs/client-debug.ndjson` under `DATA_DIR`) for patch collab troubleshooting |
 | **[Changelog](CHANGELOG.md)** | Release notes and version history |
 
 Full index: **[docs/README.md](docs/README.md)**.
