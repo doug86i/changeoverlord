@@ -50,6 +50,8 @@ Exports use **`api/src/lib/workbook-json-envelope.ts`**:
 | `GET` | `/api/v1/performances/:id/sheets-export` | Download this band’s workbook (**404** if no row yet); reads **`performance_workbooks.sheets_json`**. |
 | `PUT` | `/api/v1/performances/:id/sheets-import` | Replace workbook from JSON body (persists **`sheets_json`**; pushes **`fullState`** to the performance collab room if open) |
 
+**Event packages (`POST /api/v1/import`, version **2**):** Embedded **`workbooks[].sheets`** arrays are normalized with **`parseWorkbookJsonRoot({ sheets })`** (same **`normalizeSheetFromRaw`** path as template / per-performance JSON import). Invalid workbook JSON fails the whole import with **400**.
+
 **UI:** **Settings** and **stage** template cards expose **Export JSON** / **Import JSON** / **Import workbook JSON**; the **Patch & RF** page exposes **Export JSON** / **Import JSON** for the current performance. After a performance import, the page **reloads** so the grid reconnects with the new state.
 
 Stored on disk as **`patch-templates/<uuid>.json`** with **`mimeType`** **`application/json`**. Postgres **`patch_templates.sheets_json`** holds the live **`Sheet[]`** (same source as collab and Excel uploads after normalisation).

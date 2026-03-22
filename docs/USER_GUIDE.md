@@ -75,7 +75,7 @@ On the **stage day page**, each performance supports:
 ### Export and import
 
 - **Export** — From an event's detail page, click **Export event** to download a JSON package of all stages, days, performances, and per-performance workbook **`sheets`** (FortuneSheet JSON). Packages use **`version`: 2**; **v1** event packages are not imported by current builds.
-- **Import** — On the Events page, click **Import event** to load a previously exported package. The import creates a new event (with " (imported)" suffix). Packages can be large because they include workbook JSON; the server accepts up to about **64 MB** per request (smaller exports are fine).
+- **Import** — On the Events page, click **Import event** to load a previously exported package. The import creates a new event (with " (imported)" suffix). Packages can be large because they include workbook JSON; the server accepts up to about **64 MB** per request (smaller exports are fine). Embedded per-performance **`sheets`** are **normalized** the same way as template JSON imports; if a workbook in the package is invalid, the import fails with an error naming the performance id from the file.
 
 Typical URL shape as you drill in: `/events/:eventId` → `/stages/:stageId` → `/stage-days/:stageDayId`.
 
@@ -129,7 +129,8 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 - A **dropdown** to jump to any act directly.
 - **Alt+← / Alt+→** keyboard shortcuts for quick switching.
 - On the **patch** page (tablet/desktop), **time** and **countdown** are in the **sidebar** (see above). Connection status is next to the page title; on **phone** it is inside **Menu**. Green (live), amber (syncing or **Loading workbook…** / **Loading sheet layout…** while the grid catches up), red (error or **Out of sync**). The same loading overlays can appear on **Edit spreadsheet** (library templates) — wait until they clear before editing so the sheet is not an empty placeholder. If you see **Workbook out of sync**, reload the page or switch to another band (or leave the template editor and return). If the grid shows **Something went wrong**, use **Try again** to remount the sheet without reloading the whole app (or refresh the page if it persists). **Copy technical details** on that error includes safe diagnostics for support.
-- **Rare collab glitch:** If someone **adds a sheet** and others see **duplicate tabs**, **reloading often does not help** — the copy in the database may already include both tabs. Use **Export JSON**, edit the file to remove the extra sheet(s), then **Import JSON** for that act (or fix in **Edit spreadsheet** and ensure one canonical save). Details: [`docs/KNOWN_ISSUES.md`](KNOWN_ISSUES.md) **#83**.
+- **Reconnecting:** If you see **Edits may not save — reconnecting…** (e.g. phone tab in the background), wait for **Live** again before relying on saves. Other users’ **new sheet tabs** sync via a full workbook refresh from the server.
+- **Rare collab glitch:** If duplicate tabs still appear in **`sheets_json`**, use **Export JSON**, edit the file to remove the extra sheet(s), then **Import JSON** for that act. Details: [`docs/KNOWN_ISSUES.md`](KNOWN_ISSUES.md) **#83**.
 
 **Export / import workbook JSON (this act)** — Next to the title on **tablet/desktop**, **Export JSON** downloads the current band’s spreadsheet as a JSON file (FortuneSheet-native; includes a small **`changeoverlordWorkbook`** envelope). **Import JSON** replaces this act’s workbook from a file you choose. The page **reloads** after import so everyone sees the same grid. Use this to edit in external tools, share with agents, or copy a sheet between servers. Details: **`docs/PATCH_TEMPLATE_JSON.md`**. These actions are **not** on the **phone** read-only view.
 

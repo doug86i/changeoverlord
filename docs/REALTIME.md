@@ -80,7 +80,7 @@ Clients that do not implement chat should **ignore** unknown top-level fields an
 
 ## Collaboration spreadsheet (WebSocket op relay) — separate system
 
-The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON messages** (FortuneSheet ops), not SSE and not Yjs:
+The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON messages** (FortuneSheet **`Op[]`** relay). Schedule and lists use **SSE** (`/api/v1/realtime`) instead:
 
 - **Performances (patch & RF):** **`/ws/v1/collab/:performanceId`**
 - **Template editor (Settings):** **`/ws/v1/collab-template/:templateId`**
@@ -88,8 +88,10 @@ The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON message
 **Wire protocol (JSON):**
 
 - **Server → client (on connect):** `{ "type": "fullState", "sheets": Sheet[] }` — current workbook from Postgres (or the in-memory room if already warm).
-- **Client → server:** `{ "type": "op", "data": Op[] }` — same batches FortuneSheet emits from **`onOp`**.
-- **Server → other clients:** `{ "type": "op", "data": Op[] }` — broadcast after the server applies the batch to its copy with **`applyOpBatchToSheets`** (`api/src/lib/workbook-ops.ts`). **`addSheet`** is **idempotent** there when the sheet **`id`** already exists; the web client also filters redundant remote **`addSheet`** ops before **`applyOp`** so duplicate batches do not create extra tabs.
+- **Client → server:** `{ "type": "op", "data": Op[] }` — same batches FortuneSheet emits from **`onOp`** (matches upstream FortuneSheet collab: [op.md](https://github.com/ruilisi/fortune-sheet/blob/master/docs/guide/op.md), [applyOp](https://github.com/ruilisi/fortune-sheet/blob/master/docs/guide/api.md), [Collaboration story](https://github.com/ruilisi/fortune-sheet/blob/master/stories/Collabration.stories.tsx), [backend-demo](https://github.com/ruilisi/fortune-sheet/tree/master/backend-demo)).
+- **Server → other clients (cell / format edits):** `{ "type": "op", "data": Op[] }` — after **`applyOpBatchToSheets`** (`api/src/lib/workbook-ops.ts`).
+- **Server → other clients (structural batches):** `{ "type": "fullState", "sheets": Sheet[] }` — when the batch includes **`addSheet`**, **`deleteSheet`**, or **`replace`** with `path[0] === "luckysheetfile"` (whole workbook replace). Peers remount from server truth so duplicate structural **`op`** replay is avoided. The sender already applied the op locally and does not receive this message.
+- **`addSheet`** remains **idempotent** in **`applyOpBatchToSheets`** when the sheet **`id`** already exists.
 
 **Rules:**
 
@@ -97,9 +99,13 @@ The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON message
 - **Do not** move schedule/performance rows into the collab channel — use REST + invalidation above.
 - **Phone patch (read-only viewer):** `usePatchWorkbookCollab` closes the WebSocket when the document is hidden if **`pauseWhenHidden`** is set, and reconnects when visible; the server sends **`fullState`** again after reconnect.
 
-**Persistence:** **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`**. The relay debounces writes (**~2 seconds** after the last op) using **`sheetsSafeForCollabPersist`** (every tab has an **id**; allows cleared grids). On **SIGTERM / SIGINT**, **`flushCollabRelayRooms`** persists all non-empty rooms. Stage **default template** is cloned into a new performance row when the performance is created — see **`docs/DECISIONS.md`**.
+**Persistence:** **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`**. The relay debounces writes (**~1.5 seconds** after the last op) using **`sheetsSafeForCollabPersist`** (every tab has an **id**; allows cleared grids). On **SIGTERM / SIGINT**, **`flushCollabRelayRooms`** persists all non-empty rooms. Stage **default template** is cloned into a new performance row when the performance is created — see **`docs/DECISIONS.md`**.
 
-**REST import / export:** **`GET/PUT …/sheets-export` / `sheets-import`** read and write the same **`sheets_json`**. If a live room exists, the API can **`broadcastFullState*`** so connected clients remount from the new JSON.
+**Apply failure (sender):** If **`applyOpBatchToSheets`** throws, the server does not broadcast **`op`** to others; it may send **`fullState`** to the **sender** only so the editor can resync to server **`room.sheets`**.
+
+**REST import / export:** **`GET/PUT …/sheets-export` / `sheets-import`** read and write the same **`sheets_json`**. If a live room exists, the API **`broadcastFullState*`** so connected clients receive a new **`fullState`**.
+
+**Payload limit:** WebSocket **`maxPayload`** is **5 MiB** — very large **`fullState`** or **`op`** messages can fail; see **`api/src/plugins/collab-ws-relay.ts`**.
 
 ---
 

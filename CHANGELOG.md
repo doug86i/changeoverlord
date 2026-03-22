@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **Web / API:** Patch collab — duplicate sheet tabs after **Add sheet** mitigated: **`applyOpBatchToSheets`** skips **`addSheet`** when that sheet **`id`** already exists; **`patchWorkbookCollab`** filters redundant remote **`addSheet`** ops before **`applyOp`**. **Removed** consecutive identical **`onOp`** **`JSON.stringify`** dedupe before **`WebSocket.send`** (it dropped real cell edits). Relay persist uses **`sheetsSafeForCollabPersist`** so workbooks with empty **`data`/`celldata`** still save. See **`docs/KNOWN_ISSUES.md`** §83.
+- **API:** **`applyOpBatchToSheets`** **`insertRowCol`** now follows FortuneSheet’s **`index` / `count` / `direction`** (server **`sheets_json`** stayed wrong on row/column insert when only **`start`/`end`** were read).
+- **API:** **Event import** — embedded **`workbooks[].sheets`** are normalized with **`parseWorkbookJsonRoot`** (same **`normalizeSheetFromRaw`** path as template JSON import) before **`performance_workbooks`** insert; invalid workbook JSON returns **400** with a clear message.
+- **Web / API:** Patch collab — structural batches (**`addSheet`**, **`deleteSheet`**, full workbook **`replace`**) broadcast **`fullState`** to **other** clients instead of **`op`**, with **`Workbook` `key`** bumps on mid-session **`fullState`** so remotes match server tabs. Cell edits still use **`op`** relay. Server **`insertRowCol`** mirror fix above; relay sends **`fullState`** to the **sender** when **`applyOpBatchToSheets`** throws. Persist debounce **~1.5s**. **`docs/KNOWN_ISSUES.md`** §83, **`docs/REALTIME.md`**, **`docs/DECISIONS.md`** updated.
 - **API / Web:** **Event import** — **`POST /api/v1/import`** now allows **64 MiB** JSON bodies (**`bodyLimit`**). Fastify’s default **1 MiB** rejected typical **version 2** exports (embedded per-performance **`sheets`**). Clearer validation error text; workbook rows set **`updatedAt`** on insert. **Import event** in the UI shows a friendly message for invalid JSON and refetches **`["events", "allForClock"]`** after success. **`docs/DECISIONS.md`**, **`docs/USER_GUIDE.md`**, **`docs/KNOWN_ISSUES.md`** §1 note the limit.
 
 ### Changed
@@ -17,86 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Web:** **Patch & RF** and **Edit patch template** show a short **Edits may not save — reconnecting…** banner when the collab WebSocket is not connected while the grid is loaded (e.g. phone tab backgrounded).
+
 - **API / Web / Docker (fast):** **`POST /api/v1/debug/client-log`** (when **`CLIENT_LOG_FILE`** is set) appends **NDJSON** lines from the browser; **`logClientDebugCollab`** batches patch-workbook sender/receiver events. **`make dev-fast`** mounts **`./logs`**, defaults **`CLIENT_LOG_FILE=/app/logs/client-debug.ndjson`** and **`VITE_CLIENT_LOG_FILE=true`**. See **`docs/LOGGING.md`** (*Client debug log file*).
 
-### Changed
-
-- **Web:** Client NDJSON collab lines include a per-tab **`tabId`**, monotonic **`seq`**, **`yOrigin`** / **`opLogLen`** on Yjs **`observe`** events, and sender **`conn` / `synced` / `workbookHydrated`** — see **`docs/LOGGING.md`**.
-- **Web:** **Patch / RF** and **template editor** load **`GET …/sheets-export`** before mounting FortuneSheet so the initial grid matches the server snapshot, then replay the Yjs `opLog` — reduces Immer *path doesn't resolve* crashes when the op history assumed more rows/columns than the old placeholder.
-- **Web:** **`batchCallApis`** collab recalc uses **`calculateFormula`** per sheet instead of **`jfrefreshgrid`** (that name is not on FortuneSheet’s frozen **`api`** object, so it only logged a warning).
-- **Docs / Cursor:** **`DECISIONS.md`**, **`KNOWN_ISSUES.md`** (**#82**) — Immer `opLog` replay vs `data` matrix; **#49** updated for **`PatchWorkbookErrorBoundary`** copy behaviour. **`.cursor/rules/fortune-sheet-fork-upstream.mdc`** documents fork ↔ upstream merge hygiene; **`docs/DEVELOPMENT.md`** notes React Strict Mode dev WebSocket teardown noise.
-- **FortuneSheet:** Replaced `patch-package` patches (fragile edits to compiled 80k-line dist bundles) with a **source-level fork** (`doug86i/fortune-sheet`, branch `dhsl/v1.0.4`). All four fixes (touch pan, `getSheetIndex`, `addSheet`/`deleteSheet` collab guards) are now TypeScript source commits with proper build tooling. Packages consumed as local tarballs in `vendor/`.
-
-### Fixed
-
-- **API:** **`CLIENT_LOG_FILE`** path check failed when the API cwd is the **`api/`** workspace (**`/app/api`** in Docker): **`/app/logs/...`** was treated as outside cwd, so **`POST /api/v1/debug/client-log`** was never registered and ingest returned **404**. Resolution now allows the monorepo parent directory when basename is **`api`**.
-- **Web:** **Patch collab** — disable Immer **`autoFreeze`** (`setAutoFreeze(false)` in `main.tsx`) so React 18 updater replays cannot hit frozen objects from a previous `produce`; fixes **`Unable to delete property`** crash when a remote user adds a sheet.
-- **Web:** **Patch collab** — deduplicate `onOp` pushes caused by React 18 Strict Mode double-invoking `useState` updaters. FortuneSheet's `setContextWithProduce` fires `emitOp` → `onOp` inside the updater, so every local edit pushed ops to Yjs **twice** in dev mode; idempotent `replace` ops were invisible but `addSheet`/`deleteSheet` created **duplicate sheets** on remotes.
-- **Web:** **Patch collab** — skip the entire client-side opLog drain when `sheets-export` bootstrap data is available. The bootstrap already reflects the full Yjs opLog replayed server-side; draining the same history client-side double-applied `addSheet` ops (duplicate sheets) and cell-level patches (Immer *path doesn't resolve* errors). Live ops from remote peers after page load still apply normally via the `yops.observe` handler.
-- **Web:** **Patch collab** — **`applyOp`** failures during Yjs `opLog` replay **abort** further replay (no silent per-batch catch), skip post-hydration formula flush on a broken grid, and show **Workbook out of sync**; live **`observe`** stops applying remote ops after a patch error. **`PatchWorkbookErrorBoundary`** always offers **Copy technical details** (collab hints, mode, FortuneSheet version, UA, timestamp).
-- **Web / FortuneSheet fork:** Remote viewers could still crash on **add tab** — **`applyOp`** called **`initSheetData`** with **`undefined`** sheet payload (from **`addSheetOps[0]?.value`**) or with a **null** index; **`initSheetData`** then threw. **`applyOp`** now skips a missing payload and only initializes when **`getSheetIndex`** succeeds; core **`initSheetData`** null-checks **`newData`** and resolves index by sheet **id** when needed.
-- **Web / FortuneSheet fork:** **`Workbook`**’s React **`initSheetData`** helper (expand **`data`/`celldata`**) still crashed remotes when **`getSheetIndex`** was **`null`** or the sheet row was missing — it destructured **`newData`** and wrote **`d[index]`** without guards. Fork adds null/bounds checks and skips bad **`forEach`** rows.
-- **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — **`addSheet`** ignored **read-only** contexts (`allowEdit === false`), so **remote add-tab** ops on **phone / read-only** viewers did not insert the sheet and **`initSheetData`** crashed; **`deleteSheet`** also skipped, breaking remote deletes. **Collab replay** with a **`sheetData`** payload now runs **`addSheet`**; **`deleteSheet`** always applies for sync.
-- **Web:** **Patch / RF collab** — initial **“Loading workbook…”** could hang when another user kept editing: hydration waited for several consecutive **empty** animation frames on the Yjs `opLog`, which never happened while ops kept arriving. The quiet phase now also ends after a short **tail idle timeout** (~0.9s / ~0.5s); further ops apply via the normal **post-hydrate** observer.
-- **Web:** **Patch (phone)** — **reset document / main scroll** on entering the patch route so the layout is not offset by **scroll position from the previous page** (React Router).
-- **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — **`getSheetIndex`** now matches sheet **`id`** with **`String(...)`** so **string vs number** ids after **Yjs** sync no longer yield a **null** index; fixes **add-sheet** crashes on mobile collab viewers (**`initSheetData`** after **`addSheet`**).
-- **Web:** **Patch / RF workbook** — harden post-sync **`flushWorkbookFormulaRecalc`** (safe **`fullDataRange`**, per-sheet **`try/catch`**, restore active tab with the sheet’s **native `id`**, swallow remote recalc failures so Yjs does not wedge); **Patch workbook error** UI adds **Try again** to reset the boundary without a full reload.
-- **Web:** **Patch (phone)** — lock **`html` / `body` / `#root` / `.app-shell`** to the viewport with **`overscroll-behavior: none`** so **iOS** does not **rubber-band scroll the page** while panning the sheet; workbook host uses **flex** height inside the locked shell instead of **`100dvh`** math that could exceed the layout.
-- **Web:** **Patch / RF collab** — after **remote** Yjs updates, formula recalc cycled **`activateSheet`** across every tab and left all users on the **last** sheet; restoring the **previously active** sheet after recalc fixes **random tab jumps** when someone **adds or renames sheets**.
-- **Web:** **Patch (phone)** — **`wheel`** events are stopped in **capture** on the workbook host so **synthetic wheel** from touch (iOS) does not run FortuneSheet’s **`handleGlobalWheel`** on top of overlay touch pan (which caused **one-way / stuck** vertical scrolling).
-- **Web / FortuneSheet:** **`patch-package`** on **`@fortune-sheet/core`** — overlay **`touchmove`** used cumulative finger delta against **already-updated** scroll each frame (pan felt **much faster** than the finger on iOS). Patched to anchor scroll to **`touchstart`**; phone patch CSS drops **`touch-action: pan`** on the grid window so programmatic pan is not doubled with native scrolling.
-- **Web:** **Patch page** — resizing between phone and desktop breakpoints no longer destroys the FortuneSheet workbook; single render path keeps the `<Workbook>` mounted across breakpoint transitions, and the visibility-aware collab reconnects when `pauseWhenHidden` is disabled.
-- **Web:** **Stage day clock** — **Fullscreen (F)** no longer toggles a separate “fill” layout (that remounted the arena and **ended fullscreen** immediately); fullscreen runs on the same **arena** node while the manager layout stays mounted. **Dedicated kiosk** (`?kiosk=1`) is **removed**; that query **redirects** to the normal clock URL.
-- **Web:** **Clock** picker (`ClockPage`) uses **`["events","allForClock"]`** so its list does not read **`useInfiniteQuery`** **`["events"]`** cache (fixes **`events.map is not a function`**).
-- **Docker:** **Fast stack** (`docker-compose.fast.yml`) — start **api** / **web** as root long enough to **`chown`** the **`node_modules`** named volumes, then **`su node`** so **`npm install`** / Vite are not blocked by **EACCES** on fresh or root-owned volumes.
-
-### Added
-
-- **Web:** **`usePageVisible`**, **`useMediaQuery`** — Page Visibility and viewport queries for responsive behaviour.
-- **Web:** **Patch / RF (phone, max-width 767px)** — **Read-only** FortuneSheet (full layout, conditional formatting, formulas, live Yjs updates); thin **band name + Menu** bar; **Menu** slide-over for breadcrumbs, band nav, connection status, and **`PatchPageSidebar`** content. **`pauseWhenHidden`** disconnects the collab WebSocket when the tab is hidden or the screen is off (phone only) to save battery.
-- **Web:** **`PerformanceFilesPanel`** — shared performance-scoped **`FileAttachments`** wrapper; **stage clock** focus section embeds the same file management as the performance **Files** route (collapsed by default).
-- **API / Web:** **Stage clock urgent message** — `stages.clock_message`, **`PATCH /api/v1/stages/:id/clock-message`**, synced to all clock UIs via existing **`stage`** SSE invalidation; flashing overlay on the **clock arena** for all viewers.
-- **Web:** **`ClockArena`** — single responsive arena layout for **`ClockDayPage`** (arena + controls + fullscreen).
-
-### Security
-
-- **API:** **Rider / plot attachments** — after extension allowlisting, buffers are checked against **magic bytes** (PDF, common images, Office docs, etc.); optional **`RIDER_EXTRA_EXTENSIONS`** skips magic for listed extensions (see **`.env.example`**).
-- **API:** Credentialed CORS is no longer `origin: true` in production — set **`CORS_ALLOWED_ORIGINS`** (comma-separated) for split-origin dev; development **`NODE_ENV`** keeps permissive CORS when the allowlist is empty.
-- **API:** **`@fastify/helmet`** (**CSP off** for the LAN SPA — see comment in **`app.ts`**), **`@fastify/rate-limit`** on **`POST /auth/login`** (15 / 5 min per IP, message *Too many attempts, try again in 5 minutes.*), WebSocket **`maxPayload`**, SSE **per-IP connection cap**, **`trustProxy`** for forwarded **`X-Forwarded-Proto`**.
-- **API:** **`SESSION_SECRET`** must not be empty or the public dev fallback when **`NODE_ENV=production`** (container image).
-- **Web:** **`returnTo`** after login is validated as an internal path only (no open redirect).
-
-### Fixed
-
-- **API:** **`upload-allowlists`** — `allRiderExtensions()` is defined after **`RIDER_EXT`** so env extras do not hit a temporal dead zone at load.
-- **API:** **Patch template** **replace** / **JSON sheets-import** write the **new** file first, **update the DB**, then remove the **old** file; **unlink the new** file if the DB update fails. **Duplicate** cleans up the copied file if insert fails.
-- **API:** Event **import** uses **Zod** + a single **DB transaction**; **search** escapes **`ILIKE`** wildcards; **convert-to-PDF** returns a generic client message; **file uploads** unlink on DB insert failure; **stored paths** resolved under uploads root; **performance** create / swap / shift use **transactions**; **Postgres pool** timeouts + **`pool.end()`** on shutdown; **SSE** writes wrapped for disconnected clients.
-- **API / Web:** **`RealtimeSync`** invalidates query keys with **`exact: false`** so **`["allStagesForClock"]`** refreshes **Clock**’s nested key; **`GET /events`** and **`GET /patch-templates`** paginate (**`page`**, **`limit`**, default **200**, max **500**, **`hasMore`**).
-- **DB:** Migration **`0007_stages_default_patch_template_index`** — index on **`stages.default_patch_template_id`**.
-- **Web:** Shared **`useServerTime`** hook; **ClockPage** parallel fetches + loading/errors; **ClockDayPage** / **SettingsPage** error handling; **Y.Doc** lifecycle in **`patchWorkbookCollab`**; error boundaries show friendly copy with **Copy technical details** only when client debug logging is enabled.
-
-### Changed
-
-- **Web:** **Patch layout** — **Tablet/desktop (768px+)** keeps the **sidebar beside** the workbook (no single-column stack at 960px); **768–1023px** uses a **narrower** sidebar column. **`patchWorkbookCollab`** supports **`readOnly`** (no local ops to Yjs) and **`pauseWhenHidden`**.
-- **Web:** **Stage clock urgent message** — text scales with **`useFitTextInBox`** to use as much of the **arena** as possible without overflowing; **changeover** banner is **title-only** (long subtitle removed). Arena wrap **`overflow: auto`**; footer grid shows **four columns** from **480px** up so all metadata cells stay visible on typical phones in landscape and small tablets.
-- **Web:** **Stage clock** — **High-contrast banners** for **changeover** (empty stage), **before first act**, and **on-stage handover** (no slot end time: timer counts to **next** act’s start, not “your set”). **Patch** sidebar badges match; **focus** card says **Until next act** in that case. **`computeStageDayClockMetrics`** now returns **`clockBanner`** (replaces **`isChangeover`** flag).
-- **Web:** **Stage clock countdown** (arena, patch sidebar, focus card) uses **minutes:seconds** (**`45:00`**, **`0:30`**) for gaps under **24 hours**; **N days** when the next boundary is a day or more away (replacing mixed **`12m 05s`** / **`2h 15m`** strings).
-- **Web:** **Stage day clock** — arena **above** full-width **controls** (no side-by-side); urgent message flashes **inside the clock arena only** (controls stay usable); **fullscreen** shows the flash across the full arena. Footer shows **Fullscreen** or **Exit fullscreen**, not both at once.
-- **API:** **`hasPassword`** checks in **`auth-guard`** and **`GET /auth/session`** use a short-TTL **`getCachedHasPassword()`** cache; password mutations call **`invalidatePasswordSettingsCache()`**.
-- **API:** **`GET /events/:id/export`** loads **stage days**, **performances**, and **Yjs snapshots** with **`inArray`** batch queries instead of nested per-row selects; **event delete** invalidation resolves **stage-day** ids in one query.
-- **API:** **Rate limits** — **`POST /files`** (120/min), **`POST /import`** (20/min), **`POST /patch-templates`** and **`POST /patch-templates/:id/replace`** (40/min each).
-- **API:** When the template **Yjs** snapshot is empty and the on-disk file cannot be read, **preview** / **sheets-export** return **503** with a short message (throws after **warn** log).
-- **Web:** **Events** list and **Settings** global template library use **Load more** against paginated APIs; **Clock**, **My stage today**, and the **stage** template picker fetch all pages (**`fetchAllEvents`**, **`fetchAllPatchTemplates`**).
-- **Web:** **Search** modal — results are **`Link`**s (new tab / context menu); hover and focus styles via **`search-dialog-result`** in **`global.css`**.
-- **Web:** **Settings** + **patch template** cards (**`SettingsPage`**, **`PatchTemplateLibrarySettings`**, **`StagePatchTemplatePicker`**) — avoid horizontal overflow on narrow viewports: **`minWidth: 0`** / **`maxWidth: "100%"`** on containers, password fields capped with **`min(20rem, 100%)`**, flexible upload labels, full-width template **`select`**, **`overflowWrap: "anywhere"`** on long template metadata.
-- **Web:** **Patch** and **performance Files** breadcrumbs use **`formatDateShort`** for the stage-day date (matches other pages).
-- **Web:** **Known-issues sweep** — mutation errors use **`--color-danger`** + **`role="alert"`** where still using brand red (**Patch**, **Settings**, **PatchTemplateTools**, **Events** create); template **rename** modals close on **Escape**; list **action** clusters use **`flexShrink: 0`** (**Events**, **Event detail**, **Stage detail** days, **Stage day** performance row, **FileAttachments**).
-- **Web:** **Stage chat** — new-message **flash** repeats until the user **clicks or focuses** the dock (or the collapsed **Chat** control); closing the panel by clicking outside no longer stops the flash on the collapsed button. **Own sends** do not flash even if **SSE** arrives before the **POST** response (**pending-echo** fingerprint + existing **`lastSentIdRef`**).
-- **Web:** **Stage** patch template picker — after a successful **Excel/JSON upload** or **Import workbook JSON**, the new template is **set as the stage default** (same as choosing it in the dropdown).
-- **Web:** **Patch template** tools — **delete** uses **`ConfirmDialog`**; **Edit spreadsheet** is a **`Link`** with **`button-link`** styling; preview / rename overlays use **`confirm-overlay`**; selected-template action row uses **`flexShrink: 0`**.
-- **`Dockerfile.fast`:** run as **`USER node`**.
-- **Web:** Login error styling uses **`--color-danger`** + **`role="alert"`**.
-- **Docs:** **`KNOWN_ISSUES.md`** — reconciled **§5–11**, **§44**, **§46–§48**, **§52–§53**, **§56**, **§7**, **§17**, **§41**, **§42**, **§49**, **§54** with current code; closed the **“Confirm before…”** UX table (items shipped).
 
 ---
 
@@ -148,7 +74,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **API — Yjs opLog compaction:** Compaction could replace the log with a **`replace luckysheetfile`** built from a **headless replay** that diverged from FortuneSheet (unsupported / skipped op batches), yielding an **empty or unusable** grid. Compaction now uses a **single `transact`** (snapshot `opLog` → replay → validate → replace), **`JSON.stringify`** errors abort, and replay output must pass **`sheetsLookUsableAfterOpLogReplay`** (non-empty sheet list, ids, `data` or `celldata`) or compaction is skipped with a warning log.
+- **API — Yjs opLog compaction:** Compaction could replace the log with a **`replace luckysheetfile`** built from a **headless replay** that diverged from FortuneSheet (unsupported / skipped op batches), yielding an **empty or unusable** grid. Compaction now uses a **single `transact`** (snapshot `opLog` → replay → validate → replace), **`JSON.stringify`** errors abort, and replay output must pass **`sheetsUsableForServing`** (non-empty sheet list, ids, `data` or `celldata`) or compaction is skipped with a warning log.
 
 - **API — Yjs / patch workbook:** **`bindState`** registered **`update` → debounced persist** before the async DB snapshot finished loading. The WebSocket sync step could fire a persist on an **incomplete** server doc and **overwrite `performance_yjs_snapshots` / template snapshots** in Postgres — especially under higher DB latency (typical **prod**). The listener is now attached **after** load (with a catch-up **`schedulePersist`**). See **`docs/REALTIME.md`**.
 
