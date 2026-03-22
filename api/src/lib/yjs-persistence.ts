@@ -7,7 +7,10 @@ import { db } from "../db/client.js";
 import { patchTemplates, performanceYjsSnapshots } from "../db/schema.js";
 import { broadcastInvalidate } from "./realtime-bus.js";
 import { createLogger } from "./log.js";
-import { replayYjsSnapshotToSheets } from "./yjs-oplog-replay.js";
+import {
+  replayOpLogStringEntries,
+  sheetsLookUsableAfterOpLogReplay,
+} from "./yjs-oplog-replay.js";
 
 const ylog = createLogger("yjs-persist");
 
@@ -49,27 +52,63 @@ function parseDocName(
  */
 function maybeCompactOpLog(doc: WSSharedDoc): void {
   const opLog = doc.getArray<string>("opLog");
-  if (opLog.length <= OPLOG_COMPACT_THRESHOLD) return;
 
-  const snap = Y.encodeStateAsUpdate(doc);
-  let sheets: Sheet[];
+  /**
+   * Single `transact`: snapshot entries, replay, validate, replace — avoids a window where
+   * replay used a different opLog than we delete, and skips compaction when replay would
+   * produce an unusable workbook (empty grid / missing ids / headless replay gaps).
+   */
   try {
-    sheets = replayYjsSnapshotToSheets(new Uint8Array(snap));
-  } catch (err) {
-    ylog.warn({ err, docname: doc.name, opLogLen: opLog.length }, "opLog compaction replay failed; skipping");
-    return;
-  }
-  if (sheets.length === 0) return;
+    doc.transact(() => {
+      if (opLog.length <= OPLOG_COMPACT_THRESHOLD) return;
 
-  const beforeLen = opLog.length;
-  const ops: Op[] = [
-    { op: "replace", path: ["luckysheetfile"], value: sheets },
-  ];
-  doc.transact(() => {
-    opLog.delete(0, opLog.length);
-    opLog.push([JSON.stringify(ops)]);
-  });
-  ylog.info({ docname: doc.name, before: beforeLen, after: 1 }, "opLog compacted");
+      const beforeLen = opLog.length;
+      const entries = opLog.toArray();
+
+      let sheets: Sheet[];
+      try {
+        sheets = replayOpLogStringEntries(entries);
+      } catch (err) {
+        ylog.warn(
+          { err, docname: doc.name, opLogLen: beforeLen },
+          "opLog compaction replay failed; skipping",
+        );
+        return;
+      }
+
+      if (!sheetsLookUsableAfterOpLogReplay(sheets)) {
+        ylog.warn(
+          {
+            docname: doc.name,
+            opLogLen: beforeLen,
+            sheetCount: sheets.length,
+          },
+          "opLog compaction skipped: replay output not safe to persist",
+        );
+        return;
+      }
+
+      let payload: string;
+      try {
+        const ops: Op[] = [
+          { op: "replace", path: ["luckysheetfile"], value: sheets },
+        ];
+        payload = JSON.stringify(ops);
+      } catch (err) {
+        ylog.warn(
+          { err, docname: doc.name, opLogLen: beforeLen },
+          "opLog compaction JSON.stringify failed; skipping",
+        );
+        return;
+      }
+
+      opLog.delete(0, opLog.length);
+      opLog.push([payload]);
+      ylog.info({ docname: doc.name, before: beforeLen, after: 1 }, "opLog compacted");
+    });
+  } catch (err) {
+    ylog.warn({ err, docname: doc.name }, "opLog compaction transact failed; skipping");
+  }
 }
 
 async function persistSnapshot(

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API — Yjs opLog compaction:** Compaction could replace the log with a **`replace luckysheetfile`** built from a **headless replay** that diverged from FortuneSheet (unsupported / skipped op batches), yielding an **empty or unusable** grid. Compaction now uses a **single `transact`** (snapshot `opLog` → replay → validate → replace), **`JSON.stringify`** errors abort, and replay output must pass **`sheetsLookUsableAfterOpLogReplay`** (non-empty sheet list, ids, `data` or `celldata`) or compaction is skipped with a warning log.
+
 - **API — Yjs / patch workbook:** **`bindState`** registered **`update` → debounced persist** before the async DB snapshot finished loading. The WebSocket sync step could fire a persist on an **incomplete** server doc and **overwrite `performance_yjs_snapshots` / template snapshots** in Postgres — especially under higher DB latency (typical **prod**). The listener is now attached **after** load (with a catch-up **`schedulePersist`**). See **`docs/REALTIME.md`**.
 
 - **Web — patch / template workbook (hydration races):** **`hydratedRef`** was set **before** post-replay **`calculateFormula`**, so remote **`yops`** updates and user edits could run with a stale **`currentSheetId`** (intermittent **sheet not found**). Hydration now marks ready **only after** recalc, replays the opLog with a **dynamic-length** drain (so tail inserts during replay are not skipped), uses a **run-id** guard so stale async hydration cannot finish after reconnect / effect churn, adds an **extra animation frame** before recalc, and **activates a coherent first tab** before **`jfrefreshgrid`**.

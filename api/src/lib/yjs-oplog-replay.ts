@@ -133,18 +133,15 @@ function ensureCalcChain(sheet: Sheet): void {
   sheet.calcChain = chain;
 }
 
-/** Decode a persisted Yjs update (template or performance snapshot) to `Sheet[]`. */
-export function replayYjsSnapshotToSheets(snapshot: Uint8Array): Sheet[] {
-  const doc = new Y.Doc();
-  Y.applyUpdate(doc, snapshot);
-  const opLog = doc.getArray<string>("opLog");
-  if (opLog.length === 0) return [];
-
+/**
+ * Replay a frozen list of `opLog` JSON strings (same order as in Yjs).
+ * Used for compaction and by {@link replayYjsSnapshotToSheets}.
+ */
+export function replayOpLogStringEntries(entries: readonly string[]): Sheet[] {
   const sheets: Sheet[] = [];
   const sheetById = new Map<string, Sheet>();
 
-  for (let i = 0; i < opLog.length; i++) {
-    const raw = opLog.get(i);
+  for (const raw of entries) {
     if (typeof raw !== "string") continue;
     let ops: Op[];
     try {
@@ -158,4 +155,32 @@ export function replayYjsSnapshotToSheets(snapshot: Uint8Array): Sheet[] {
 
   for (const sheet of sheets) ensureCalcChain(sheet);
   return sheets;
+}
+
+/**
+ * True if replay output is safe to persist as a single `replace luckysheetfile` op.
+ * Rejects empty arrays, sheets without ids, and sheets with neither `data` nor `celldata`
+ * (headless replay can diverge from FortuneSheet and would otherwise compact to a blank grid).
+ */
+export function sheetsLookUsableAfterOpLogReplay(sheets: Sheet[]): boolean {
+  if (!Array.isArray(sheets) || sheets.length === 0) return false;
+  for (const s of sheets) {
+    if (!s || typeof s !== "object") return false;
+    if (s.id == null || String(s.id).trim() === "") return false;
+    const data = s.data;
+    const hasMatrix = Array.isArray(data) && data.length > 0;
+    const cd = (s as { celldata?: unknown[] }).celldata;
+    const hasCelldata = Array.isArray(cd) && cd.length > 0;
+    if (!hasMatrix && !hasCelldata) return false;
+  }
+  return true;
+}
+
+/** Decode a persisted Yjs update (template or performance snapshot) to `Sheet[]`. */
+export function replayYjsSnapshotToSheets(snapshot: Uint8Array): Sheet[] {
+  const doc = new Y.Doc();
+  Y.applyUpdate(doc, snapshot);
+  const opLog = doc.getArray<string>("opLog");
+  if (opLog.length === 0) return [];
+  return replayOpLogStringEntries(opLog.toArray());
 }
