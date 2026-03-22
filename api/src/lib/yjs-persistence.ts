@@ -27,6 +27,15 @@ const OPLOG_COMPACT_THRESHOLD = 200;
 const uuidRe =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function isPostgresFkViolation(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code: string }).code === "23503"
+  );
+}
+
 function parseDocName(
   docname: string,
 ):
@@ -123,27 +132,42 @@ async function persistSnapshot(
   const snapshot = Buffer.from(Y.encodeStateAsUpdate(doc));
   ylog.debug({ docname, bytes: snapshot.length }, "persisting snapshot");
 
-  if (target.kind === "performance") {
+  try {
+    if (target.kind === "performance") {
+      await db
+        .insert(performanceYjsSnapshots)
+        .values({
+          performanceId: target.id,
+          snapshot,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: performanceYjsSnapshots.performanceId,
+          set: { snapshot, updatedAt: new Date() },
+        });
+      return;
+    }
+
     await db
-      .insert(performanceYjsSnapshots)
-      .values({
-        performanceId: target.id,
-        snapshot,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: performanceYjsSnapshots.performanceId,
-        set: { snapshot, updatedAt: new Date() },
-      });
-    return;
+      .update(patchTemplates)
+      .set({ snapshot, updatedAt: new Date() })
+      .where(eq(patchTemplates.id, target.id));
+
+    broadcastInvalidate([["patchTemplates"], ["patchTemplate"], ["events"]]);
+  } catch (err) {
+    /**
+     * Stale collab rooms: performance deleted while browsers still hold a WebSocket;
+     * `writeState` flush must not take down the API process.
+     */
+    if (target.kind === "performance" && isPostgresFkViolation(err)) {
+      ylog.warn(
+        { performanceId: target.id, docname },
+        "skip Yjs persist: performance row missing (FK) — likely deleted with collab still open",
+      );
+      return;
+    }
+    throw err;
   }
-
-  await db
-    .update(patchTemplates)
-    .set({ snapshot, updatedAt: new Date() })
-    .where(eq(patchTemplates.id, target.id));
-
-  broadcastInvalidate([["patchTemplates"], ["patchTemplate"], ["events"]]);
 }
 
 function schedulePersist(docname: string, doc: WSSharedDoc): void {
@@ -254,7 +278,11 @@ export function createYjsPersistence() {
       if (prev) clearTimeout(prev);
       docTimers.delete(docname);
       ylog.debug({ docname }, "writeState (flush)");
-      await persistSnapshot(docname, doc);
+      try {
+        await persistSnapshot(docname, doc);
+      } catch (err) {
+        ylog.error({ err, docname }, "writeState persist failed");
+      }
     },
     provider: null,
   };
