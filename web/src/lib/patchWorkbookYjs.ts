@@ -165,6 +165,12 @@ async function drainOpLogWithQuietFrames(opts: {
   startIndex: number;
   /** Max “idle” rAF cycles with `i === yops.length` before we consider the log quiescent. */
   idleFramesRequired: number;
+  /**
+   * When the opLog keeps growing (another user editing), strict “N empty rAFs” may never happen.
+   * After we reach the tail (`i === yops.length`), if no new ops arrive for this long, treat the
+   * log as quiescent anyway; later ops are applied via `yops.observe` after hydration.
+   */
+  maxQuietWaitMs?: number;
 }): Promise<number> {
   const {
     yops,
@@ -174,9 +180,12 @@ async function drainOpLogWithQuietFrames(opts: {
     cancelled,
     startIndex,
     idleFramesRequired,
+    maxQuietWaitMs = 0,
   } = opts;
   let i = startIndex;
   let idleFrames = 0;
+  /** Wall-clock start of “caught up to yops.length” streak (reset whenever new ops arrive). */
+  let quietStart: number | null = null;
   while (idleFrames < idleFramesRequired) {
     if (cancelled() || runId !== hydrationRunIdRef.current) return i;
     while (i < yops.length) {
@@ -195,6 +204,7 @@ async function drainOpLogWithQuietFrames(opts: {
         );
       }
       idleFrames = 0;
+      quietStart = null;
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => resolve());
       });
@@ -205,8 +215,13 @@ async function drainOpLogWithQuietFrames(opts: {
     if (cancelled() || runId !== hydrationRunIdRef.current) return i;
     if (i < yops.length) {
       idleFrames = 0;
+      quietStart = null;
     } else {
+      if (quietStart === null) quietStart = Date.now();
       idleFrames += 1;
+      if (maxQuietWaitMs > 0 && Date.now() - quietStart >= maxQuietWaitMs) {
+        break;
+      }
     }
   }
   return i;
@@ -353,6 +368,7 @@ export function usePatchWorkbookOpLogEffects(
         cancelled: isCancelled,
         startIndex: 0,
         idleFramesRequired: 4,
+        maxQuietWaitMs: 900,
       });
       if (isCancelled()) return;
 
@@ -380,6 +396,7 @@ export function usePatchWorkbookOpLogEffects(
         cancelled: isCancelled,
         startIndex: nextIndex,
         idleFramesRequired: 2,
+        maxQuietWaitMs: 500,
       });
       if (isCancelled()) return;
 
