@@ -10,32 +10,113 @@ Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, *
 
 **Requirements:** [Docker](https://docs.docker.com/get-docker/) with Compose v2 (Linux, macOS, or Windows with Docker Desktop).
 
-### Run the published app image (typical LAN / show laptop)
+| Goal | Command |
+|------|---------|
+| **Deploy** pre-built app (typical show / LAN) | See **[Deployment](#deployment)** below — `docker compose pull && docker compose up -d` |
+| **Develop** from source (rebuild API + web) | `make dev` (merges **`docker-compose.dev.yml`**) |
 
-Uses **only** **`docker-compose.yml`** — pulls **`ghcr.io/doug86i/changeoverlord/app`** from GitHub Container Registry (no local build).
+After install, open **http://\<this-machine\>/** — default **port 80**. If port 80 is busy, set **`HOST_PORT`** in **`.env`** (from **`.env.example`**) and use **http://\<this-machine\>:\<HOST_PORT\>/**.
+
+- **`.env`** is optional and **infrastructure-only** (paths, port, log level, secrets). Schedules, optional shared password, etc. are set in the **app UI**.
+- After the first **`docker compose pull`** (deploy) or **`make dev`** (develop), you can run **offline** if images are already local.
+
+**Fresh DB during development:** stop Compose, remove **`data/db/`** under **`DATA_DIR`** (throwaway data only), then **`make dev`** again. **Back up `DATA_DIR`** before wiping real prep data.
+
+More detail: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** · moving data: **[`docs/HANDOVER.md`](docs/HANDOVER.md)**.
+
+---
+
+## Deployment
+
+Use this for a **production-style** or **show laptop** install: run the **published** app container from **GitHub Container Registry** — **no** local `Dockerfile` build (only **`docker-compose.yml`** + optional **`.env`**).
+
+### 1. Prerequisites
+
+- **Docker** with **Compose v2** (Docker Desktop or Engine).
+- **Network** once: `docker compose pull` needs to reach **GHCR** (`ghcr.io`). After images are cached, the stack can run on an isolated LAN.
+
+### 2. Get the compose files
 
 ```bash
 git clone https://github.com/doug86i/changeoverlord.git
 cd changeoverlord
-cp .env.example .env   # optional: edit HOST_PORT, DATA_DIR, SESSION_SECRET, …
-docker compose pull && docker compose up -d
 ```
 
-### Develop from source (rebuild API + web in Docker)
+You only need the repo for **`docker-compose.yml`**, **`.env.example`**, and (implicitly) Compose’s project name from the folder — not the app source at runtime.
+
+### 3. Configure (optional)
+
+```bash
+cp .env.example .env
+```
+
+Edit **`.env`** if needed (see comments in **`.env.example`**):
+
+| Variable | When to change |
+|----------|----------------|
+| **`HOST_PORT`** | Port **80** is in use or blocked (e.g. use **8080** on Windows without admin). |
+| **`DATA_DIR`** | Store Postgres + uploads somewhere other than **`./data`** (absolute path; forward slashes, including on Windows). |
+| **`SESSION_SECRET`** | **Set a long random string** for any shared or internet-facing deploy (defaults are for quick local use only). |
+| **`LOG_LEVEL`** | Use **`info`** for quieter logs on a show machine; **`debug`** for troubleshooting (**[`docs/LOGGING.md`](docs/LOGGING.md)**). |
+| **`APP_IMAGE_TAG`** | Pin a release tag instead of **`latest`** if you track versions (see GHCR package tags). |
+
+### 4. Start the stack
+
+```bash
+docker compose pull    # app image from GHCR + postgres:16-alpine
+docker compose up -d
+```
+
+First start creates **`${DATA_DIR}/db`** and **`${DATA_DIR}/uploads`** (default **`./data/...`**).
+
+### 5. Verify
+
+```bash
+docker compose ps
+curl -sS http://127.0.0.1/api/v1/health
+# If HOST_PORT is not 80:
+curl -sS "http://127.0.0.1:${HOST_PORT}/api/v1/health"
+```
+
+Expect **`{"ok":true,...}`** from **`/api/v1/health`**.
+
+### 6. Open in the browser
+
+- This machine: **http://localhost/** or **http://127.0.0.1/** (or **`http://localhost:<HOST_PORT>/`**).
+- Other devices on the LAN: **http://\<server-hostname-or-IP\>/** (same port). Ensure the host firewall allows inbound **TCP** on **`HOST_PORT`** if clients connect from elsewhere.
+
+### 7. Updates (new app version)
+
+From the same repo directory:
+
+```bash
+git pull                    # latest compose / docs
+docker compose pull
+docker compose up -d
+```
+
+Database migrations run when the **app** container starts.
+
+### 8. Stop
+
+```bash
+docker compose down
+```
+
+Data under **`DATA_DIR`** is kept. To remove containers **and** named volumes (if you ever add any), see Docker docs; default Postgres data is in the **`DATA_DIR/db`** bind mount, not an anonymous volume.
+
+---
+
+## Development (build from source)
+
+From the repo root, with Docker:
 
 ```bash
 make dev
 # same as: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
-Open **http://\<this-machine\>/** — default **port 80** (no `:port` in the URL). If port 80 is busy, set **`HOST_PORT`** in **`.env`** (copy from **`.env.example`**) and use that port instead.
-
-- **`.env`** is optional and **infrastructure-only** (paths, port, log level, secrets for Compose). Product behaviour (password, schedules, etc.) lives in the **app**.
-- After the first **`pull`** (deploy) or **`make dev`** (develop), runtime can be **offline** for already-local images.
-
-**Fresh database during development:** if migrations get out of sync, stop Compose and remove **`data/db/`** (only on throwaway data), then run **`make dev`** again. **Back up `DATA_DIR`** before wiping on a machine with real prep data.
-
-More detail (aliases, stopping the stack, **`patches/`**, speeding up image builds): **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
+Use **`make dev-fresh`** if the image layers look stale. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
 
 ---
 
