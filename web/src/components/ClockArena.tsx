@@ -7,6 +7,7 @@ import {
 import type { PerformanceRow } from "../api/types";
 import type { ClockBannerMode } from "../lib/stageDayClockMetrics";
 import { useFitCountdownInBox } from "../hooks/useFitCountdownInBox";
+import { useFitTextInBox } from "../hooks/useFitTextInBox";
 import {
   formatClockHeroCountdown,
 } from "../lib/dateFormat";
@@ -69,6 +70,8 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
   ) {
     const countdownMeasureRef = useRef<HTMLDivElement>(null);
     const countdownTextRef = useRef<HTMLDivElement>(null);
+    const urgentMeasureRef = useRef<HTMLDivElement>(null);
+    const urgentTextRef = useRef<HTMLDivElement>(null);
 
     const heroUrgencyTier = heroUrgency.tier;
     const heroClass =
@@ -91,6 +94,7 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
     useFitCountdownInBox(countdownMeasureRef, countdownTextRef, countdownDisplay, true);
 
     const urgent = urgentMessage?.trim() ? urgentMessage.trim() : null;
+    useFitTextInBox(urgentMeasureRef, urgentTextRef, urgent ?? "", Boolean(urgent));
 
     const waitingForNextAct =
       clockBanner === "between_acts" || clockBanner === "pre_show";
@@ -105,21 +109,22 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
         {urgent ? (
           <div className="clock-urgent-arena-flash" role="alert" aria-live="assertive">
             <div className="clock-urgent-arena-flash-backdrop" aria-hidden />
-            <div className="clock-urgent-arena-flash-text">{urgent}</div>
+            <div className="clock-urgent-arena-flash-measurer" ref={urgentMeasureRef}>
+              <div ref={urgentTextRef} className="clock-urgent-arena-flash-text">
+                {urgent}
+              </div>
+            </div>
           </div>
         ) : null}
         <div className="clock-arena-inner">
           <div className="clock-arena-top-meta">
             {clockBanner === "between_acts" ? (
               <div
-                className="clock-arena-handover-banner clock-arena-handover-banner--gap"
+                className="clock-arena-handover-banner clock-arena-handover-banner--gap clock-arena-handover-banner--title-only"
                 role="status"
                 aria-live="polite"
               >
                 <span className="clock-arena-handover-banner__title">Changeover</span>
-                <span className="clock-arena-handover-banner__sub">
-                  Stage empty — timer is for the next act, not a running set
-                </span>
               </div>
             ) : null}
             {clockBanner === "pre_show" ? (

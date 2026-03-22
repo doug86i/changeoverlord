@@ -178,7 +178,7 @@ On a stage day clock (`/clock/day/:stageDayId`):
   - **Red** — under 1 minute (the **last minute flashes** red/white for visibility)
 - **Auto-advance** — Focus in the **controls** area follows the current act (toggle on/off).
 - **Changeover & handover (read at a distance)** — A **large banner** above the countdown makes it obvious when the **big timer is not “time left in your set”**:
-  - **Changeover** — Scheduled **gap between acts** (stage empty; next act not on yet). Banner says the timer is for the **next act**.
+  - **Changeover** — Scheduled **gap between acts** (stage empty; next act not on yet). A large **CHANGEOVER** banner appears above the countdown.
   - **Next act** (before the first act of the day) — Waiting for **show start**; same idea.
   - **Next act in** (while someone is still listed **on stage**) — The current slot has **no published end time**, so the countdown runs to the **next act’s start**. The banner states this explicitly so overrunning bands do not treat it as their own set length.
   The **patch** sidebar uses the same rules with a small **badge** (**Changeover**, **Before show**, **Next act in**). The **focus** card uses **Time left** only when the running order has an **end time** for that slot; otherwise it says **Until next act**. It can still show **changeover duration** between the previous act’s end and the focused act’s start when applicable.
