@@ -152,6 +152,11 @@ export function StageChatDock() {
   const lastSentIdRef = useRef<string | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const settingsOpenRef = useRef(false);
+
+  useEffect(() => {
+    settingsOpenRef.current = settingsOpen;
+  }, [settingsOpen]);
 
   const messagesQ = useQuery({
     queryKey: ["chatMessages", eventId, contextStageId],
@@ -236,8 +241,12 @@ export function StageChatDock() {
     const onPointerDown = (e: PointerEvent) => {
       const root = rootRef.current;
       if (!root || root.contains(e.target as Node)) return;
-      setExpanded(false);
-      setSettingsOpen(false);
+      // First dismiss Options (e.g. after using the stage <select>), then the panel.
+      if (settingsOpenRef.current) {
+        setSettingsOpen(false);
+      } else {
+        setExpanded(false);
+      }
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
@@ -246,9 +255,11 @@ export function StageChatDock() {
   useEffect(() => {
     if (!expanded || dockHidden) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setExpanded(false);
+      if (e.key !== "Escape") return;
+      if (settingsOpenRef.current) {
         setSettingsOpen(false);
+      } else {
+        setExpanded(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -303,28 +314,7 @@ export function StageChatDock() {
           onClick={() => setExpanded((e) => !e)}
         >
           Chat
-          <span className="muted" style={{ fontWeight: 400 }}>
-            {" "}
-            — {stageLabel}
-          </span>
         </button>
-        {showStagePicker ? (
-          <label className="stage-chat-dock__stage-label muted">
-            Stage{" "}
-            <select
-              className="stage-chat-dock__select"
-              value={contextStageId}
-              onChange={(e) => setPickedStageId(e.target.value)}
-              aria-label="Chat stage context"
-            >
-              {stagesQ.data!.stages.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
         <button
           type="button"
           className="icon-btn stage-chat-dock__hide-btn"
@@ -341,10 +331,7 @@ export function StageChatDock() {
       </div>
       {expanded ? (
         <div className="stage-chat-dock__panel card">
-          <p className="muted" style={{ margin: "0 0 0.5rem", fontSize: "0.85rem" }}>
-            Messages for <strong>{stageLabel}</strong> plus anything sent to the
-            whole event. New messages open this panel and highlight the bar.
-          </p>
+          <div className="stage-chat-dock__panel-title muted">{stageLabel}</div>
           <div className="stage-chat-dock__messages" role="log" aria-live="polite">
             {messagesQ.isLoading ? (
               <p className="muted">Loading…</p>
@@ -376,56 +363,70 @@ export function StageChatDock() {
                 type="button"
                 className="icon-btn"
                 aria-expanded={settingsOpen}
-                aria-controls="stage-chat-dock-settings"
                 id="stage-chat-dock-options-btn"
                 onClick={() => setSettingsOpen((o) => !o)}
               >
                 Options
               </button>
-              <span className="muted stage-chat-dock__send-hint">
-                Enter sends · Shift+Enter newline
-              </span>
             </div>
-            <div
-              id="stage-chat-dock-settings"
-              className="stage-chat-dock__settings-block"
-              role="region"
-              aria-labelledby="stage-chat-dock-options-btn"
-              hidden={!settingsOpen}
-            >
-              <label className="muted stage-chat-dock__settings-label">
-                Your name (stored in this browser)
-                <input
-                  type="text"
-                  className="stage-chat-dock__input"
-                  value={authorDraft}
-                  onChange={(e) => setAuthorDraft(e.target.value)}
-                  maxLength={80}
-                  placeholder="e.g. FOH"
-                  aria-label="Display name for chat"
-                />
-              </label>
-              <div className="stage-chat-dock__scope">
-                <label>
+            {settingsOpen ? (
+              <div
+                id="stage-chat-dock-settings"
+                className="stage-chat-dock__settings-block"
+                role="region"
+                aria-labelledby="stage-chat-dock-options-btn"
+              >
+                <label className="muted stage-chat-dock__settings-label">
+                  Name
                   <input
-                    type="radio"
-                    name="chat-scope"
-                    checked={sendScope === "stage"}
-                    onChange={() => setSendScope("stage")}
-                  />{" "}
-                  This stage only
+                    type="text"
+                    className="stage-chat-dock__input"
+                    value={authorDraft}
+                    onChange={(e) => setAuthorDraft(e.target.value)}
+                    maxLength={80}
+                    placeholder="e.g. FOH"
+                    aria-label="Chat display name"
+                  />
                 </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="chat-scope"
-                    checked={sendScope === "event"}
-                    onChange={() => setSendScope("event")}
-                  />{" "}
-                  Whole event
-                </label>
+                {showStagePicker ? (
+                  <label className="muted stage-chat-dock__settings-label">
+                    Stage
+                    <select
+                      className="stage-chat-dock__select stage-chat-dock__select--full"
+                      value={contextStageId}
+                      onChange={(e) => setPickedStageId(e.target.value)}
+                      aria-label="Chat stage"
+                    >
+                      {stagesQ.data!.stages.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <div className="stage-chat-dock__scope">
+                  <label>
+                    <input
+                      type="radio"
+                      name="chat-scope"
+                      checked={sendScope === "stage"}
+                      onChange={() => setSendScope("stage")}
+                    />{" "}
+                    This stage
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="chat-scope"
+                      checked={sendScope === "event"}
+                      onChange={() => setSendScope("event")}
+                    />{" "}
+                    Whole event
+                  </label>
+                </div>
               </div>
-            </div>
+            ) : null}
             <textarea
               className="stage-chat-dock__textarea"
               rows={3}
@@ -437,7 +438,7 @@ export function StageChatDock() {
                 trySend();
               }}
               maxLength={2000}
-              placeholder="Message…"
+              placeholder="Message… (Enter to send)"
               aria-label="Chat message"
             />
             <button

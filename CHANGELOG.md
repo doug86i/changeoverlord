@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Web — stage chat:** **Hide** collapses to a small **Chat** control (remembered for the tab); **click outside** the open panel or **Escape** closes the panel; incoming messages still expand and flash.
 
+- **Web — stage chat:** Slimmer panel (no instruction blurb); **Stage** + **Name** live under **Options**; bar is **Chat** + **Hide** only; outside click / Escape closes **Options** first then the panel so the stage dropdown works reliably.
+
 ### Fixed
 
 - **API — Yjs opLog compaction:** Compaction could replace the log with a **`replace luckysheetfile`** built from a **headless replay** that diverged from FortuneSheet (unsupported / skipped op batches), yielding an **empty or unusable** grid. Compaction now uses a **single `transact`** (snapshot `opLog` → replay → validate → replace), **`JSON.stringify`** errors abort, and replay output must pass **`sheetsLookUsableAfterOpLogReplay`** (non-empty sheet list, ids, `data` or `celldata`) or compaction is skipped with a warning log.

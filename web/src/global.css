@@ -1562,6 +1562,13 @@ a.patch-sidebar-perf-link:hover {
   margin-left: auto;
 }
 
+.stage-chat-dock__panel-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  flex-shrink: 0;
+}
+
 .stage-chat-dock__bar {
   display: flex;
   flex-wrap: wrap;
@@ -1604,6 +1611,12 @@ a.patch-sidebar-perf-link:hover {
   background: var(--color-bg);
   color: var(--color-text);
   max-width: 11rem;
+}
+
+.stage-chat-dock__select--full {
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .stage-chat-dock__panel {
@@ -1677,15 +1690,7 @@ a.patch-sidebar-perf-link:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 0.75rem;
-  justify-content: space-between;
-}
-
-.stage-chat-dock__send-hint {
-  font-size: 0.72rem;
-  line-height: 1.3;
-  flex: 1 1 auto;
-  text-align: right;
+  gap: 0.5rem;
 }
 
 .stage-chat-dock__settings-block {
