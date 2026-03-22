@@ -1,5 +1,3 @@
-import type { Sheet } from "@fortune-sheet/core";
-
 const base = "";
 
 function redirectToLoginIfNeeded(path: string, status: number) {
@@ -28,36 +26,6 @@ export async function apiGet<T>(path: string): Promise<T> {
     throw new Error(msg);
   }
   return r.json() as Promise<T>;
-}
-
-/**
- * Load `sheets` from a workbook JSON export (`GET …/sheets-export`) for FortuneSheet bootstrap.
- * **404** → `null` (use placeholder + Yjs replay). Other errors throw (same handling as `apiGet`).
- */
-export async function fetchPatchWorkbookBootstrapSheets(
-  path: string,
-): Promise<Sheet[] | null> {
-  const r = await fetch(`${base}${path}`, {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-  });
-  if (r.status === 404) return null;
-  if (!r.ok) {
-    redirectToLoginIfNeeded(path, r.status);
-    const text = await r.text();
-    let msg = text || r.statusText;
-    try {
-      const j = JSON.parse(text) as { message?: string };
-      if (typeof j.message === "string" && j.message) msg = j.message;
-    } catch {
-      /* not JSON */
-    }
-    throw new Error(msg);
-  }
-  const j = (await r.json()) as { sheets?: unknown };
-  const sheets = j.sheets;
-  if (!Array.isArray(sheets) || sheets.length === 0) return null;
-  return sheets as Sheet[];
 }
 
 export async function apiSend<T>(

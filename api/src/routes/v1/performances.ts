@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
+import type { Sheet } from "@fortune-sheet/core";
 import { eq, asc } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { validatePerformanceSchedule, hhmmToMinutes } from "../../lib/performance-overlap.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
+import { broadcastFullStateToPerformanceRoom } from "../../plugins/collab-ws-relay.js";
 import {
-  performanceYjsSnapshots,
+  performanceWorkbooks,
   patchTemplates,
   stageDays,
   performances,
@@ -16,11 +18,10 @@ import {
   buildWorkbookJsonExportV1,
   safeDownloadBasename,
 } from "../../lib/workbook-json-envelope.js";
-import { decodeTemplateSnapshotToSheets } from "../../lib/yjs-template-snapshot.js";
 import {
-  performanceCollabDocName,
-  workbookSnapshotBufferForPersist,
-} from "../../lib/yjs-collab-replace.js";
+  sheetsFromJsonb,
+  sheetsLookUsableAfterOpLogReplay,
+} from "../../lib/workbook-ops.js";
 import {
   createPerformanceBody,
   patchPerformanceBody,
@@ -97,7 +98,7 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const [seed] = await db
-      .select({ snapshot: patchTemplates.snapshot })
+      .select({ sheetsJson: patchTemplates.sheetsJson })
       .from(stages)
       .leftJoin(
         patchTemplates,
@@ -120,18 +121,24 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
         })
         .returning();
 
-      if (seed?.snapshot?.length) {
+      const templateSheets = seed?.sheetsJson;
+      if (
+        templateSheets != null &&
+        Array.isArray(templateSheets) &&
+        sheetsLookUsableAfterOpLogReplay(templateSheets as Sheet[])
+      ) {
+        const copy = structuredClone(templateSheets) as unknown[];
         await tx
-          .insert(performanceYjsSnapshots)
+          .insert(performanceWorkbooks)
           .values({
             performanceId: inserted!.id,
-            snapshot: seed.snapshot,
+            sheetsJson: copy,
             updatedAt: new Date(),
           })
           .onConflictDoUpdate({
-            target: performanceYjsSnapshots.performanceId,
+            target: performanceWorkbooks.performanceId,
             set: {
-              snapshot: seed.snapshot,
+              sheetsJson: copy,
               updatedAt: new Date(),
             },
           });
@@ -147,7 +154,11 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       {
         performanceId: row.id,
         stageDayId,
-        seededYjs: Boolean(seed?.snapshot?.length),
+        seededWorkbook: Boolean(
+          seed?.sheetsJson != null &&
+            Array.isArray(seed.sheetsJson) &&
+            sheetsLookUsableAfterOpLogReplay(seed.sheetsJson as Sheet[]),
+        ),
       },
       "performance created",
     );
@@ -161,21 +172,16 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       .from(performances)
       .where(eq(performances.id, id));
     if (!perf) return reply.code(404).send({ error: "NotFound" });
-    const [snap] = await db
-      .select()
-      .from(performanceYjsSnapshots)
-      .where(eq(performanceYjsSnapshots.performanceId, id));
-    if (!snap?.snapshot?.length) {
+    const [wb] = await db
+      .select({ sheetsJson: performanceWorkbooks.sheetsJson })
+      .from(performanceWorkbooks)
+      .where(eq(performanceWorkbooks.performanceId, id))
+      .limit(1);
+    const sheets = sheetsFromJsonb(wb?.sheetsJson);
+    if (!sheetsLookUsableAfterOpLogReplay(sheets)) {
       return reply.code(404).send({
         error: "NotFound",
-        message: "No patch workbook snapshot for this performance",
-      });
-    }
-    const sheets = decodeTemplateSnapshotToSheets(Buffer.from(snap.snapshot));
-    if (sheets.length === 0) {
-      return reply.code(404).send({
-        error: "NotFound",
-        message: "Snapshot contained no sheet data",
+        message: "No patch workbook for this performance",
       });
     }
     const label = perf.bandName || "performance";
@@ -215,27 +221,26 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "ValidationError", message: msg });
       }
 
-      const snapshot = workbookSnapshotBufferForPersist(
-        performanceCollabDocName(id),
-        sheets,
-      );
+      const sheetsJson = structuredClone(sheets) as unknown[];
 
       const [existing] = await db
         .select()
-        .from(performanceYjsSnapshots)
-        .where(eq(performanceYjsSnapshots.performanceId, id));
+        .from(performanceWorkbooks)
+        .where(eq(performanceWorkbooks.performanceId, id));
       if (existing) {
         await db
-          .update(performanceYjsSnapshots)
-          .set({ snapshot, updatedAt: new Date() })
-          .where(eq(performanceYjsSnapshots.performanceId, id));
+          .update(performanceWorkbooks)
+          .set({ sheetsJson, updatedAt: new Date() })
+          .where(eq(performanceWorkbooks.performanceId, id));
       } else {
-        await db.insert(performanceYjsSnapshots).values({
+        await db.insert(performanceWorkbooks).values({
           performanceId: id,
-          snapshot,
+          sheetsJson,
           updatedAt: new Date(),
         });
       }
+
+      broadcastFullStateToPerformanceRoom(id, sheets);
 
       broadcastInvalidate([
         ["performances", perf.stageDayId],

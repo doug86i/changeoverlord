@@ -36,7 +36,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 |-----|---------|
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Locked product + stack choices |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | User-journey analysis, competitive research, feature status, what's next |
-| [`docs/REALTIME.md`](docs/REALTIME.md) | Authoritative realtime model: SSE vs Yjs, wire format, implementation checklist |
+| [`docs/REALTIME.md`](docs/REALTIME.md) | Authoritative realtime model: SSE vs collab WebSocket relay, wire format, implementation checklist |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local testing — **`make dev-fast`** (hot reload) and **`make dev`** (image parity); **Git commits** — small logical units, message style |
 | [`docs/LOGGING.md`](docs/LOGGING.md) | **Structured logging:** `req.log` / `createLogger`, levels, no secrets, web `logDebug` |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | **Operator-facing** how-to (keep in sync when UX changes) |
@@ -49,7 +49,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | [`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc) | After notable code/build changes, update **`CHANGELOG.md`** |
 | [`.cursor/rules/logging.mdc`](.cursor/rules/logging.mdc) | Structured logging — **`req.log`**, **`createLogger`**, no secrets |
 | [`.cursor/rules/code-patterns.mdc`](.cursor/rules/code-patterns.mdc) | Concrete examples: new routes, pages, queries, CSS tokens |
-| [`.cursor/rules/pitfalls.mdc`](.cursor/rules/pitfalls.mdc) | Explicit **do-not** list — Yjs, Redis, styling, migrations |
+| [`.cursor/rules/pitfalls.mdc`](.cursor/rules/pitfalls.mdc) | Explicit **do-not** list — collab relay, Redis, styling, migrations |
 
 ---
 
@@ -73,11 +73,11 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 1. **Schedule & domain data** (events, stages, days, performances, settings)  
    - **Source of truth:** REST under `/api/v1/...`.  
    - **Live updates:** `GET /api/v1/realtime` (Server-Sent Events). After mutations, the API calls `broadcastInvalidate()` with **TanStack Query `queryKey` tuples**; the web client’s `RealtimeSync` invalidates those keys.  
-   - **Do not** put this data in Yjs for “simplicity.”
+   - **Do not** put this data in the spreadsheet collab channel for “simplicity.”
 
 2. **Collaborative patch / RF workbook (FortuneSheet)**  
-   - **Sync:** WebSocket `/ws/v1/collab/:performanceId` (performances) and `/ws/v1/collab-template/:templateId` (templates) + **Yjs** binary protocol.  
-   - **Persistence:** Postgres `performance_yjs_snapshots` (seeded from the stage’s chosen global `patch_templates` workbook when a performance is created).  
+   - **Sync:** WebSocket `/ws/v1/collab/:performanceId` (performances) and `/ws/v1/collab-template/:templateId` (templates) — **JSON** messages (`fullState`, `op` batches), FortuneSheet **`onOp`/`applyOp`**.  
+   - **Persistence:** Postgres **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`** (performance row seeded from the stage’s default template when the performance is created).  
    - **Do not** route workbook updates through the SSE channel.
 
 ---
@@ -101,12 +101,12 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | CRUD (events → stages → days → performances) | **Done** | Full REST API + SSE invalidation, inline edit/delete all entities |
 | Auth (optional shared password) | **Done** | Session cookie, `@fastify/cookie` |
 | Stage clocks | **Done** | Day clock, arena + controls layout, **F** fullscreen, band nav, auto-advance, message overlay, warning colours |
-| Collaborative patch/RF workbook (Yjs + FortuneSheet) | **Done** | WebSocket sync, Yjs persistence, template cloning, band-to-band nav, patch **sidebar** (changeover, clock, now/next, rider/plot, collapsible), theme-aligned **toolbar / sheet chrome**; **cell selection / editor** use **FortuneSheet defaults** |
+| Collaborative patch/RF workbook (WebSocket relay + FortuneSheet) | **Done** | JSON op relay, `sheets_json` persistence, template cloning, band-to-band nav, patch **sidebar** (changeover, clock, now/next, rider/plot, collapsible), theme-aligned **toolbar / sheet chrome**; **cell selection / editor** use **FortuneSheet defaults** |
 | Global patch template library | **Done** | Upload OOXML Excel (`.xlsx`, `.xltx`, `.xlsm`, `.xltm`, …); **blank** patch = no stored template (stage **None**); optional **`examples/`** starters; in-app edit, preview, rename, replace, duplicate, delete |
 | DHSL footer branding | **Done** | Fixed "Powered by" footer |
 | Rider / plot attachments (stage + performance) | **Done** | Upload (Other by default), **Rider** / **Stage plot** toggles, drag-drop, inline PDF viewer, **convert to PDF** (ImageMagick / LibreOffice / pdf-lib), extract page via **pdf-lib** with **server-side** Poppler thumbnails, delete with confirmation |
 | Responsive layouts | **Done** | Hamburger nav, stacked forms, 768/1024 breakpoints, print styles, reduced motion, skip-to-content |
-| Event export / import packages | **Done** | JSON export/import of full event with stages, days, performances, and Yjs snapshots |
+| Event export / import packages | **Done** | JSON export/import of full event with stages, days, performances, and per-performance **`sheets`** (export **version** 2) |
 | Global search | **Done** | `GET /api/v1/search?q=` searches bands/events/stages; `Ctrl+K` / `/` shortcut |
 | Connection status | **Done** | SSE connection state via React context; yellow/red banners |
 | Keyboard shortcuts | **Done** | `/` search, `?` help, `g e/m/c/s` nav (incl. **My stage today**), `Alt+Arrow` band nav, `F` fullscreen clock |
@@ -118,8 +118,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 
 ## Known constraints (read before making changes)
 
-- **Yjs version pin**: `@y/protocols` must stay at `1.0.6-1` and `yjs` at `13.6.30`. The `@y/websocket-server` package wants Yjs 14 (`@y/y`), but the rest of the app uses Yjs 13. Upgrading without careful testing will break WebSocket connections. See [`docs/DECISIONS.md`](docs/DECISIONS.md) for details.
-- **FortuneSheet**: Core spreadsheet dependency. Collaboration uses its `onOp`/`applyOp` API with a Yjs `opLog` (append-only `Y.Array` of serialized ops). **Server-side decode** for export/preview clones replays the opLog in **`api/src/lib/yjs-oplog-replay.ts`** (direct JSON mutation — not Immer `applyPatches`, which must capture return values). The Yjs snapshot in **Postgres** is the source of truth for live workbook state; the **`.xlsx`** / **`.json`** on disk is the upload artifact only until replaced. **Upstream bugs** are fixed in the **source-level fork** (`vendor/` tarballs — see **Docker image: FortuneSheet fork and dependencies** above); prefer **upstream PRs** when practical.
+- **FortuneSheet**: Core spreadsheet dependency. Collaboration uses **`onOp` → WebSocket → `applyOp`** (same pattern FortuneSheet documents). The server keeps **`Sheet[]`** in memory per collab room and persists **`sheets_json`** to Postgres (debounced). **Server-side** import/export and relay use **`applyOpBatchToSheets`** in **`api/src/lib/workbook-ops.ts`** (direct JSON mutation — not Immer `applyPatches`). The **`.xlsx`** / **`.json`** on disk is the upload artifact only until replaced. **Upstream bugs** are fixed in the **source-level fork** (`vendor/` tarballs — see **Docker image: FortuneSheet fork and dependencies** above); prefer **upstream PRs** when practical.
 - **In-process EventEmitter**: SSE invalidation uses an in-process bus. The app is designed for a single API instance. Adding a second replica requires Redis pub/sub or Postgres `LISTEN/NOTIFY` — see [`docs/REALTIME.md`](docs/REALTIME.md).
 - **No Redis**: Redis is not in the stack. Do not attempt to use Redis clients without first adding the service to `docker-compose.yml`.
 - **Container runs as `node` user**: The Dockerfile switches to a non-root user. Ensure file writes (uploads) go to the mounted volume at `UPLOADS_DIR`.
@@ -135,7 +134,7 @@ api/
     app.ts                # Fastify setup — plugins, routes, error handler, static SPA
     db/
       client.ts           # Drizzle client
-      schema.ts           # all tables (events, stages, stageDays, performances, patchTemplates [stageId: null=global, set=local], fileAssets, performanceYjsSnapshots)
+      schema.ts           # all tables (events, stages, stageDays, performances, patchTemplates [stageId: null=global, set=local], fileAssets, performanceWorkbooks)
     schemas/
       api.ts              # shared Zod schemas (params, bodies)
     routes/v1/
@@ -154,7 +153,7 @@ api/
       realtime-sse.ts     # SSE endpoint
     plugins/
       auth-guard.ts       # cookie auth middleware
-      collab-ws.ts        # WebSocket routes for Yjs collaboration (performance + template)
+      collab-ws-relay.ts  # WebSocket JSON op relay + debounced sheets_json persist (performance + template)
     lib/
       log.ts              # Pino logger, createLogger
       drizzle-logger.ts   # optional Drizzle SQL logger when LOG_LEVEL=debug
@@ -167,13 +166,10 @@ api/
       excel-to-sheets.ts  # OOXML Excel → Sheet[]; normalizeSheetFromRaw (+ JSON native passthrough)
       json-patch-template.ts  # FortuneSheet JSON → Sheet[] (upload + REST import; envelope + raw roots)
       workbook-json-envelope.ts  # changeoverlordWorkbook v1 export shape + safe download basename
-      yjs-collab-replace.ts  # replace live collab opLog from sheets; snapshot buffer for persist
+      workbook-ops.ts     # applyOpBatchToSheets, structural checks (relay + import/export)
       default-patch-sheets.ts  # two-tab empty shell for POST …/patch-templates/blank
       sheets-to-excel.ts  # Sheet[] → .xlsx buffer
       sheet-preview.ts    # Sheet[] → preview JSON
-      yjs-persistence.ts  # Yjs doc save/load (Postgres snapshots)
-      yjs-template-snapshot.ts  # encode/decode template Yjs snapshots
-      yjs-oplog-replay.ts       # replay persisted opLog → Sheet[] (export + decode fallback)
       performance-overlap.ts    # schedule validation helpers (same-day intervals)
       session-token.ts    # HMAC session cookie
   drizzle/
@@ -227,8 +223,7 @@ web/
       dateFormat.ts        # formatDateFriendly, formatDateShort, minutesBetween, formatDuration, formatCountdown
       useLastVisited.ts    # `LAST_STAGE_DAY_STORAGE_KEY` (clock nav / my stage today)
       myStageToday.ts      # resolve /stage-days/:id for “today” (My stage today nav)
-      patchWorkbookCollab.ts   # shared Yjs/WebSocket workbook hook; readOnly + pauseWhenHidden (phone)
-      patchWorkbookYjs.ts      # Yjs hydrate/recalc / sheet activation helpers
+      patchWorkbookCollab.ts   # WebSocket relay hook; readOnly + pauseWhenHidden (phone)
       stageDayClockMetrics.ts  # clock page derived metrics (hero + ClockBannerMode handover)
       clockSchedule.ts         # clock schedule helpers
     hooks/
@@ -240,16 +235,16 @@ web/
 
 ## Handoff — next agent (patch templates / FortuneSheet)
 
-**Last consolidated commit:** patch workbook export replay, **`calcChain`** generation, blank-template **`data`** matrices, DH v6 example + builder script, root **`build:test`** / **`docker:build:app`** scripts.
+**Collab stack:** WebSocket **relay** (`collab-ws-relay.ts`) + **`sheets_json`** in Postgres — no Yjs.
 
 1. **Verify end-to-end** (Docker must be running — `docker info`):
    - **`make dev-fast`** (quick) or **`make dev`** / **`npm run docker:build:app`** then **`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app`** (or **`make dev-app`**).
    - **`GET /api/v1/health`** (fast: via **`http://localhost/...`** when **`FAST_WEB_PORT=80`**, or **`http://localhost:3000/...`**), open the UI at **`http://localhost/`** (or **`FAST_WEB_PORT`** / **`HOST_PORT`** as set in **`.env`**).
-2. **Blank template:** Create **Settings → Create blank template**, edit cells, reload editor — edits should persist (depends on **`data`** + Yjs; see **`api/src/lib/default-patch-sheets.ts`**, **`web/src/lib/patchWorkbookCollab.ts`** **`WORKBOOK_PLACEHOLDER`**).
-3. **DH starter:** Import **`examples/DH_Pick_Patch_TEMPLATE_v6.json`** via **Import workbook JSON** or **`PUT /api/v1/patch-templates/:id/sheets-import`** to refresh a library template; confirm cross-sheet formulas and **Export JSON** match live state.
-4. **Regenerate v6:** **`node scripts/build-dh-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v6.json`** — then commit if structure changes.
-5. **Open questions (if user still reports issues):** First-paint formula display vs **`calculateFormula`** (headless **`execfunction`** works); merge / **“Merge info is null”** console noise; FortuneSheet **`deleteRowCol`** adjusting formulas on other sheets (known upstream risk — prefer JSON import to reset).
-6. **Docs:** Keep **`docs/PATCH_TEMPLATE_JSON.md`** and **`docs/USER_GUIDE.md`** aligned if export/import or blank-template behaviour changes.
+2. **Blank template:** Create **Settings → Create blank template**, edit cells, reload editor — edits should persist via relay → **`patch_templates.sheets_json`** (see **`api/src/lib/default-patch-sheets.ts`**, **`web/src/lib/patchWorkbookCollab.ts`**).
+3. **DH starter:** Import **`examples/DH_Pick_Patch_TEMPLATE_v7.json`** (or v6) via **Import workbook JSON** or **`PUT /api/v1/patch-templates/:id/sheets-import`**; confirm formulas and **Export JSON** match live state.
+4. **Regenerate v7:** **`node scripts/build-v7-template.mjs`** (see **`examples/README.md`**) — commit if structure changes.
+5. **Open questions:** First-paint formula display vs **`calculateFormula`**; FortuneSheet **`deleteRowCol`** on multi-sheet workbooks (prefer single-sheet templates or JSON import to reset — see **`docs/PATCH_TEMPLATE_JSON.md`**).
+6. **Docs:** Keep **`docs/PATCH_TEMPLATE_JSON.md`**, **`docs/REALTIME.md`**, and **`docs/USER_GUIDE.md`** aligned if collab or export/import behaviour changes.
 
 ---
 
@@ -261,6 +256,6 @@ Project rules live in **`.cursor/rules/`**:
 - **`git-commits.mdc`** — one commit per logical unit; short, specific, imperative messages
 - **`local-docker-deploy.mdc`** — run `make dev-fast` or `make dev` after changes
 - **`changelog.mdc`** — update `CHANGELOG.md` for notable code/build changes
-- **`realtime-and-data-sync.mdc`** — SSE vs Yjs split
+- **`realtime-and-data-sync.mdc`** — SSE vs collab WebSocket split
 - **`logging.mdc`** — structured logging
 - **`user-documentation.mdc`** — keep USER_GUIDE.md in sync

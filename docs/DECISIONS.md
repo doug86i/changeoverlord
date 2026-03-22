@@ -104,7 +104,7 @@ If a limit is hit, message must be **short, actionable** ("File too large — ma
 | API | **Fastify** + **TypeScript** |
 | DB access | **Drizzle ORM** + **PostgreSQL** (migrations in repo) |
 | Validation | **Zod** |
-| Realtime | **WebSockets** + **Yjs** (patch workbook); **SSE** (`/api/v1/realtime`) for schedule / domain cache invalidation |
+| Realtime | **WebSockets** JSON op relay (patch workbook); **SSE** (`/api/v1/realtime`) for schedule / domain cache invalidation |
 | Frontend | **Vite** + **React** + **TypeScript** + **TanStack Query** |
 | Spreadsheet UI | **FortuneSheet** + **`@zenmrp/fortune-sheet-excel`** (Excel import) + **ExcelJS** (blank template export) |
 | Tests (later) | **Vitest** (unit) + **Playwright** (e2e smoke) |
@@ -120,22 +120,20 @@ The project consumes **`@fortune-sheet/core`** and **`@fortune-sheet/react`** fr
 **Commits on `dhsl/v1.0.4`** (each isolated):
 
 1. **Touch pan** (`modules/mobile.ts`): anchor scroll to `initialScrollLeft`/`initialScrollTop` at `touchstart` instead of cumulative delta. Fixes iOS pan speed.
-2. **`getSheetIndex`** (`utils/index.ts`): compare `String(id)` for Yjs string/number round-trip safety; return `null` when id is nullish.
+2. **`getSheetIndex`** (`utils/index.ts`): compare `String(id)` for id string/number round-trip safety; return `null` when id is nullish.
 3. **`addSheet`** (`modules/sheet.ts`): only block when `allowEdit === false` AND no `sheetData`; collab replay with `sheetData` runs on read-only viewers.
 4. **`deleteSheet`** (`modules/sheet.ts`): remove `allowEdit === false` guard so remote deletes apply everywhere.
 5. **`applyOp` + `initSheetData` (remote add tab):** `patchToOp` can emit **`addSheet`** with **`value: addSheetOps[0]?.value`** — that value is sometimes **`undefined`**. Upstream **`applyOp`** still called **`api.initSheetData(ctx_, fileIndex, specialOp.value)`**, which destructures **`newData`** and **throws**. Fork guards: skip when payload is missing; call **`initSheetData`** only when **`getSheetIndex`** is non-null (`packages/react/src/components/Workbook/api.ts`).
 6. **`initSheetData` (core):** return **`null`** when **`newData`** is nullish; resolve the target row in **`luckysheetfile`** by **`newData.id`** when the passed index is null or does not match that id (`packages/core/src/api/sheet.ts`).
 7. **React `Workbook` `initSheetData` (duplicate helper):** upstream has a **second** `initSheetData` in **`packages/react/src/components/Workbook/index.tsx`** (separate from **`api.initSheetData`** in core). It used to destructure **`newData`** with no null check and wrote **`d[index]`** with **`index`** from **`getSheetIndex`** cast to **`number`**. When **`getSheetIndex`** was **`null`** (e.g. id mismatch during collab / empty-workbook bootstrap), remotes crashed. Fork guards: null **`newData`/`index`**, bounds-check, skip **`forEach`** rows when index or sheet is missing (`packages/react/src/components/Workbook/index.tsx`).
 
-**OpLog replay & Immer paths (this app):** FortuneSheet **`applyOp`** turns each remote **`Op[]`** batch into Immer patches whose paths include **`data/<row>/<col>`** (and related keys) on the **sheet `data` matrix** in editor context — not Excel **`A1`** addresses. Patches assume the target **`luckysheetfile[].data`** rows/columns **already exist**. If a client mounts **`Workbook`** with a **smaller grid** than the workbook that produced the persisted Yjs **`opLog`**, replay from index **0** can throw **`[Immer] Cannot apply patch, path doesn't resolve`** (e.g. **`data/10/3`**). Mitigations in **changeoverlord**: **(1)** bootstrap **`data`** from **`GET …/sheets-export`** (server-decoded snapshot) before replay so dimensions align with the clone that seeded the room; **(2)** on **`applyOp`** failure, **abort** replay, skip post-hydration formula passes that assume a coherent grid, and show operator recovery copy (reload / navigate away and back).
+**Op apply & Immer paths (this app):** FortuneSheet **`applyOp`** turns each remote **`Op[]`** batch into Immer patches whose paths include **`data/<row>/<col>`** (and related keys) on the **sheet `data` matrix** in editor context — not Excel **`A1`** addresses. Patches assume the target **`luckysheetfile[].data`** rows/columns **already exist**. If a client mounts **`Workbook`** with **`data`** that is **too small** for an incoming op batch, **`applyOp`** can throw **`[Immer] Cannot apply patch, path doesn't resolve`**. Mitigations: the server keeps a full **`Sheet[]`** in **`sheets_json`** and sends **`fullState`** on WebSocket connect / reconnect so clients remount with matching dimensions; REST **`GET …/sheets-export`** mirrors the same JSON. On client **`applyOp`** failure (e.g. corrupt message), log and skip; operator recovery: reload or re-open the patch page.
 
 **`jfrefreshgrid` vs `batchCallApis`:** The React **`Workbook`** **`batchCallApis`** helper only invokes functions on the frozen **`api`** object from **`@fortune-sheet/core`**. **`jfrefreshgrid`** is a **separate named export** in core and is **not** registered on **`api`**, so **`batchCallApis([{ name: "jfrefreshgrid", … }])`** only logged a console warning. Collab recalc uses **`api.calculateFormula`** per sheet (via **`batchCallApis`**) plus **`WorkbookRef.calculateFormula()`**.
 
 **Immer `autoFreeze` (this app):** FortuneSheet's `setContext` uses **`produceWithPatches`** (Immer). After `produce` finishes, Immer's `autoFreeze` recursively freezes the returned state tree. React 18 may **replay** the state-updater function (concurrent mode / Strict Mode double-invoke). `addSheet` mutates its `sheetData` argument (`delete sheetData.data`) then pushes it to `ctx.luckysheetfile` — making it part of the state and therefore frozen. A replayed updater captures the **same `ops` closure** → `opToPatch` returns the **same frozen** `sheetData` reference → `delete` throws **`Unable to delete property`**. Fix: **`setAutoFreeze(false)`** in **`web/src/main.tsx`** before FortuneSheet loads. This is the standard Immer production configuration and prevents this entire class of freeze-vs-replay crashes without touching the fork.
 
-**React 18 Strict Mode `onOp` deduplication (this app):** React 18 Strict Mode calls `useState` updater functions **twice** to detect impure side effects. FortuneSheet's `setContextWithProduce` calls `emitOp` → the `onOp` prop **inside** the `useState` updater, so every local edit fires `onOp` twice with **identical** ops. For idempotent `replace` patches this is invisible on remotes, but non-idempotent ops (`addSheet`, `deleteSheet`, `insertRowCol`, `deleteRowCol`) push duplicates to Yjs → remote peers apply both → **duplicate sheets / rows / columns**. Fix: the `onOp` handler in `patchWorkbookCollab.ts` compares each serialised op batch against the previous push (`lastPushedOpsRef`). Identical consecutive batches within the same microtask are dropped; the ref resets via `queueMicrotask` so legitimate future identical edits still propagate. Note: `applyOp` (the **receiver** path) passes `{ noHistory: true }` to `setContextWithProduce`, which skips `emitOp` entirely — so there is **no** echo from remote op application; the dedup is only needed on the **sender** side.
-
-**Bootstrap fast-path hydration (this app):** When a workbook mounts with bootstrap data from **`sheets-export`** (which the API builds by replaying the server-side Yjs opLog), the `<Workbook data={…}>` prop already reflects the **complete** opLog history — every sheet, every cell value, every structural change. Running `drainOpLogWithQuietFrames` on top of that re-applies the **same** history: structural ops (`addSheet`) create duplicate sheets; cell-level Immer patches target paths that already reflect the final state, producing `Cannot apply patch, path doesn't resolve` errors. Fix: when `hasBootstrapData` is true, the drain is **skipped entirely**. The useLayoutEffect waits for Yjs sync + workbook mount, runs formula recalc, and marks `hydratedRef = true` immediately. The `yops.observe` handler (guarded by `!hydratedRef.current`) silently drops items that arrived during the Yjs sync (they're already in the bootstrap). Only genuinely new ops — pushed by remote peers **after** page load — are applied. A secondary guard (`shouldSkipAlreadyAppliedStructuralOps`) in the observe handler provides belt-and-suspenders protection against duplicate structural ops during reconnects. The placeholder/no-bootstrap path (used when `sheets-export` fails or returns empty) still runs the full drain.
+**Patch workbook collaboration (relay):** Live editing uses **FortuneSheet’s collab pattern**: local edits call **`onOp` → WebSocket `{ type: "op", data: Op[] }` → server applies the same batch to in-memory **`Sheet[]`** with **`applyOpBatchToSheets`** (see **`api/src/lib/workbook-ops.ts`**) → server broadcasts to other sockets → peers call **`applyOp`**. Postgres stores **`sheets_json`** (`performance_workbooks`, `patch_templates`); the relay debounces writes (~2s) and flushes on room empty / process shutdown. **Yjs was removed** (2026): it duplicated upstream’s design, added ~1.7k lines of integration, and interacted badly with React 18 Strict Mode duplicate **`onOp`** pushes for non-idempotent ops.
 
 **To update the fork:** clone `doug86i/fortune-sheet`, checkout `dhsl/v1.0.4`, edit TypeScript source, run `yarn install && npm run build`, then `npm pack` in `packages/core/` and `packages/react/`, copy `.tgz` to **`vendor/`**. In this repo, refresh **`package-lock.json`** integrity so npm extracts the new bytes: e.g. **`npm install -w @changeoverlord/web @fortune-sheet/react@file:./vendor/fortune-sheet-react-1.0.4.tgz`** and the same for **`@fortune-sheet/core`** on **`api`**, or delete **`node_modules/@fortune-sheet`** and reinstall after replacing tarballs. Prefer **upstream PRs** when practical; drop fork commits when merged.
 
@@ -145,23 +143,16 @@ The project consumes **`@fortune-sheet/core`** and **`@fortune-sheet/react`** fr
 
 - **REST** under **`/api/v1/...`** (resources: events, stages, stage-days, performances, **files** (PDF upload/list/extract/raw), patch-templates, settings).
 - **WebSocket** for collaboration: e.g. **`/ws/v1/collab`** (or nested under `/api` — pick one and keep it consistent); **subprotocol** or **query token** for auth when password enabled.
-- **Live updates (schedule / lists)** — **`GET /api/v1/realtime`** (SSE): after mutations, server broadcasts **TanStack Query** `queryKey` tuples to invalidate; clients refetch without refresh. See **[`REALTIME.md`](REALTIME.md)**. (Not used for Yjs spreadsheet bytes.)
+- **Live updates (schedule / lists)** — **`GET /api/v1/realtime`** (SSE): after mutations, server broadcasts **TanStack Query** `queryKey` tuples to invalidate; clients refetch without refresh. See **[`REALTIME.md`](REALTIME.md)**. (Not used for spreadsheet workbook bytes — those use the collab WebSocket.)
 - **Server time**: **`GET /api/v1/time`** (or `/api/v1/health` including skew info later).
 
 ---
 
-## Yjs / WebSocket npm compatibility
+## Patch workbook persistence (Postgres `sheets_json`)
 
-- **`@y/websocket-server`** pulls **`@y/protocols`**. Do **not** let npm resolve **`@y/protocols@1.0.6-rc.x`**: that line peers **`@y/y`** (Yjs 14) while the app uses **`yjs@13`**. Two different Yjs runtimes break **`setupWSConnection`** with **`Cannot read properties of undefined (reading 'clients')`** and the FortuneSheet grid never syncs.
-- **Pin** **`@y/protocols` to `1.0.6-1`** in **`api/package.json`** and keep root **`package.json` `overrides`** aligned — see comments there.
-
----
-
-## Yjs persistence
-
-- Store **incremental Yjs updates** in Postgres (`performance_id`, `update` bytea, `created_at`) for durability and crash recovery.
-- **Periodic snapshot** (e.g. every N minutes or every M updates) stored as a single blob per doc to **speed up load** and **compact** history — compaction job can run async.
-- **MVP simplification** allowed: **snapshot-only** on timer if incremental is too much for first slice — but plan to add **updates** before production festivals.
+- **Performances:** table **`performance_workbooks`** — one row per performance, column **`sheets_json jsonb`** (FortuneSheet **`Sheet[]`**). Seeded when the performance is created from the stage’s default template.
+- **Templates:** **`patch_templates.sheets_json`** — same shape; updated on upload/replace/JSON import and by the template collab relay.
+- **Not** an unbounded event log: the relay may apply ops in memory between debounced writes, but durability is the latest **`sheets_json`** snapshot.
 
 ---
 

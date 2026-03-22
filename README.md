@@ -99,7 +99,7 @@ See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for building from source, Doc
 |-------|------------|
 | API | Fastify, TypeScript, Drizzle ORM, PostgreSQL, Zod |
 | Web | Vite, React, TypeScript, TanStack Query, React Router |
-| Live updates | SSE (schedule) · WebSockets + Yjs (patch workbooks) |
+| Live updates | SSE (schedule) · WebSockets JSON op relay (patch workbooks) |
 | Spreadsheet | FortuneSheet |
 | Deploy | Docker Compose: Postgres + Node container serving REST + static SPA |
 
@@ -113,7 +113,7 @@ See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for building from source, Doc
 | **[Development](docs/DEVELOPMENT.md)** | Building, testing, setup on a new machine |
 | **[Roadmap](docs/ROADMAP.md)** | User personas, feature requirements, competitive analysis |
 | **[Decisions](docs/DECISIONS.md)** | Engineering and product decisions, visual design |
-| **[Realtime](docs/REALTIME.md)** | SSE vs Yjs architecture |
+| **[Realtime](docs/REALTIME.md)** | SSE vs collab WebSocket architecture |
 | **[Logging](docs/LOGGING.md)** | Structured logs; fast-stack **client NDJSON** (`logs/client-debug.ndjson`) for patch collab troubleshooting |
 | **[Changelog](CHANGELOG.md)** | Release notes and version history |
 

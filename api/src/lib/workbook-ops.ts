@@ -1,17 +1,7 @@
 /**
- * Decode a persisted Yjs `opLog` snapshot into `Sheet[]` by applying each op
- * as a direct JSON mutation.
- *
- * The opLog is a Yjs Array of JSON-stringified `Op[]` batches. Batch 0 is
- * typically `[{op:"replace", path:["luckysheetfile"], value: Sheet[]}]` — the
- * initial upload. Subsequent batches are cell edits, config changes, row/col
- * deletions, etc., each scoped to a sheet by `op.id`.
- *
- * Previous implementation tried to route ops through FortuneSheet's
- * `opToPatch` + Immer `applyPatches`. That never worked because
- * `applyPatches` returns a new object and the return value was discarded.
+ * Apply FortuneSheet `Op[]` batches to `Sheet[]` via direct JSON mutation (server-side mirror of
+ * `applyOp` semantics). Used by the collab relay and persistence paths.
  */
-import * as Y from "yjs";
 import type { Op, Sheet } from "@fortune-sheet/core";
 
 function setAtPath(obj: Record<string, unknown>, path: (string | number)[], value: unknown): void {
@@ -38,7 +28,7 @@ function applyOpBatch(
       sheetById.clear();
       for (const s of op.value as Sheet[]) {
         sheets.push(s);
-        if (s.id) sheetById.set(s.id, s);
+        if (s.id) sheetById.set(String(s.id), s);
       }
       continue;
     }
@@ -59,7 +49,13 @@ function applyOpBatch(
     }
 
     if (op.op === "insertRowCol" && op.value) {
-      const v = op.value as { type: string; start: number; end: number; id?: string; direction?: string };
+      const v = op.value as {
+        type: string;
+        start: number;
+        end: number;
+        id?: string;
+        direction?: string;
+      };
       const sh = sheetById.get(v.id ?? (op as { id?: string }).id ?? "");
       if (!sh?.data) continue;
       const count = v.end - v.start + 1;
@@ -82,7 +78,7 @@ function applyOpBatch(
     if (op.op === "addSheet" && op.value) {
       const newSheet = op.value as Sheet;
       sheets.push(newSheet);
-      if (newSheet.id) sheetById.set(newSheet.id, newSheet);
+      if (newSheet.id) sheetById.set(String(newSheet.id), newSheet);
       continue;
     }
 
@@ -94,7 +90,6 @@ function applyOpBatch(
       continue;
     }
 
-    // Regular replace / add: apply value at path on the target sheet.
     const sheetId = (op as { id?: string }).id;
     if (!sheetId) continue;
     const sh = sheetById.get(sheetId);
@@ -109,7 +104,7 @@ function applyOpBatch(
  * Ensure every formula cell is represented in `calcChain`.
  * Without this, FortuneSheet's incremental recalc ignores the formula.
  */
-function ensureCalcChain(sheet: Sheet): void {
+export function ensureCalcChain(sheet: Sheet): void {
   const id = sheet.id ?? "";
   const existing = Array.isArray(sheet.calcChain) ? sheet.calcChain : [];
   const seen = new Set<string>();
@@ -133,34 +128,19 @@ function ensureCalcChain(sheet: Sheet): void {
   sheet.calcChain = chain;
 }
 
-/**
- * Replay a frozen list of `opLog` JSON strings (same order as in Yjs).
- * Used for compaction and by {@link replayYjsSnapshotToSheets}.
- */
-export function replayOpLogStringEntries(entries: readonly string[]): Sheet[] {
-  const sheets: Sheet[] = [];
+/** Apply one `Op[]` batch in place; rebuilds id map from `sheets` first. */
+export function applyOpBatchToSheets(sheets: Sheet[], ops: Op[]): void {
   const sheetById = new Map<string, Sheet>();
-
-  for (const raw of entries) {
-    if (typeof raw !== "string") continue;
-    let ops: Op[];
-    try {
-      ops = JSON.parse(raw) as Op[];
-    } catch {
-      continue;
-    }
-    if (!Array.isArray(ops)) continue;
-    applyOpBatch(sheets, sheetById, ops);
+  for (const s of sheets) {
+    if (s.id != null && String(s.id).trim() !== "") sheetById.set(String(s.id), s);
   }
-
+  applyOpBatch(sheets, sheetById, ops);
   for (const sheet of sheets) ensureCalcChain(sheet);
-  return sheets;
 }
 
 /**
- * True if replay output is safe to persist as a single `replace luckysheetfile` op.
- * Rejects empty arrays, sheets without ids, and sheets with neither `data` nor `celldata`
- * (headless replay can diverge from FortuneSheet and would otherwise compact to a blank grid).
+ * True if workbook JSON is safe to serve / persist.
+ * Rejects empty arrays, sheets without ids, and sheets with neither `data` nor `celldata`.
  */
 export function sheetsLookUsableAfterOpLogReplay(sheets: Sheet[]): boolean {
   if (!Array.isArray(sheets) || sheets.length === 0) return false;
@@ -176,11 +156,8 @@ export function sheetsLookUsableAfterOpLogReplay(sheets: Sheet[]): boolean {
   return true;
 }
 
-/** Decode a persisted Yjs update (template or performance snapshot) to `Sheet[]`. */
-export function replayYjsSnapshotToSheets(snapshot: Uint8Array): Sheet[] {
-  const doc = new Y.Doc();
-  Y.applyUpdate(doc, snapshot);
-  const opLog = doc.getArray<string>("opLog");
-  if (opLog.length === 0) return [];
-  return replayOpLogStringEntries(opLog.toArray());
+/** Parse `sheets_json` from Postgres into `Sheet[]` (deep clone for safe mutation). */
+export function sheetsFromJsonb(value: unknown): Sheet[] {
+  if (!Array.isArray(value)) return [];
+  return structuredClone(value) as Sheet[];
 }

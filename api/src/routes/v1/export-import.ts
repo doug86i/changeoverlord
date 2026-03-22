@@ -7,14 +7,14 @@ import {
   stages,
   stageDays,
   performances,
-  performanceYjsSnapshots,
+  performanceWorkbooks,
 } from "../../db/schema.js";
 import { normalizePerformanceBandName } from "../../lib/performance-band-name.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { uuidParam } from "../../schemas/api.js";
 
 const importBodySchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   event: z.object({
     id: z.string().uuid(),
     name: z.string().min(1).max(500),
@@ -54,11 +54,12 @@ const importBodySchema = z.object({
       }),
     )
     .max(50_000),
-  snapshots: z
+  workbooks: z
     .array(
       z.object({
         performanceId: z.string().uuid(),
-        snapshot: z.string().max(80_000_000),
+        /** FortuneSheet `Sheet[]` as JSON */
+        sheets: z.array(z.unknown()),
       }),
     )
     .max(5000)
@@ -83,25 +84,25 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
         ? await db.select().from(performances).where(inArray(performances.stageDayId, dayIds))
         : [];
     const perfIds = perfRows.map((p) => p.id);
-    const snapshotRows =
+    const workbookRows =
       perfIds.length > 0
         ? await db
             .select()
-            .from(performanceYjsSnapshots)
-            .where(inArray(performanceYjsSnapshots.performanceId, perfIds))
+            .from(performanceWorkbooks)
+            .where(inArray(performanceWorkbooks.performanceId, perfIds))
         : [];
 
     const payload = {
-      version: 1,
+      version: 2 as const,
       exportedAt: new Date().toISOString(),
       event: ev,
       stages: stageRows,
       stageDays: dayRows,
       performances: perfRows,
-      snapshots: snapshotRows.map((s) => ({
-        performanceId: s.performanceId,
-        snapshot: s.snapshot.toString("base64"),
-        updatedAt: s.updatedAt,
+      workbooks: workbookRows.map((w) => ({
+        performanceId: w.performanceId,
+        sheets: w.sheetsJson,
+        updatedAt: w.updatedAt,
       })),
     };
 
@@ -130,7 +131,7 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "ValidationError",
-        message: "Invalid export package",
+        message: "Invalid export package (expected version 2 with workbooks)",
         details: parsed.error.flatten(),
       });
     }
@@ -193,22 +194,16 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
           idMap.set(p.id, row!.id);
         }
 
-        if (body.snapshots) {
-          for (const s of body.snapshots) {
-            const newPerfId = idMap.get(s.performanceId);
+        if (body.workbooks) {
+          for (const w of body.workbooks) {
+            const newPerfId = idMap.get(w.performanceId);
             if (!newPerfId) continue;
-            let buf: Buffer;
-            try {
-              buf = Buffer.from(s.snapshot, "base64");
-            } catch {
-              continue;
-            }
-            if (buf.length === 0) continue;
+            if (!Array.isArray(w.sheets)) continue;
             await tx
-              .insert(performanceYjsSnapshots)
+              .insert(performanceWorkbooks)
               .values({
                 performanceId: newPerfId,
-                snapshot: buf,
+                sheetsJson: structuredClone(w.sheets) as unknown[],
               })
               .onConflictDoNothing();
           }

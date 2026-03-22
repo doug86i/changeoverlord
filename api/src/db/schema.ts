@@ -1,25 +1,14 @@
+import { sql } from "drizzle-orm";
 import {
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uuid,
   date,
-  customType,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-
-const bytea = customType<{ data: Buffer; driverData: Buffer }>({
-  dataType() {
-    return "bytea";
-  },
-  toDriver(value: Buffer): Buffer {
-    return value;
-  },
-  fromDriver(value: Buffer): Buffer {
-    return value;
-  },
-});
 
 /** Single-row app configuration (id must always be 1). */
 export const settings = pgTable("settings", {
@@ -52,7 +41,9 @@ export const patchTemplates = pgTable("patch_templates", {
   storageKey: text("storage_key").notNull().unique(),
   mimeType: text("mime_type").notNull(),
   byteSize: integer("byte_size").notNull(),
-  snapshot: bytea("snapshot").notNull(),
+  sheetsJson: jsonb("sheets_json")
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   /** NULL = global template; set = local to this stage. */
   stageId: uuid("stage_id").references((): AnyPgColumn => stages.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -122,12 +113,14 @@ export const fileAssets = pgTable("file_assets", {
     .notNull(),
 });
 
-/** Latest Yjs snapshot per performance (FortuneSheet doc). */
-export const performanceYjsSnapshots = pgTable("performance_yjs_snapshots", {
+/** Latest FortuneSheet workbook (JSON) per performance. */
+export const performanceWorkbooks = pgTable("performance_workbooks", {
   performanceId: uuid("performance_id")
     .primaryKey()
     .references(() => performances.id, { onDelete: "cascade" }),
-  snapshot: bytea("snapshot").notNull(),
+  sheetsJson: jsonb("sheets_json")
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

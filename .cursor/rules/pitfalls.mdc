@@ -5,12 +5,12 @@ alwaysApply: true
 
 # Pitfalls (do NOT do these)
 
-## Yjs and FortuneSheet
+## Patch workbook collab (FortuneSheet + WebSocket relay)
 
-- **Do NOT upgrade** `yjs`, `@y/protocols`, `@y/websocket-server`, or `y-websocket` without reading `docs/DECISIONS.md` § "Yjs / WebSocket npm compatibility." The versions are pinned to avoid a Yjs 13 vs 14 conflict that breaks WebSocket connections silently.
-- **Do NOT attempt to reconstruct sheet state from the Yjs opLog on the server** for arbitrary live editing. The opLog contains serialized FortuneSheet ops that only FortuneSheet's `applyOp` can replay; the Yjs snapshot in the DB is the source of truth. **Exception:** controlled **server-side replay** in **`api/src/lib/yjs-oplog-replay.ts`** (export / preview / template flows) mutates sheet JSON directly — do **not** extend that path without understanding FortuneSheet op shapes and row/column index semantics.
-- **Do NOT modify the FortuneSheet collaboration bridge** (the `onOp` → `yops.push` → `observe` → `applyOp` flow in **`web/src/lib/patchWorkbookCollab.ts`** / **`web/src/lib/patchWorkbookYjs.ts`**, wired from `PatchPage.tsx` / `PatchTemplateEditorPage.tsx`) unless you deeply understand both FortuneSheet ops and Yjs transactions.
-- **Do NOT forget `ydoc.destroy()`** in cleanup effects when creating `Y.Doc` instances.
+- **Do NOT** route spreadsheet workbook state through **SSE** (`/api/v1/realtime`) — workbooks use **`/ws/v1/collab/…`** / **`collab-template/…`** with JSON **`fullState`** / **`op`** messages. Domain data stays **REST + SSE**.
+- **Do NOT** reintroduce **Yjs** for the patch grid without a **`docs/DECISIONS.md`** update — the stack uses a simple op relay aligned with FortuneSheet’s collab pattern; persistence is **`sheets_json`** in Postgres.
+- Server-side **`applyOpBatchToSheets`** (`api/src/lib/workbook-ops.ts`) mutates **`Sheet[]`** directly — do **not** extend it without understanding FortuneSheet op shapes and row/column index semantics.
+- **Do NOT modify** **`web/src/lib/patchWorkbookCollab.ts`** or **`api/src/plugins/collab-ws-relay.ts`** casually — ordering of **`fullState`**, **`applyOp`**, and formula recalc is easy to break for multi-tab users.
 - **FortuneSheet** is consumed from a **source-level fork** (`doug86i/fortune-sheet`) as tarballs in **`vendor/`**. Do **NOT** use `patch-package` on FortuneSheet; all fixes go into the fork's TypeScript source. See **`.cursor/rules/patch-templates.mdc`** and **`docs/DECISIONS.md`**.
 
 ## Redis
@@ -21,7 +21,7 @@ alwaysApply: true
 
 - Successful `POST` / `PATCH` / `DELETE` handlers that **should refresh** other users’ **domain / schedule / settings** UI **must** call **`broadcastInvalidate`** with **`queryKey` tuples** matching **`web/src/`**. Mutations with no REST-cached surface (e.g. internal housekeeping) are exempt — when unsure, see **`docs/REALTIME.md`** and **`.cursor/rules/realtime-and-data-sync.mdc`**.
 - Every new **`useQuery`** key for that REST data must be covered by **`broadcastInvalidate`** in the relevant API mutations, or users need a manual refresh.
-- Domain data uses **SSE**. Workbook data uses **Yjs/WebSocket**. Never mix them.
+- Domain data uses **SSE**. Workbook data uses the **collab WebSocket relay**. Never mix them.
 
 ## Docker and testing
 

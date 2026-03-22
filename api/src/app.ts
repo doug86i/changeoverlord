@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
 import { v1Routes } from "./routes/v1/index.js";
 import { registerAuth } from "./plugins/auth-guard.js";
-import { collabWsPlugin } from "./plugins/collab-ws.js";
+import { collabWsRelayPlugin } from "./plugins/collab-ws-relay.js";
 import { log } from "./lib/log.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -69,7 +69,7 @@ export async function buildApp() {
     limits: { fileSize: 100 * 1024 * 1024 },
   });
 
-  await app.register(collabWsPlugin);
+  await app.register(collabWsRelayPlugin);
 
   await app.register(v1Routes, { prefix: "/api/v1" });
 

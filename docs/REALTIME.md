@@ -57,7 +57,7 @@ Clients that do not implement chat should **ignore** unknown top-level fields an
 1. After a **successful** write (same request, after DB commit), call **`broadcastInvalidate([...])`** with every **`queryKey`** that should refresh for other users.
 2. Reuse **existing** keys from `useQuery` in `web/src/pages/` and related hooks. Common patterns:
    - `["events"]`, `["event", eventId]`
-   - `["stages", eventId]`, `["stage", stageId]`, `["patchTemplates"]`, `["patchTemplate"]` (global patch/RF templates — REST or Yjs autosave from the template editor)
+   - `["stages", eventId]`, `["stage", stageId]`, `["patchTemplates"]`, `["patchTemplate"]` (global patch/RF templates — REST; template workbook saves via collab relay → debounced `sheets_json`)
    - `["stageDays", stageId]`, `["stageDay", stageDayId]`
    - `["performances", stageDayId]`, `["performance", performanceId]`
    - `["allStagesForClock"]` — prefix key for the multi-event stages aggregator on **`ClockPage`** (invalidate after event / stage / stage-day mutations that change which days exist)
@@ -78,31 +78,28 @@ Clients that do not implement chat should **ignore** unknown top-level fields an
 
 ---
 
-## Collaboration spreadsheet (Yjs) — separate system
+## Collaboration spreadsheet (WebSocket op relay) — separate system
 
-The **FortuneSheet / Yjs** workbook uses **WebSockets** — **binary Yjs sync**, not SSE:
+The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON messages** (FortuneSheet ops), not SSE and not Yjs:
 
 - **Performances (patch & RF):** **`/ws/v1/collab/:performanceId`**
 - **Template editor (Settings):** **`/ws/v1/collab-template/:templateId`**
 
+**Wire protocol (JSON):**
+
+- **Server → client (on connect):** `{ "type": "fullState", "sheets": Sheet[] }` — current workbook from Postgres (or the in-memory room if already warm).
+- **Client → server:** `{ "type": "op", "data": Op[] }` — same batches FortuneSheet emits from **`onOp`**.
+- **Server → other clients:** `{ "type": "op", "data": Op[] }` — broadcast after the server applies the batch to its copy with **`applyOpBatchToSheets`** (`api/src/lib/workbook-ops.ts`).
+
+**Rules:**
+
 - **Do not** send workbook updates through `/api/v1/realtime`.
-- **Do not** move schedule/performance rows into Yjs “to get realtime” — use REST + invalidation above.
-- **Phone patch (read-only viewer):** `usePatchWorkbookCollab` can call **`WebsocketProvider.disconnect()`** when the document is hidden (Page Visibility API) and **`connect()`** when visible again, so the socket is not held open with the screen off. Reconnect uses the normal Yjs sync handshake; remote edits still apply.
+- **Do not** move schedule/performance rows into the collab channel — use REST + invalidation above.
+- **Phone patch (read-only viewer):** `usePatchWorkbookCollab` closes the WebSocket when the document is hidden if **`pauseWhenHidden`** is set, and reconnects when visible; the server sends **`fullState`** again after reconnect.
 
-Persistence: **`performance_yjs_snapshots`** and **`patch_templates.snapshot`**; stage **default template** clone on new performance — see schema and `docs/DECISIONS.md`.
+**Persistence:** **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`**. The relay debounces writes (**~2 seconds** after the last op). On **SIGTERM / SIGINT**, **`flushCollabRelayRooms`** persists all non-empty rooms. Stage **default template** is cloned into a new performance row when the performance is created — see **`docs/DECISIONS.md`**.
 
-**Yjs persistence details** (`api/src/lib/yjs-persistence.ts`):
-
-- **Load-before-persist:** the DB snapshot is loaded and applied **before** subscribing to `doc.on("update")` for debounced writes. Otherwise the WebSocket sync handshake can trigger a persist while the doc is still empty and **clobber** a good row in Postgres (more likely when DB I/O is slow).
-- **No catch-up persist after failed load:** if the initial Postgres read throws, the API **does not** run the debounced “catch-up” persist (only later `update` events do). That avoids persisting an empty in-memory doc right after a transient DB error.
-- **Refuse unusable overwrite:** before replacing an existing snapshot that is already **≥ 256 bytes**, the server decodes the new Yjs payload with the same headless replay used for compaction. If the result is not **structurally usable** (same rules as compaction), the write is **skipped** and a **warn** is logged — the previous Postgres snapshot is kept. This guards against occasional empty / corrupt encodings overwriting a good workbook.
-- **Debounce:** changes are persisted to Postgres **1 second** after the last edit (debounced). Previously 3 seconds.
-- **Graceful shutdown:** on **SIGTERM / SIGINT**, all active Yjs docs are flushed to Postgres before the process exits. Without this, edits in the debounce window are lost on container restart.
-- **OpLog compaction:** when the append-only `opLog` exceeds **200 entries**, the persist layer replays it to the current sheet state and replaces it with a single `replace luckysheetfile` op. This keeps snapshots small and page-load replay fast. Compaction runs in **one Yjs transaction** (read `opLog` → replay → replace) and is **skipped** if replay output is not **structurally usable** (every sheet needs a non-empty `id` and either a non-empty `data` matrix or `celldata`), so a divergent headless replay cannot overwrite the log with a blank workbook.
-
-**Are workbooks rebuilt from “all history” forever?** No. The browser replays the **`opLog`** after sync, but **`opLog` length is capped** by compaction (≤ **200** batches between compactions; often **1** batch — a full `luckysheetfile` replace — after compaction). Postgres stores one **Yjs binary snapshot** per doc, not an unbounded event log. Cost still grows with **workbook size** (big grids), not unbounded edit count.
-
-**Client vs server snapshot timing:** The API applies the persisted Yjs snapshot from Postgres inside **`bindState`** asynchronously. The WebSocket can report “synced” before that snapshot merge finishes, so the web client **waits for extra idle frames** after the first `opLog` drain and **blocks local edits** until hydration completes (overlay **Loading workbook…**). That avoids racing the FortuneSheet **placeholder** grid and ending up with a blank sheet if the operator edits immediately after open or right after a template upload.
+**REST import / export:** **`GET/PUT …/sheets-export` / `sheets-import`** read and write the same **`sheets_json`**. If a live room exists, the API can **`broadcastFullState*`** so connected clients remount from the new JSON.
 
 ---
 

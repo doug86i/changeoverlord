@@ -71,6 +71,13 @@
       "when": 1743100000000,
       "tag": "0009_stages_clock_message",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1743200000000,
+      "tag": "0010_replace_yjs_with_json",
+      "breakpoints": true
     }
   ]
 }

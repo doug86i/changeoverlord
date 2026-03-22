@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { db, pool } from "./db/client.js";
 import { buildApp } from "./app.js";
 import { createLogger, log } from "./lib/log.js";
-import { flushAllYjsDocs } from "./lib/yjs-persistence.js";
+import { flushCollabRelayRooms } from "./plugins/collab-ws-relay.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DEV_SESSION_FALLBACK = "dev-only-change-in-production";
@@ -44,9 +44,9 @@ async function main() {
     shuttingDown = true;
     log.info({ signal }, "graceful shutdown started");
     try {
-      await flushAllYjsDocs();
+      await flushCollabRelayRooms();
     } catch (err) {
-      log.error({ err }, "error flushing Yjs docs during shutdown");
+      log.error({ err }, "error flushing collab relay during shutdown");
     }
     try {
       await app.close();

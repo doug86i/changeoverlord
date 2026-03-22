@@ -4,9 +4,7 @@ import { FORTUNE_SHEET_PACKAGE_VERSION } from "../lib/fortuneSheetVersion";
 
 export type PatchWorkbookCollabDebug = {
   conn?: string;
-  synced?: boolean;
   workbookHydrated?: boolean;
-  workbookReplayError?: string | null;
 };
 
 function buildDiagnosticText(
@@ -27,12 +25,8 @@ function buildDiagnosticText(
   const c = extras.collabDebug;
   if (c) {
     if (c.conn != null) lines.push(`collab.conn: ${c.conn}`);
-    if (c.synced != null) lines.push(`collab.synced: ${String(c.synced)}`);
     if (c.workbookHydrated != null) {
       lines.push(`collab.workbookHydrated: ${String(c.workbookHydrated)}`);
-    }
-    if (c.workbookReplayError) {
-      lines.push(`collab.workbookReplayError: ${c.workbookReplayError}`);
     }
   }
   lines.push(`viteMode: ${import.meta.env.MODE}`);

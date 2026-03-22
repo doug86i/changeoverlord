@@ -1,271 +1,268 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
+  type MutableRefObject,
   type RefObject,
 } from "react";
-import * as Y from "yjs";
-import { WebsocketProvider } from "y-websocket";
+import { flushSync } from "react-dom";
 import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Op, Sheet } from "@fortune-sheet/core";
 import { logDebug } from "./debug";
-import {
-  logClientDebugCollab,
-  summarizeOpsForClientLog,
-} from "./clientDebugLog";
 import { usePageVisible } from "../hooks/usePageVisible";
-import {
-  PATCH_WORKBOOK_Y_ORIGIN,
-  usePatchWorkbookOpLogEffects,
-} from "./patchWorkbookYjs";
 
-/** Minimal valid sheet so `<Workbook>` can mount. Yjs opLog replay overwrites immediately. */
-export const WORKBOOK_PLACEHOLDER: Sheet[] = [
-  {
-    id: "placeholder",
-    name: "Sheet1",
-    status: 1,
-    row: 36,
-    column: 18,
-    order: 0,
-    data: Array.from({ length: 36 }, () => Array.from({ length: 18 }, () => null)),
-    calcChain: [],
-  },
-];
+const WS_INITIAL_BACKOFF_MS = 300;
+const WS_MAX_BACKOFF_MS = 10_000;
+
+type WsMessage =
+  | { type: "fullState"; sheets: Sheet[] }
+  | { type: "op"; data: Op[] };
+
+function fullDataRange(sheet: Sheet): { row: [number, number]; column: [number, number] } {
+  const data = sheet.data;
+  const rowLen = Array.isArray(data) ? data.length : 0;
+  const rowMax = Math.max(0, (rowLen > 0 ? rowLen : 1) - 1);
+  const first = Array.isArray(data) && data.length > 0 ? data[0] : null;
+  const colLen = Array.isArray(first) ? first.length : 0;
+  const colMax = Math.max(0, (colLen > 0 ? colLen : 1) - 1);
+  if (!Number.isFinite(rowMax) || !Number.isFinite(colMax)) {
+    return { row: [0, 0], column: [0, 0] };
+  }
+  return { row: [0, rowMax], column: [0, colMax] };
+}
+
+function getActiveSheetId(wb: WorkbookInstance): string | undefined {
+  const sheets = wb.getAllSheets() as Sheet[];
+  const active = sheets.find((s) => s.status === 1);
+  if (active?.id == null || String(active.id).trim() === "") return undefined;
+  return String(active.id);
+}
+
+function sheetIdExists(wb: WorkbookInstance, id: string): boolean {
+  return (wb.getAllSheets() as Sheet[]).some(
+    (s) => s.id != null && String(s.id) === id,
+  );
+}
+
+/** After remote `applyOp`, refresh formulas without pushing ops to the server. */
+function flushRemoteFormulaRecalc(
+  wb: WorkbookInstance,
+  suppressLocalOpsRef: MutableRefObject<boolean>,
+): void {
+  suppressLocalOpsRef.current = true;
+  try {
+    const savedActiveId = getActiveSheetId(wb);
+    const sheets = wb.getAllSheets() as Sheet[];
+    for (const sheet of sheets) {
+      const sheetId = sheet.id;
+      if (sheetId == null || sheetId === "") continue;
+      try {
+        const range = fullDataRange(sheet);
+        flushSync(() => {
+          wb.batchCallApis([
+            { name: "activateSheet", args: [{ id: sheetId }] },
+            { name: "calculateFormula", args: [sheetId, range] },
+          ]);
+        });
+      } catch (e) {
+        logDebug("patch-workbook-collab", "per-sheet calculateFormula skipped", { sheetId }, e);
+      }
+    }
+    try {
+      flushSync(() => {
+        wb.calculateFormula();
+      });
+      flushSync(() => {
+        wb.calculateFormula();
+      });
+    } catch (e) {
+      logDebug("patch-workbook-collab", "calculateFormula failed after remote op", e);
+    }
+    if (savedActiveId && sheetIdExists(wb, savedActiveId)) {
+      const current = (wb.getAllSheets() as Sheet[]).find(
+        (s) => s.id != null && String(s.id) === savedActiveId,
+      );
+      const restoreId = current?.id;
+      if (restoreId != null && restoreId !== "") {
+        try {
+          flushSync(() => {
+            wb.batchCallApis([{ name: "activateSheet", args: [{ id: restoreId }] }]);
+          });
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  } finally {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        suppressLocalOpsRef.current = false;
+      });
+    });
+  }
+}
 
 export type PatchWorkbookCollabMode = "performance" | "template";
 
 /**
- * Shared Yjs + FortuneSheet wiring for `/patch/:id` and `/patch-templates/:id/edit`.
+ * WebSocket op relay + FortuneSheet (FortuneSheet upstream collab pattern).
  */
 export function usePatchWorkbookCollab(opts: {
   roomId: string | undefined;
   mode: PatchWorkbookCollabMode;
+  /** When true, `<Workbook>` can mount (parent finished loading domain row). */
   workbookReady: boolean;
-  /**
-   * When true, the `<Workbook data={...}>` prop was populated from a server-side `sheets-export`
-   * snapshot — the workbook already reflects the full opLog history. Skip the initial
-   * `drainOpLogWithQuietFrames` replay (which would double-apply addSheet / cell ops on top of
-   * the correct state) and hydrate immediately after Yjs sync.
-   */
-  hasBootstrapData?: boolean;
-  /** Called after each local op is pushed to Yjs (e.g. mark performance workbook dirty). */
   onLocalOp?: () => void;
-  /**
-   * When true, disconnect the collab WebSocket while the tab is hidden or the screen is off
-   * (Page Visibility API), then reconnect when visible again — saves battery on phones.
-   */
   pauseWhenHidden?: boolean;
-  /** When true, local FortuneSheet ops are not pushed to Yjs (read-only viewer; remote ops still apply). */
   readOnly?: boolean;
 }): {
   wbRef: RefObject<WorkbookInstance | null>;
   onOp: (ops: Op[]) => void;
   conn: "connecting" | "connected" | "error";
-  synced: boolean;
-  /** FortuneSheet has replayed Yjs `opLog` (incl. late server snapshot); safe to edit. */
+  /** Sheets from server `fullState`; null until first message. */
+  workbookSheets: Sheet[] | null;
   workbookHydrated: boolean;
-  /** Immer / `applyOp` failed — grid may be wrong; reload page or leave and re-enter the room. */
-  workbookReplayError: string | null;
 } {
-  const {
-    roomId,
-    mode,
-    workbookReady,
-    hasBootstrapData = false,
-    onLocalOp,
-    pauseWhenHidden = false,
-    readOnly = false,
-  } = opts;
+  const { roomId, mode, workbookReady, onLocalOp, pauseWhenHidden = false, readOnly = false } =
+    opts;
   const wbRef = useRef<WorkbookInstance>(null);
-  const providerRef = useRef<InstanceType<typeof WebsocketProvider> | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressLocalOpsRef = useRef(false);
+  const intentionalDisconnectRef = useRef(false);
   const pageVisible = usePageVisible();
-  /** True while running formula recalc — prevents onOp from pushing huge recalc batches to Yjs. */
-  const suppressYjsOpsForFormulaRecalcRef = useRef(false);
-  /** Synchronous gate so `onOp` ignores input before hydration even if React state lags. */
-  const localOpsAllowedRef = useRef(false);
-  /**
-   * React 18 Strict Mode calls `useState` updater functions **twice** (to surface impure side
-   * effects). FortuneSheet's `setContextWithProduce` calls `emitOp` → `onOp` **inside** the
-   * updater, so every local edit fires `onOp` twice with identical ops. For idempotent `replace`
-   * patches this is invisible, but non-idempotent ops (`addSheet`, `deleteSheet`, `insertRowCol`,
-   * `deleteRowCol`) create duplicates on remotes. We deduplicate by comparing the serialised ops
-   * against the last pushed value; the ref resets after the current microtask so legitimate
-   * future identical ops still go through.
-   */
-  const lastPushedOpsRef = useRef<string | null>(null);
-  /** Latest collab flags for NDJSON (avoid stale closures in FortuneSheet `onOp`). */
-  const collabDebugRef = useRef({
-    conn: "connecting" as "connecting" | "connected" | "error",
-    synced: false,
-    workbookHydrated: false,
-  });
-  const [conn, setConn] = useState<"connecting" | "connected" | "error">(
-    "connecting",
-  );
-  const [synced, setSynced] = useState(false);
+
+  const [conn, setConn] = useState<"connecting" | "connected" | "error">("connecting");
+  const [workbookSheets, setWorkbookSheets] = useState<Sheet[] | null>(null);
   const [workbookHydrated, setWorkbookHydrated] = useState(false);
-  const [workbookReplayError, setWorkbookReplayError] = useState<string | null>(
-    null,
-  );
 
-  const ydoc = useMemo(() => new Y.Doc(), [roomId ?? ""]);
-  const yops = useMemo(() => ydoc.getArray<string>("opLog"), [ydoc]);
-
-  useEffect(() => {
-    return () => {
-      ydoc.destroy();
-    };
-  }, [ydoc]);
-
-  useEffect(() => {
-    collabDebugRef.current = { conn, synced, workbookHydrated };
-  }, [conn, synced, workbookHydrated]);
-
-    const onOp = useCallback(
-      (ops: Op[]) => {
-        if (readOnly) return;
-        if (suppressYjsOpsForFormulaRecalcRef.current) return;
-        if (!localOpsAllowedRef.current) return;
-        const serialized = JSON.stringify(ops);
-        const isDuplicate = serialized === lastPushedOpsRef.current;
-        logClientDebugCollab("patch-workbook-collab", "onOp called", {
-          roomId,
-          mode,
-          readOnly,
-          ...collabDebugRef.current,
-          isDuplicate,
-          opsSummary: summarizeOpsForClientLog(ops),
-          ...(serialized.length <= 24_000
-            ? { opBatchJson: serialized }
-            : { opBatchLen: serialized.length }),
-        });
-
-        if (isDuplicate) return;
-        lastPushedOpsRef.current = serialized;
-        // Extend the deduplication window slightly in case React schedules the second
-        // invocation in a subsequent microtask or frame.
-        setTimeout(() => {
-          lastPushedOpsRef.current = null;
-        }, 50);
-
-        onLocalOp?.();
-        ydoc.transact(() => {
-          logClientDebugCollab("patch-workbook-collab", "yops.push", {
-            roomId,
-            mode,
-            readOnly,
-            ...collabDebugRef.current,
-            opsSummary: summarizeOpsForClientLog(ops),
-            ...(serialized.length <= 24_000
-              ? { opBatchJson: serialized }
-              : { opBatchLen: serialized.length }),
-          });
-          yops.push([serialized]);
-        }, PATCH_WORKBOOK_Y_ORIGIN);
-      },
-      [ydoc, yops, onLocalOp, readOnly, roomId, mode],
-    );
-
-  const onHydrationChange = useCallback((hydrated: boolean) => {
-    localOpsAllowedRef.current = hydrated;
-    setWorkbookHydrated(hydrated);
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimerRef.current != null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
   }, []);
 
-  const onReplayFailure = useCallback(
-    (detail: { message: string }) => {
-      setWorkbookReplayError(detail.message);
-    },
-    [],
-  );
-
-  useEffect(() => {
+  const connectWs = useCallback(() => {
     if (!roomId) return;
-
-    setSynced(false);
-    localOpsAllowedRef.current = false;
-    setWorkbookHydrated(false);
-    setWorkbookReplayError(null);
-
-    if (mode === "template") {
-      logDebug("patch-workbook", "Template editor Yjs provider starting", {
-        templateId: roomId,
-      });
-    } else {
-      logDebug("patch-workbook", "PatchPage Yjs provider starting", {
-        performanceId: roomId,
-      });
-    }
-
+    clearReconnectTimer();
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
     const path =
       mode === "template" ? "/ws/v1/collab-template" : "/ws/v1/collab";
-    const base = `${proto}//${window.location.host}${path}`;
-    const provider = new WebsocketProvider(base, roomId, ydoc, {
-      connect: true,
-    });
-    providerRef.current = provider;
+    const url = `${proto}//${window.location.host}${path}/${roomId}`;
 
-    const onStatus = (ev: { status: string }) => {
-      logDebug("patch-workbook", "y-websocket status", ev.status);
-      if (ev.status === "connected") setConn("connected");
-      if (ev.status === "disconnected") setConn("connecting");
-    };
-    const onSync = (isSynced: boolean) => {
-      logDebug("patch-workbook", "y-websocket synced", isSynced);
-      setSynced(isSynced);
-    };
-    const onErr = () => {
-      logDebug("patch-workbook", "y-websocket connection-error");
+    try {
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+      setConn("connecting");
+
+      ws.onopen = () => {
+        reconnectAttemptRef.current = 0;
+        setConn("connected");
+        logDebug("patch-workbook-collab", "websocket open", { roomId, mode });
+      };
+
+      ws.onmessage = (ev) => {
+        let msg: WsMessage;
+        try {
+          msg = JSON.parse(ev.data as string) as WsMessage;
+        } catch {
+          return;
+        }
+        if (msg.type === "fullState" && Array.isArray(msg.sheets)) {
+          setWorkbookSheets(structuredClone(msg.sheets));
+          setWorkbookHydrated(true);
+          return;
+        }
+        if (msg.type === "op" && Array.isArray(msg.data)) {
+          const wb = wbRef.current;
+          if (!wb) return;
+          try {
+            wb.applyOp(msg.data as Op[]);
+            flushRemoteFormulaRecalc(wb, suppressLocalOpsRef);
+          } catch (e) {
+            logDebug("patch-workbook-collab", "applyOp failed for remote batch", e);
+          }
+        }
+      };
+
+      ws.onerror = () => {
+        setConn("error");
+        logDebug("patch-workbook-collab", "websocket error", { roomId });
+      };
+
+      ws.onclose = () => {
+        wsRef.current = null;
+        if (intentionalDisconnectRef.current) {
+          intentionalDisconnectRef.current = false;
+          setConn("connecting");
+          logDebug("patch-workbook-collab", "websocket closed (intentional)", { roomId });
+          return;
+        }
+        setConn("connecting");
+        setWorkbookHydrated(false);
+        setWorkbookSheets(null);
+        const attempt = reconnectAttemptRef.current + 1;
+        reconnectAttemptRef.current = attempt;
+        const delay = Math.min(
+          WS_MAX_BACKOFF_MS,
+          WS_INITIAL_BACKOFF_MS * 2 ** Math.min(attempt - 1, 8),
+        );
+        reconnectTimerRef.current = setTimeout(() => {
+          connectWs();
+        }, delay);
+        logDebug("patch-workbook-collab", "websocket closed; scheduling reconnect", {
+          roomId,
+          delayMs: delay,
+        });
+      };
+    } catch {
       setConn("error");
-    };
-
-    provider.on("status", onStatus);
-    provider.on("sync", onSync);
-    provider.on("connection-error", onErr);
-
-    return () => {
-      providerRef.current = null;
-      provider.destroy();
-    };
-  }, [roomId, ydoc, mode]);
+    }
+  }, [roomId, mode, clearReconnectTimer]);
 
   useEffect(() => {
-    const provider = providerRef.current;
-    if (!provider) return;
-    if (!pauseWhenHidden) {
-      provider.connect();
-      return;
-    }
-    if (!workbookHydrated) {
-      // Keep the connection alive until initial sync + opLog replay finishes;
-      // disconnecting before hydration would leave the workbook stuck on the
-      // loading overlay (especially on iOS where visibility can flicker).
-      return;
-    }
-    if (!pageVisible) {
-      logDebug("patch-workbook", "Page hidden — disconnecting Yjs WebSocket");
-      provider.disconnect();
-      setConn("connecting");
-    } else {
-      logDebug("patch-workbook", "Page visible — reconnecting Yjs WebSocket");
-      provider.connect();
-    }
-  }, [pauseWhenHidden, pageVisible, workbookHydrated]);
+    if (!roomId || !workbookReady) return;
+    connectWs();
+    return () => {
+      clearReconnectTimer();
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [roomId, workbookReady, connectWs, clearReconnectTimer]);
 
-  usePatchWorkbookOpLogEffects(
-    roomId,
-    yops,
-    wbRef,
-    synced,
-    workbookReady,
-    suppressYjsOpsForFormulaRecalcRef,
-    onHydrationChange,
-    onReplayFailure,
-    hasBootstrapData,
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws) return;
+    if (!pauseWhenHidden) return;
+    if (!workbookHydrated) return;
+    if (!pageVisible) {
+      clearReconnectTimer();
+      ws.close();
+      logDebug("patch-workbook-collab", "page hidden — closing websocket");
+    } else {
+      connectWs();
+      logDebug("patch-workbook-collab", "page visible — reconnecting websocket");
+    }
+  }, [pauseWhenHidden, pageVisible, workbookHydrated, connectWs, clearReconnectTimer]);
+
+  const onOp = useCallback(
+    (ops: Op[]) => {
+      if (readOnly) return;
+      if (suppressLocalOpsRef.current) return;
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      onLocalOp?.();
+      try {
+        ws.send(JSON.stringify({ type: "op", data: ops }));
+      } catch (e) {
+        logDebug("patch-workbook-collab", "send op failed", e);
+      }
+    },
+    [readOnly, onLocalOp],
   );
 
-  return { wbRef, onOp, conn, synced, workbookHydrated, workbookReplayError };
+  return { wbRef, onOp, conn, workbookSheets, workbookHydrated };
 }

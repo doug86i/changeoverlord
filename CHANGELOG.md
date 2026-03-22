@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **API / Web / DB (breaking):** Replaced **Yjs** patch workbook sync with a **WebSocket JSON op relay** (`fullState` + `op` batches). Persistence is **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`** (migration **`0010_replace_yjs_with_json`** — drops **`performance_yjs_snapshots`** and template **`snapshot` bytea**). Event **export/import** uses **`version`: 2** with workbook **`sheets`** arrays; **v1** packages with base64 Yjs snapshots are no longer supported. See **`docs/DECISIONS.md`**, **`docs/REALTIME.md`**, **`AGENTS.md`**.
+
 ### Added
 
 - **API / Web / Docker (fast):** **`POST /api/v1/debug/client-log`** (when **`CLIENT_LOG_FILE`** is set) appends **NDJSON** lines from the browser; **`logClientDebugCollab`** batches patch-workbook sender/receiver events. **`make dev-fast`** mounts **`./logs`**, defaults **`CLIENT_LOG_FILE=/app/logs/client-debug.ndjson`** and **`VITE_CLIENT_LOG_FILE=true`**. See **`docs/LOGGING.md`** (*Client debug log file*).

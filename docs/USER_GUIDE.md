@@ -74,7 +74,7 @@ On the **stage day page**, each performance supports:
 
 ### Export and import
 
-- **Export** — From an event's detail page, click **Export event** to download a JSON package of all stages, days, performances, and patch workbook snapshots.
+- **Export** — From an event's detail page, click **Export event** to download a JSON package of all stages, days, performances, and per-performance workbook **`sheets`** (FortuneSheet JSON). Packages use **`version`: 2**; older exports with base64 Yjs snapshots are not imported by current builds.
 - **Import** — On the Events page, click **Import event** to load a previously exported package. The import creates a new event (with " (imported)" suffix).
 
 Typical URL shape as you drill in: `/events/:eventId` → `/stages/:stageId` → `/stage-days/:stageDayId`.
@@ -139,7 +139,7 @@ Templates come in two tiers:
 - **Global templates** — managed in **Settings**, available to every stage.
 - **Stage templates** — created on a **stage** page, belong to that stage only. Safe to edit, rename, replace, or delete without affecting other stages.
 
-Each stage picks one template (global or stage) as its **default for new performances**. New performances get a copy of the template snapshot when created; existing band patch workbooks are not updated.
+Each stage picks one template (global or stage) as its **default for new performances**. New performances get a copy of the template **`sheets_json`** when created; existing band patch workbooks are not updated.
 
 Adding a stage template (file upload, **Import workbook JSON**, or **Create blank template**) **selects it automatically** as that stage’s default when the upload succeeds; you can still pick another template in the dropdown.
 

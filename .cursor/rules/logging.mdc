@@ -10,7 +10,7 @@ Canonical detail: **[`docs/LOGGING.md`](../docs/LOGGING.md)** and **[`docs/DECIS
 ## API
 
 - Use **`req.log`** in Fastify route handlers (structured object + short message).
-- Use **`createLogger("component")`** from **`api/src/lib/log.ts`** for WebSockets, Yjs persistence, realtime bus, migrations — not raw `console.*`.
+- Use **`createLogger("component")`** from **`api/src/lib/log.ts`** for WebSockets, collab relay, realtime bus, migrations — not raw `console.*`.
 - **Levels:** **`debug`** for routine mutations (include entity ids), **`info`** / **`warn`** for auth and settings outcomes, **`error`** for failures.
 - **Never** log passwords, session tokens, or full `Cookie` / `Authorization` headers.
 - **New REST mutations:** add a **`req.log.debug({ ...ids }, "…")`** line after success (match existing routes).

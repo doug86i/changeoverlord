@@ -19,10 +19,7 @@ import { getUploadsDir } from "../../lib/uploads-dir.js";
 import { resolvePathUnderUploadsRoot } from "../../lib/safe-upload-path.js";
 import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import { sheetsToPreviewPayload } from "../../lib/sheet-preview.js";
-import {
-  decodeTemplateSnapshotToSheets,
-  encodeTemplateSnapshotFromSheets,
-} from "../../lib/yjs-template-snapshot.js";
+import { broadcastFullStateToTemplateRoom } from "../../plugins/collab-ws-relay.js";
 import { patchTemplates, stages } from "../../db/schema.js";
 import { uuidParam } from "../../schemas/api.js";
 import {
@@ -36,9 +33,9 @@ import {
   safeDownloadBasename,
 } from "../../lib/workbook-json-envelope.js";
 import {
-  templateCollabDocName,
-  workbookSnapshotBufferForPersist,
-} from "../../lib/yjs-collab-replace.js";
+  sheetsFromJsonb,
+  sheetsLookUsableAfterOpLogReplay,
+} from "../../lib/workbook-ops.js";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const JSON_SHEETS_BODY_LIMIT = 12 * 1024 * 1024;
@@ -133,8 +130,8 @@ async function loadSheetsForPatchTemplateRow(
   row: typeof patchTemplates.$inferSelect,
   uploadsRoot: string,
 ): Promise<Sheet[]> {
-  const fromYjs = decodeTemplateSnapshotToSheets(Buffer.from(row.snapshot));
-  if (fromYjs.length > 0) return fromYjs;
+  const fromDb = sheetsFromJsonb(row.sheetsJson);
+  if (sheetsLookUsableAfterOpLogReplay(fromDb)) return fromDb;
   try {
     const buf = await fs.readFile(resolvePathUnderUploadsRoot(uploadsRoot, row.storageKey));
     return templateRowLooksLikeJson(row)
@@ -202,7 +199,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       if (!st) return reply.code(400).send({ error: "ValidationError", message: "Unknown stage" });
     }
     const sheets = createDefaultPatchWorkbookSheets();
-    const snapshot = encodeTemplateSnapshotFromSheets(sheets);
+    const sheetsJson = structuredClone(sheets) as unknown[];
     const xlsxBuf = await sheetsToExcelBuffer(sheets);
     const uploadsRoot = getUploadsDir();
     const storageKey = `patch-templates/${randomUUID()}.xlsx`;
@@ -219,7 +216,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         mimeType:
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         byteSize: xlsxBuf.length,
-        snapshot,
+        sheetsJson,
         stageId: ownerStageId,
       })
       .returning({ id: patchTemplates.id });
@@ -253,7 +250,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "ValidationError", message: msg });
       }
       const displayName = q.name?.trim() || "Imported template";
-      const snapshot = encodeTemplateSnapshotFromSheets(sheets);
+      const sheetsJson = structuredClone(sheets) as unknown[];
       const uploadsRoot = getUploadsDir();
       const storageKey = `patch-templates/${randomUUID()}.json`;
       const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
@@ -279,7 +276,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
           storageKey,
           mimeType: "application/json",
           byteSize,
-          snapshot,
+          sheetsJson,
           stageId: ownerStageId,
         })
         .returning({ id: patchTemplates.id });
@@ -378,8 +375,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "ValidationError", message: msg });
       }
 
-      const docName = templateCollabDocName(id);
-      const snapshot = workbookSnapshotBufferForPersist(docName, sheets);
+      const sheetsJson = structuredClone(sheets) as unknown[];
       const uploadsRoot = getUploadsDir();
       const oldAbs = resolvePathUnderUploadsRoot(uploadsRoot, existing.storageKey);
       const storageKey = `patch-templates/${randomUUID()}.json`;
@@ -405,7 +401,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
             storageKey,
             mimeType: "application/json",
             byteSize,
-            snapshot,
+            sheetsJson,
             originalName: "workbook-import.json",
             updatedAt: new Date(),
           })
@@ -420,6 +416,8 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       } catch {
         /* ignore */
       }
+
+      broadcastFullStateToTemplateRoom(id, sheets);
 
       invalidateAll();
       req.log.debug({ templateId: id }, "patch template workbook replaced from JSON");
@@ -497,7 +495,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         e instanceof Error ? e.message : "Invalid template file";
       return reply.code(400).send({ error: "ValidationError", message: msg });
     }
-    const snapshot = encodeTemplateSnapshotFromSheets(sheets);
+    const sheetsJson = structuredClone(sheets) as unknown[];
     const uploadsRoot = getUploadsDir();
     const tmplExt = storageExtensionForTemplateUpload(buf, filename, mime);
     const storageKey = `patch-templates/${randomUUID()}${tmplExt}`;
@@ -517,7 +515,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         storageKey,
         mimeType: storedMime,
         byteSize: buf.length,
-        snapshot,
+        sheetsJson,
         stageId: ownerStageId,
       })
       .returning({ id: patchTemplates.id });
@@ -583,7 +581,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
           storageKey: newStorageKey,
           mimeType: existing.mimeType,
           byteSize: existing.byteSize,
-          snapshot: existing.snapshot,
+          sheetsJson: structuredClone(existing.sheetsJson) as unknown[],
           stageId: ownerStageId,
         })
         .returning({ id: patchTemplates.id });
@@ -661,8 +659,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         e instanceof Error ? e.message : "Invalid template file";
       return reply.code(400).send({ error: "ValidationError", message: msg });
     }
-    const docName = templateCollabDocName(id);
-    const snapshot = workbookSnapshotBufferForPersist(docName, sheets);
+    const sheetsJson = structuredClone(sheets) as unknown[];
     const uploadsRoot = getUploadsDir();
     const oldAbs = resolvePathUnderUploadsRoot(uploadsRoot, existing.storageKey);
     const tmplExt = storageExtensionForTemplateUpload(buf, filename, mime);
@@ -683,7 +680,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
           storageKey,
           mimeType: storedMime,
           byteSize: buf.length,
-          snapshot,
+          sheetsJson,
           updatedAt: new Date(),
         })
         .where(eq(patchTemplates.id, id));
@@ -697,6 +694,8 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     } catch {
       /* ignore */
     }
+
+    broadcastFullStateToTemplateRoom(id, sheets);
 
     invalidateAll();
     req.log.info({ templateId: id }, "patch template file replaced");

@@ -39,20 +39,20 @@ Exports use **`api/src/lib/workbook-json-envelope.ts`**:
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/api/v1/patch-templates` | List template metadata. Query **`page`**, **`limit`** (default **200**, max **500**), optional **`stageId`**. Response: **`patchTemplates`**, **`total`**, **`page`**, **`limit`**, **`hasMore`**. |
-| `GET` | `/api/v1/patch-templates/:id/sheets-export` | Download workbook as JSON (**attachment**); decodes the **Postgres `snapshot`** by replaying the full **Yjs `opLog`**, so the file matches edits made in the template editor, not only the uploaded **`.xlsx`** / **`.json`** on disk. |
-| `PUT` | `/api/v1/patch-templates/:id/sheets-import` | Replace template workbook from JSON body (updates disk file, DB snapshot, live template collab room if open) |
+| `GET` | `/api/v1/patch-templates/:id/sheets-export` | Download workbook as JSON (**attachment**); reads **`patch_templates.sheets_json`**, so the file matches edits made in the template editor, not only the uploaded **`.xlsx`** / **`.json`** on disk. |
+| `PUT` | `/api/v1/patch-templates/:id/sheets-import` | Replace template workbook from JSON body (updates disk file, **`sheets_json`**, and pushes **`fullState`** to the template collab room if open) |
 | `POST` | `/api/v1/patch-templates/sheets-import?name=` | Create a **new** library template from JSON body (optional **`name`** query) |
 
 ### Performance (per-band) workbook
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/api/v1/performances/:id/sheets-export` | Download this band’s workbook (**404** if no snapshot yet); same **opLog** replay as template export. |
-| `PUT` | `/api/v1/performances/:id/sheets-import` | Replace workbook from JSON body (persists snapshot; updates live performance collab room if open) |
+| `GET` | `/api/v1/performances/:id/sheets-export` | Download this band’s workbook (**404** if no row yet); reads **`performance_workbooks.sheets_json`**. |
+| `PUT` | `/api/v1/performances/:id/sheets-import` | Replace workbook from JSON body (persists **`sheets_json`**; pushes **`fullState`** to the performance collab room if open) |
 
 **UI:** **Settings** and **stage** template cards expose **Export JSON** / **Import JSON** / **Import workbook JSON**; the **Patch & RF** page exposes **Export JSON** / **Import JSON** for the current performance. After a performance import, the page **reloads** so the grid reconnects with the new state.
 
-Stored on disk as **`patch-templates/<uuid>.json`** with **`mimeType`** **`application/json`**. The Postgres **`snapshot`** column still holds the usual **Yjs**-encoded template seed (same as Excel uploads).
+Stored on disk as **`patch-templates/<uuid>.json`** with **`mimeType`** **`application/json`**. Postgres **`patch_templates.sheets_json`** holds the live **`Sheet[]`** (same source as collab and Excel uploads after normalisation).
 
 ## JSON document shape (root)
 
@@ -194,7 +194,7 @@ FortuneSheet throws this (lowercase message) from **`getSheet()`** in **`@fortun
 
 **Blank performance (band) names** were correlated with patch-page instability in the field. The API now normalizes empty / whitespace-only names to **Untitled act**, and the web client skips **empty sheet `id`s** during post-sync **`jfrefreshgrid`** so **`activateSheet`** is never called with `""`.
 
-**Implementation note:** FortuneSheet **`batchCallApis`** → **`activateSheet`** must receive **`{ id: "<sheet id>" }`** (not **`sheetId`**); otherwise **`getSheet`** ignores the argument and can keep a stale **`currentSheetId`** after **`luckysheetfile`** replace — see **`web/src/lib/patchWorkbookYjs.ts`**.
+**Implementation note:** FortuneSheet **`batchCallApis`** → **`activateSheet`** must receive **`{ id: "<sheet id>" }`** (not **`sheetId`**); otherwise **`getSheet`** ignores the argument and can keep a stale **`currentSheetId`** after **`luckysheetfile`** replace — the collab hook’s remote formula recalc follows this shape (**`web/src/lib/patchWorkbookCollab.ts`**).
 
 **What to do**
 
@@ -227,6 +227,6 @@ Conditional-formatting demos may be re-added under **`examples/`** over time; ru
 | Upload / replace / preview / sheets export-import | `api/src/routes/v1/patch-templates.ts` |
 | Performance sheets export-import | `api/src/routes/v1/performances.ts` |
 | Export envelope | `api/src/lib/workbook-json-envelope.ts` |
-| Live collab replace + persist buffer | `api/src/lib/yjs-collab-replace.ts` |
+| WebSocket op relay + debounced `sheets_json` persist | `api/src/plugins/collab-ws-relay.ts` |
+| Server-side op apply + structural checks | `api/src/lib/workbook-ops.ts` |
 | Extension / MIME helpers | `api/src/lib/upload-allowlists.ts` (`isPatchTemplateJsonFile`, `patchTemplateStorageExtension`, `stripPatchTemplateBasename`) |
-| Yjs snapshot encode/decode | `api/src/lib/yjs-template-snapshot.ts` |

@@ -67,7 +67,7 @@
 
 ### 39. No WebSocket message size limit (DoS) *(addressed)*
 
-**Update:** [`api/src/plugins/collab-ws.ts`](../api/src/plugins/collab-ws.ts) registers the Yjs server with **`maxPayload: 5 * 1024 * 1024`**.
+**Update:** [`api/src/plugins/collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts) registers WebSockets with **`maxPayload: 5 * 1024 * 1024`**.
 
 ### 40. Open redirect in login *(fixed)*
 
@@ -77,18 +77,18 @@
 
 ## Medium severity
 
-### 5. Y.Doc created when `roomId` is falsy *(mitigated)*
+### 5. Y.Doc created when `roomId` is falsy *(closed)*
 
-[`web/src/lib/patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts) — **`useMemo(() => new Y.Doc(), [roomId ?? ""])`** keys a single doc while **`roomId`** is unset; a **`useEffect`** cleanup always calls **`ydoc.destroy()`** when **`ydoc`** changes or the component unmounts. The WebSocket provider still starts only when **`roomId`** is truthy. Further optimisation (no **`Y.Doc`** until **`roomId`** exists) is optional.
+**Closed (2026):** Yjs was removed. [`patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts) opens a WebSocket only when **`roomId`** and **`workbookReady`** are set; there is no CRDT document lifecycle.
 
 ### 6. Partial failure risk: swap and template replace *(addressed for swap + replace rollback)*
 
 - ~~[`api/src/routes/v1/performances.ts`](../api/src/routes/v1/performances.ts) `POST .../swap` — two updates without a transaction.~~ **Update:** both updates run inside **`db.transaction`**.
 - [`api/src/routes/v1/patch-templates.ts`](../api/src/routes/v1/patch-templates.ts) `POST .../replace` — **Update:** writes the new file, then updates the DB; on DB failure **`unlink`**s the **new** file and rethrows; on success removes the **old** file. Residual edge case: process crash after DB commit but before old-file delete leaves an orphan on disk (low probability).
 
-### 7. `loadSheetsForPatchTemplateRow` disk failure when Yjs snapshot empty *(addressed)*
+### 7. `loadSheetsForPatchTemplateRow` disk failure when `sheets_json` empty *(addressed)*
 
-**Update:** When the Postgres **Yjs** snapshot decodes to **no sheets**, the server reads the on-disk file. If that read/parse fails, the helper **throws** (after **`warn`** log). **`GET …/preview`** and **`GET …/sheets-export`** catch and return **503** with a short operator-facing **`message`** instead of an empty preview/export.
+**Update:** When **`patch_templates.sheets_json`** yields **no sheets**, the server reads the on-disk file. If that read/parse fails, the helper **throws** (after **`warn`** log). **`GET …/preview`** and **`GET …/sheets-export`** catch and return **503** with a short operator-facing **`message`** instead of an empty preview/export.
 
 ### 8. Auth guard: `hasPassword()` hits DB every request
 
@@ -168,11 +168,11 @@ See [`REALTIME.md`](REALTIME.md) and [`AGENTS.md`](../AGENTS.md) for the invalid
 
 ### 46. Performance creation not transactional *(fixed)*
 
-**Update:** [`api/src/routes/v1/performances.ts`](../api/src/routes/v1/performances.ts) — **`POST /stage-days/:stageDayId/performances`** wraps **`insert(performances)`** and **`insert(performanceYjsSnapshots)`** / **`onConflictDoUpdate`** in **`db.transaction`**.
+**Update:** [`api/src/routes/v1/performances.ts`](../api/src/routes/v1/performances.ts) — **`POST /stage-days/:stageDayId/performances`** wraps **`insert(performances)`** and **`insert(performanceWorkbooks)`** / **`onConflictDoUpdate`** in **`db.transaction`**.
 
 ### 47. WebSocket allows connections to non-existent rooms *(fixed)*
 
-**Update:** [`api/src/plugins/collab-ws.ts`](../api/src/plugins/collab-ws.ts) — after UUID validation, **`db.select`** verifies **`performances.id`** or **`patchTemplates.id`**; missing rows → **`socket.close(1008, …)`** before **`setupWSConnection`**.
+**Update:** [`api/src/plugins/collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts) — after UUID validation, **`db.select`** verifies **`performances.id`** or **`patchTemplates.id`**; missing rows → **`socket.close(1008, …)`** before joining a room.
 
 ### 48. No per-client SSE connection limit *(fixed)*
 
@@ -186,9 +186,9 @@ See [`REALTIME.md`](REALTIME.md) and [`AGENTS.md`](../AGENTS.md) for the invalid
 
 [`api/src/lib/json-patch-template.ts`](../api/src/lib/json-patch-template.ts) — `parseWorkbookJsonRoot` caps sheet count (MAX_TEMPLATE_SHEETS = 40) but does not limit the `celldata` array length per sheet. A sheet with hundreds of thousands of entries can cause high CPU/memory usage or OOM. Fix: add a per-sheet celldata cap (e.g. 100k entries).
 
-### 51. bindState race: clients can edit before DB snapshot loads
+### 51. bindState race: clients can edit before DB snapshot loads *(closed)*
 
-[`api/src/lib/yjs-persistence.ts`](../api/src/lib/yjs-persistence.ts) — `bindState` loads the DB snapshot asynchronously. Clients can send Yjs updates before the snapshot is applied; when the load finishes, `Y.applyUpdate` may overwrite those early edits. Known limitation of the `@y/websocket-server` API (no way to block client sync until `bindState` resolves). Higher risk when DB latency is high.
+**Closed (2026):** Yjs **`bindState`** path removed. The collab relay loads **`sheets_json`** (or uses the warm in-memory room) before sending **`fullState`** to a new socket; local edits are not applied until the workbook mounts from that payload.
 
 ### 52. Missing index on `stages.default_patch_template_id` *(fixed)*
 
@@ -208,11 +208,11 @@ See [`REALTIME.md`](REALTIME.md) and [`AGENTS.md`](../AGENTS.md) for the invalid
 
 ### 18. [`AGENTS.md`](../AGENTS.md) file map stale
 
-Missing (non-exhaustive): `pdf-thumbnails.ts`, `convert-to-pdf.ts`, `yjs-oplog-replay.ts`, `drizzle-logger.ts`; web: `ClockNavContext`, `PatchPageSidebar`, `ClockEndOfDayOverlay`, `PerformanceFilesPage`, `stageDayClockMetrics`, `clockSchedule`, `useFitCountdownInBox`, `patchWorkbookYjs`; migration `0005_*.sql`.
+Missing (non-exhaustive): `pdf-thumbnails.ts`, `convert-to-pdf.ts`, `workbook-ops.ts`, `collab-ws-relay.ts`, `drizzle-logger.ts`; web: `ClockNavContext`, `PatchPageSidebar`, `ClockEndOfDayOverlay`, `PerformanceFilesPage`, `stageDayClockMetrics`, `clockSchedule`, `useFitCountdownInBox`, `patchWorkbookCollab`; migration `0005_*.sql`, `0010_*.sql`.
 
 ### 19. [`REALTIME.md`](REALTIME.md) — template WebSocket path
 
-Document `/ws/v1/collab-template/:templateId` alongside performance collab (see [`api/src/plugins/collab-ws.ts`](../api/src/plugins/collab-ws.ts)).
+Document `/ws/v1/collab-template/:templateId` alongside performance collab (see [`api/src/plugins/collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts)) — covered in [`REALTIME.md`](REALTIME.md).
 
 ### 20. Navigation problems — resolved
 
@@ -226,13 +226,13 @@ Clarify: **import** via `@zenmrp/fortune-sheet-excel`; **export** / xlsx generat
 
 Merge duplicate `### Fixed` / `### Changed` blocks per Keep a Changelog style.
 
-### 23. [`.cursor/rules/pitfalls.mdc`](../.cursor/rules/pitfalls.mdc) vs [`yjs-oplog-replay.ts`](../api/src/lib/yjs-oplog-replay.ts)
+### 23. [`.cursor/rules/pitfalls.mdc`](../.cursor/rules/pitfalls.mdc) vs [`workbook-ops.ts`](../api/src/lib/workbook-ops.ts)
 
-Pitfall text should acknowledge controlled server-side op replay for templates/preview and warn against extending it without understanding FortuneSheet ops.
+Pitfall text should acknowledge controlled server-side **`applyOpBatchToSheets`** (relay + import/export) and warn against extending it without understanding FortuneSheet ops.
 
 ### 24. [`.cursor/rules/pitfalls.mdc`](../.cursor/rules/pitfalls.mdc) — FortuneSheet bridge location
 
-Point to [`patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts) / [`patchWorkbookYjs.ts`](../web/src/lib/patchWorkbookYjs.ts), not only page components.
+Point to [`patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts) (and [`collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts) on the server), not only page components.
 
 ### 25. Root [`README.md`](../README.md) docs table
 
@@ -429,11 +429,11 @@ Fix: add `flex-shrink: 0` (and `white-space: nowrap` where appropriate) to each 
 
 **Update:** Mitigated in **`SettingsPage`** (constrained root, password fields **`max-width: min(20rem, 100%)`**, **`box-sizing`**) and **`PatchTemplateLibrarySettings`** / **`StagePatchTemplatePicker`** (flex children **`minWidth: 0`**, **`overflowWrap: "anywhere"`** on long names, upload toolbars as column **`label`**s, stage **`select`** **`width: 100%`**). Re-open if a specific viewport still scrolls horizontally.
 
-### 82. FortuneSheet Yjs `opLog` replay vs initial `data` matrix *(mitigated in web)*
+### 82. FortuneSheet ops vs initial `data` matrix *(mitigated — relay)*
 
-**Risk:** Serialized FortuneSheet ops assume a concrete **`luckysheetfile[].data`** shape (rows/columns materialized). Replaying the full **`opLog`** from index **0** on a **minimal placeholder grid** could throw **`[Immer] Cannot apply patch, path doesn't resolve`** and leave the editor inconsistent.
+**Risk:** Serialized FortuneSheet ops assume a concrete **`luckysheetfile[].data`** shape (rows/columns materialized). Applying ops on a **too-small grid** can throw **`[Immer] Cannot apply patch, path doesn't resolve`**.
 
-**Update (Mar 2026):** [`web/src/pages/PatchPage.tsx`](../web/src/pages/PatchPage.tsx) and [`web/src/pages/PatchTemplateEditorPage.tsx`](../web/src/pages/PatchTemplateEditorPage.tsx) fetch **`GET …/sheets-export`** before mounting **`Workbook`** so the initial matrix matches the server snapshot; [`web/src/lib/patchWorkbookYjs.ts`](../web/src/lib/patchWorkbookYjs.ts) **aborts** replay on **`applyOp`** errors, skips risky formula flush, and surfaces **out of sync** copy. Residual edge cases (e.g. **`bindState`** race in **#51**, divergent op history) may still require a full reload — see [`docs/DECISIONS.md`](DECISIONS.md) (FortuneSheet fork section).
+**Update (2026):** The collab server sends **`fullState`** (`Sheet[]` from **`sheets_json`**) on connect/reconnect; the client remounts **`<Workbook data={…}>`** from that payload before applying live **`op`** batches. Remote **`applyOp`** failures are logged in the hook; reload the patch page if the grid errors. See [`docs/DECISIONS.md`](DECISIONS.md) (FortuneSheet fork section).
 
 ---
 
