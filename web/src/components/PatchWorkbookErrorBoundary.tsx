@@ -32,6 +32,15 @@ export class PatchWorkbookErrorBoundary extends Component<
             The workbook could not be displayed. Try reloading the page or opening
             another band.
           </p>
+          <p style={{ marginTop: "0.75rem" }}>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => this.setState({ err: null })}
+            >
+              Try again
+            </button>
+          </p>
           {showCopy && (
             <p style={{ marginTop: "0.75rem" }}>
               <button

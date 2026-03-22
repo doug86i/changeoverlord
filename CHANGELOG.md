@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Patch / RF workbook** — harden post-sync **`flushWorkbookFormulaRecalc`** (safe **`fullDataRange`**, per-sheet **`try/catch`**, restore active tab with the sheet’s **native `id`**, swallow remote recalc failures so Yjs does not wedge); **Patch workbook error** UI adds **Try again** to reset the boundary without a full reload.
 - **Web:** **Patch (phone)** — lock **`html` / `body` / `#root` / `.app-shell`** to the viewport with **`overscroll-behavior: none`** so **iOS** does not **rubber-band scroll the page** while panning the sheet; workbook host uses **flex** height inside the locked shell instead of **`100dvh`** math that could exceed the layout.
 - **Web:** **Patch / RF collab** — after **remote** Yjs updates, formula recalc cycled **`activateSheet`** across every tab and left all users on the **last** sheet; restoring the **previously active** sheet after recalc fixes **random tab jumps** when someone **adds or renames sheets**.
 - **Web:** **Patch (phone)** — **`wheel`** events are stopped in **capture** on the workbook host so **synthetic wheel** from touch (iOS) does not run FortuneSheet’s **`handleGlobalWheel`** on top of overlay touch pan (which caused **one-way / stuck** vertical scrolling).

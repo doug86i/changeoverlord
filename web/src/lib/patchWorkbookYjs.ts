@@ -21,8 +21,14 @@ type FortuneBatchCall = { name: string; args: unknown[] };
  */
 function fullDataRange(sheet: Sheet): { row: [number, number]; column: [number, number] } {
   const data = sheet.data;
-  const rowMax = Math.max(0, (data?.length ?? 1) - 1);
-  const colMax = Math.max(0, ((data?.[0] as unknown[] | null | undefined)?.length ?? 1) - 1);
+  const rowLen = Array.isArray(data) ? data.length : 0;
+  const rowMax = Math.max(0, (rowLen > 0 ? rowLen : 1) - 1);
+  const first = Array.isArray(data) && data.length > 0 ? data[0] : null;
+  const colLen = Array.isArray(first) ? first.length : 0;
+  const colMax = Math.max(0, (colLen > 0 ? colLen : 1) - 1);
+  if (!Number.isFinite(rowMax) || !Number.isFinite(colMax)) {
+    return { row: [0, 0], column: [0, 0] };
+  }
   return { row: [0, rowMax], column: [0, colMax] };
 }
 
@@ -75,36 +81,63 @@ function flushWorkbookFormulaRecalc(
   const preserve = options?.preserveActiveSheet === true;
   if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
   try {
-    if (!preserve) {
-      activateFirstCoherentSheet(wb);
-    }
-    const savedActiveId = getActiveSheetId(wb);
+    try {
+      if (!preserve) {
+        activateFirstCoherentSheet(wb);
+      }
+      const savedActiveId = getActiveSheetId(wb);
 
-    const sheets = wb.getAllSheets() as Sheet[];
-    for (const sheet of sheets) {
-      const sheetId = sheet.id;
-      if (sheetId == null || sheetId === "") continue;
-      const range = [fullDataRange(sheet)];
-      // FortuneSheet `getSheet` / `activateSheet` use `options.id`, not `sheetId`.
-      const calls: FortuneBatchCall[] = [
-        { name: "activateSheet", args: [{ id: sheetId }] },
-        { name: "jfrefreshgrid", args: [null, range] },
-      ];
-      flushSync(() => {
-        wb.batchCallApis(calls);
-      });
-    }
-    flushSync(() => {
-      wb.calculateFormula();
-    });
-    flushSync(() => {
-      wb.calculateFormula();
-    });
+      const sheets = wb.getAllSheets() as Sheet[];
+      for (const sheet of sheets) {
+        const sheetId = sheet.id;
+        if (sheetId == null || sheetId === "") continue;
+        try {
+          const range = [fullDataRange(sheet)];
+          const calls: FortuneBatchCall[] = [
+            { name: "activateSheet", args: [{ id: sheetId }] },
+            { name: "jfrefreshgrid", args: [null, range] },
+          ];
+          flushSync(() => {
+            wb.batchCallApis(calls);
+          });
+        } catch (e) {
+          logDebug(
+            "patch-workbook-yjs",
+            "jfrefreshgrid / activateSheet skipped for sheet",
+            { sheetId },
+            e,
+          );
+        }
+      }
+      try {
+        flushSync(() => {
+          wb.calculateFormula();
+        });
+        flushSync(() => {
+          wb.calculateFormula();
+        });
+      } catch (e) {
+        logDebug("patch-workbook-yjs", "calculateFormula failed during collab recalc", e);
+      }
 
-    if (savedActiveId && sheetIdExists(wb, savedActiveId)) {
-      flushSync(() => {
-        wb.batchCallApis([{ name: "activateSheet", args: [{ id: savedActiveId }] }]);
-      });
+      if (savedActiveId && sheetIdExists(wb, savedActiveId)) {
+        const currentSheets = wb.getAllSheets() as Sheet[];
+        const activeSheet = currentSheets.find(
+          (s) => s.id != null && String(s.id) === savedActiveId,
+        );
+        const restoreId = activeSheet?.id;
+        if (restoreId != null && restoreId !== "") {
+          try {
+            flushSync(() => {
+              wb.batchCallApis([{ name: "activateSheet", args: [{ id: restoreId }] }]);
+            });
+          } catch (e) {
+            logDebug("patch-workbook-yjs", "restore active sheet failed", e);
+          }
+        }
+      }
+    } catch (e) {
+      logDebug("patch-workbook-yjs", "flushWorkbookFormulaRecalc failed", e);
     }
   } finally {
     if (suppressYjsOpsRef) {
@@ -237,9 +270,13 @@ export function usePatchWorkbookOpLogEffects(
         requestAnimationFrame(() => {
           const w = wbRef.current;
           if (!w) return;
-          flushWorkbookFormulaRecalc(w, suppressYjsOpsRef, {
-            preserveActiveSheet: true,
-          });
+          try {
+            flushWorkbookFormulaRecalc(w, suppressYjsOpsRef, {
+              preserveActiveSheet: true,
+            });
+          } catch (e) {
+            logDebug("patch-workbook-yjs", "remote formula recalc rAF failed", e);
+          }
         });
       });
     };
