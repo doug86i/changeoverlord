@@ -13,7 +13,7 @@ Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, *
 | Goal | Command |
 |------|---------|
 | **Deploy** pre-built app (typical show / LAN) | See **[Deployment](#deployment)** below — `docker compose pull && docker compose up -d` |
-| **Develop** from source (fast — hot reload) | `make dev-fast` (**`docker-compose.fast.yml`**) — UI at **`http://localhost:5173/`** |
+| **Develop** from source (fast — hot reload) | `make dev-fast` (**`docker-compose.fast.yml`**) — UI at **`http://localhost/`** (default **`FAST_WEB_PORT=80`**) |
 | **Develop** from source (classic — same `app` image as ship) | `make dev` (merges **`docker-compose.dev.yml`**) |
 
 After install, open **http://\<this-machine\>/** — default **port 80**. If port 80 is busy, set **`HOST_PORT`** in **`.env`** (from **`.env.example`**) and use **http://\<this-machine\>:\<HOST_PORT\>/**.

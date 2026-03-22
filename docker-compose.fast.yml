@@ -1,5 +1,5 @@
 # Fast local iteration: Postgres + API (tsx watch) + Vite dev server (bind mounts).
-# Open http://localhost:5173/ — Vite proxies /api and /ws to the api service.
+# Open http://localhost/ (default FAST_WEB_PORT=80) — Vite listens on 5173 in-container; proxies /api and /ws to api.
 #
 #   make dev-fast
 #   make dev-fast-down
@@ -76,7 +76,7 @@ services:
       - fast_nm_api:/app/api/node_modules
       - fast_nm_web:/app/web/node_modules
     ports:
-      - "${FAST_WEB_PORT:-5173}:5173"
+      - "${FAST_WEB_PORT:-80}:5173"
     depends_on:
       api:
         condition: service_healthy

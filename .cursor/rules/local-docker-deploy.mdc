@@ -11,7 +11,7 @@ When you **finish implementing or fixing** something that affects the running ap
 
 | Path | Command | What runs | Typical URL |
 |------|---------|-----------|-------------|
-| **Fast (hot reload)** | **`make dev-fast`** | **`docker-compose.fast.yml`**: Postgres + **tsx** watch + **Vite**; repo bind-mounted; named volumes for **`node_modules`** | **`http://localhost:5173/`** (or **`FAST_WEB_PORT`**) |
+| **Fast (hot reload)** | **`make dev-fast`** | **`docker-compose.fast.yml`**: Postgres + **tsx** watch + **Vite**; repo bind-mounted; named volumes for **`node_modules`** | **`http://localhost/`** (default **`FAST_WEB_PORT=80`**) |
 | **Classic (production-like image)** | **`make dev`** | **`docker-compose.yml`** + **`docker-compose.dev.yml`**: one **`app`** image with **`web/dist`** + **`api/dist`** | **`http://localhost/`** or **`http://localhost:<HOST_PORT>/`** |
 
 Prefer **`make dev-fast`** for routine integration testing. Use **`make dev`** when validating the **shipped image** layout (static SPA + compiled API) or before a release if you need that parity.
@@ -79,7 +79,7 @@ Skip only for **docs-only** or **comment-only** edits with zero effect on build/
 
 - **Compose is the source of truth** for local integration testing — avoid ad-hoc `docker run` unless debugging an image issue the user requested.
 - **Goal**: zero manual steps for the human to see changes on a **live local URL** after your work.
-- **Do not** run **`make dev-fast`** and **`make dev`** at once with the same **`DATA_DIR`** — both Postgres services bind-mount the same **`db/`** tree; stop one stack before starting the other.
+- **Do not** run **`make dev-fast`** and **`make dev`** at once with the same **`DATA_DIR`** — both Postgres services bind-mount the same **`db/`** tree; stop one stack before starting the other. Both default UI to host port **80** — only one can bind it; stop the other stack or set **`FAST_WEB_PORT`** / **`HOST_PORT`** so they differ.
 
 ## Logging while testing
 
@@ -91,7 +91,7 @@ Skip only for **docs-only** or **comment-only** edits with zero effect on build/
 ## End-of-task checklist (same as [`AGENTS.md`](../../AGENTS.md) “Local testing”)
 
 1. From repo root, run **`make dev-fast`** or **`make dev`** (skip only for docs-only / comment-only with no build effect).
-2. **Verify** the stack: e.g. **`curl -sS http://127.0.0.1:5173/api/v1/health`** (fast, via Vite proxy) or **`curl -sS http://127.0.0.1/api/v1/health`** (classic, port 80), or **`docker compose ps`** for the file you used.
+2. **Verify** the stack: e.g. **`curl -sS http://127.0.0.1/api/v1/health`** (fast or classic when UI is on port 80) or **`curl -sS http://127.0.0.1:3000/api/v1/health`** (fast API direct), or **`docker compose ps`** for the file you used.
 3. **Tell the user the exact base URL** (below). If the **classic** UI/API still looks stale, **`make dev-fresh`**.
 4. **`CHANGELOG.md`**: if the task changed shipped code, Docker, or migrations, add an **`[Unreleased]`** entry — see **[`changelog.mdc`](changelog.mdc)** (skip pure docs/comment-only).
 5. **`git commit`**: during the session, commit **each logical unit** with a clear message — see **[`git-commits.mdc`](git-commits.mdc)** (skip if not a Git repo or the user asked to defer commits).
@@ -100,7 +100,7 @@ Skip only for **docs-only** or **comment-only** edits with zero effect on build/
 
 After **`make dev-fast`**:
 
-- **`http://localhost:5173/`** (default). If **`.env`** sets **`FAST_WEB_PORT`**, use that port instead.
+- **`http://localhost/`** (default **`FAST_WEB_PORT=80`**). If **`.env`** sets **`FAST_WEB_PORT`** to another value, use **`http://localhost:<FAST_WEB_PORT>/`**.
 
 After **`make dev`**:
 

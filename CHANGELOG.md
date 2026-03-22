@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Docker / dev:** Fast stack (**`make dev-fast`**) maps the Vite UI to host port **80** by default (**`FAST_WEB_PORT`** default **`80`** in **`docker-compose.fast.yml`** and **`.env.example`**), matching classic **`HOST_PORT`**. Set **`FAST_WEB_PORT=5173`** if port 80 is busy or the classic stack already uses it.
+
 ### Added
 
 - **Docker / dev workflow:** **`make dev-fast`** + **`docker-compose.fast.yml`** / **`Dockerfile.fast`** — Postgres with bind-mounted **`api/`** + **`web/`**, **tsx** watch + **Vite** on **`5173`** (proxies **`/api`** and **`/ws`**). **`Makefile`** targets **`dev-fast`**, **`dev-fast-app`**, **`dev-fast-down`**; **`web/vite.config.ts`** reads **`VITE_API_PROXY`** for containerized Vite. Classic **`make dev`** remains for production-like image testing. Docs and agent rules updated so **`make dev`** is no longer the only supported local integration path.

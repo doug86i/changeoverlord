@@ -29,7 +29,7 @@ up:
 dev-down:
 	$(COMPOSE) down
 
-# Bind-mount dev stack (hot reload). UI: http://localhost:5173/ (or FAST_WEB_PORT). API: http://localhost:3000/api/v1/health
+# Bind-mount dev stack (hot reload). UI: http://localhost/ (default FAST_WEB_PORT=80). API: http://localhost:3000/api/v1/health
 dev-fast:
 	$(COMPOSE_FAST) up -d --build
 

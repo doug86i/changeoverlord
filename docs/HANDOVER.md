@@ -39,7 +39,7 @@ docker compose pull && docker compose up -d
 make dev-fast
 ```
 
-Open **`http://localhost:5173/`** (or **`http://localhost:<FAST_WEB_PORT>/`**). **Health:** `curl -s http://localhost:5173/api/v1/health`.
+Open **`http://localhost/`** when **`FAST_WEB_PORT=80`** (default), or **`http://localhost:<FAST_WEB_PORT>/`**. **Health:** `curl -s http://localhost/api/v1/health` (or the matching port).
 
 **Develop — classic** (single `app` image, compiled SPA + API):
 
