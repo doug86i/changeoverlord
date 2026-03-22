@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Docs:** **`docs/PATCH_TEMPLATE_JSON.md`** — FortuneSheet **`sheet not found`** troubleshooting (cross-sheet refs, **`colhidden`**, missing **`data`**); example file list aligned with **`examples/`**. **`docs/USER_GUIDE.md`** — pointer for operators.
+
 - **Dependencies:** Removed **`patch-package`** overrides for **`@fortune-sheet/core`** and **`@fortune-sheet/react`** (default font order + context-menu “add column” input lookup). Upstream **1.0.4** ships those files unpatched; `patches/` may be empty aside from **`.gitkeep`**.
 
 ### Added

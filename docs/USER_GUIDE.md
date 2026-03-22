@@ -125,6 +125,8 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 
 - **Create blank template** — In **Settings**, add a new library entry with two empty tabs (**Input**, **RF**), then use **Edit spreadsheet** to build it. Optional **display name** applies when you use **Create blank template** (defaults to **New template** if you leave the name blank).
 
+If the spreadsheet shows **`sheet not found`** (FortuneSheet error), the workbook usually has a **cross-sheet formula** pointing at a **missing or renamed tab**, **hidden columns** from Excel that confuse the grid (`colhidden`), or a bad import — see **`docs/PATCH_TEMPLATE_JSON.md`** § *FortuneSheet browser error: `sheet not found`* for fixes (single-sheet templates, re-import JSON, clear column hides in Excel).
+
 **Stages and performances** — Each stage must choose a **stored** template for new performances (upload at least one template first, or use **Create blank template**). Patch workbooks always come from the library snapshot seeded into each performance.
 
 On **Settings** and on the **stage** template picker you can:

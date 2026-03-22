@@ -181,11 +181,31 @@ If present on the **sheet object** (top level, not only inside `config`), these 
 - Non-object sheet entry → **`Invalid sheet at index N`**
 - Unsupported file type (neither JSON nor OOXML Excel) → **`Unsupported file: upload Excel ... or FortuneSheet JSON (.json)`**
 
-## Example file (repository)
+### FortuneSheet browser error: **`sheet not found`**
 
-**`examples/patch-template-conditional-format-demo.json`** — ready to **Upload** / **Replace (Excel/JSON)** / **Import workbook JSON**. It includes **`luckysheet_conditionformat_save`** with **`colorGradation`** and **`dataBar`** rules (Luckysheet sheet-config shape). If a rule type does not render, the bundled FortuneSheet build may not implement it yet; the field is still preserved on the sheet for forward compatibility.
+FortuneSheet throws this (lowercase message) from **`getSheet()`** in **`@fortune-sheet/core`** when:
 
-**`examples/DH_Pick_Patch_TEMPLATE_v5.3_formulajs.json`** — large multi-tab **DH Pick & Patch** starter with **formulajs-safe** helpers on **Channel List** (**AA**/**AD**/**AE**); see **`examples/README.md`**.
+1. **A formula references another sheet** (`Input!A1`, `'My Tab'!B2`, etc.) but that **sheet `id` is not in the workbook** (tab removed, renamed without updating formulas, or wrong name in the reference).
+2. **`sheet.data` is missing** for a resolved sheet (malformed import / partial replace).
+3. **`ctx.currentSheetId`** points at an **`id`** that no longer exists after a bad **`luckysheetfile`** replace (rare; usually coupled with corrupt ops).
+
+**This project has also seen Excel-driven breakage** when **`config.colhidden`** hides columns the grid still needs for layout: the sheet can fail to render or hit internal errors that surface as **`sheet not found`**. Mitigation: **do not ship `colhidden`** in JSON for patch templates (the **DH v7** build script strips it); or **clear column hides** in Excel and re-upload.
+
+**What to do**
+
+- Prefer **single-sheet** templates and **same-sheet** formulas only (see **`examples/OPERATOR_PATCH_REFERENCE_v1.json`**).
+- **Export JSON** from a working template, search for **`!`** in formula strings — every **`SheetName!`** must match an actual **`name`** / **`id`** in **`sheets`**.
+- Re-**Import workbook JSON** after fixing, or **Replace** from a cleaned Excel file **without** problematic column hides.
+- Ensure each sheet has a dense **`data`** matrix (the API normalizer already expands small grids to at least **36×18**).
+
+## Example files (repository)
+
+See **`examples/README.md`** for the full list. Current starters:
+
+- **`examples/OPERATOR_PATCH_REFERENCE_v1.json`** — single-sheet, FortuneSheet-safe formulas, full **`calcChain`** (see **`scripts/generate-operator-patch-v1.mjs`**).
+- **`examples/DH_Pick_Patch_TEMPLATE_v7.json`** — single-sheet **DH** layout with conditional formatting; built from **`scripts/build-v7-template.mjs`** (strips **`colhidden`** from the human Excel path).
+
+Conditional-formatting demos may be re-added under **`examples/`** over time; rule support depends on the bundled FortuneSheet build.
 
 ## Compatibility notes
 
