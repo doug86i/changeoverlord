@@ -444,7 +444,8 @@ Fix: add `flex-shrink: 0` (and `white-space: nowrap` where appropriate) to each 
 | Layer | Behaviour |
 |--------|-----------|
 | **`applyOpBatchToSheets`** ([`api/src/lib/workbook-ops.ts`](../api/src/lib/workbook-ops.ts)) | **`addSheet`**: if the new sheet’s **`id`** is already in the workbook, **skip** (server state + persist stay correct when duplicate batches arrive). |
-| **`usePatchWorkbookCollab`** ([`web/src/lib/patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts)) | **Outgoing:** if **`JSON.stringify(ops)`** matches the **immediately previous** send (same synchronous double-invoke), **do not send**; ref clears on a microtask. **Incoming:** **`filterRedundantRemoteOps`** drops **`addSheet`** for ids already present (and respects **`deleteSheet`** / full **`luckysheetfile`** replace ordering). |
+| **`usePatchWorkbookCollab`** ([`web/src/lib/patchWorkbookCollab.ts`](../web/src/lib/patchWorkbookCollab.ts)) | **Incoming:** **`filterRedundantRemoteOps`** drops **`addSheet`** for ids already present (and respects **`deleteSheet`** / full **`luckysheetfile`** replace ordering). **Outgoing:** every **`onOp`** batch is sent — **no** consecutive **`JSON.stringify`** dedupe (that blocked legitimate cell saves when batches matched). |
+| **Collab relay persist** ([`api/src/plugins/collab-ws-relay.ts`](../api/src/plugins/collab-ws-relay.ts)) | Debounced writes use **`sheetsSafeForCollabPersist`** (non-empty tab list + sheet **id**s), not **`sheetsLookUsableAfterOpLogReplay`**, so cleared / sparse grids still **`UPDATE`** **`sheets_json`**. |
 
 **Still not idempotent:** other structural ops (**`deleteSheet`**, row/column insert/delete) — reopen if those show duplicate-apply bugs.
 

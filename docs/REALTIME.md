@@ -97,7 +97,7 @@ The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON message
 - **Do not** move schedule/performance rows into the collab channel — use REST + invalidation above.
 - **Phone patch (read-only viewer):** `usePatchWorkbookCollab` closes the WebSocket when the document is hidden if **`pauseWhenHidden`** is set, and reconnects when visible; the server sends **`fullState`** again after reconnect.
 
-**Persistence:** **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`**. The relay debounces writes (**~2 seconds** after the last op). On **SIGTERM / SIGINT**, **`flushCollabRelayRooms`** persists all non-empty rooms. Stage **default template** is cloned into a new performance row when the performance is created — see **`docs/DECISIONS.md`**.
+**Persistence:** **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`**. The relay debounces writes (**~2 seconds** after the last op) using **`sheetsSafeForCollabPersist`** (every tab has an **id**; allows cleared grids). On **SIGTERM / SIGINT**, **`flushCollabRelayRooms`** persists all non-empty rooms. Stage **default template** is cloned into a new performance row when the performance is created — see **`docs/DECISIONS.md`**.
 
 **REST import / export:** **`GET/PUT …/sheets-export` / `sheets-import`** read and write the same **`sheets_json`**. If a live room exists, the API can **`broadcastFullState*`** so connected clients remount from the new JSON.
 

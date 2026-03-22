@@ -162,6 +162,20 @@ export function sheetsLookUsableAfterOpLogReplay(sheets: Sheet[]): boolean {
   return true;
 }
 
+/**
+ * Minimum bar for writing `sheets_json` from the collab relay. Stricter than nothing (ids +
+ * non-empty tab list) but unlike {@link sheetsLookUsableAfterOpLogReplay} allows sheets whose
+ * `data`/`celldata` are empty so operators can persist cleared grids without losing the workbook.
+ */
+export function sheetsSafeForCollabPersist(sheets: Sheet[]): boolean {
+  if (!Array.isArray(sheets) || sheets.length === 0) return false;
+  for (const s of sheets) {
+    if (!s || typeof s !== "object") return false;
+    if (s.id == null || String(s.id).trim() === "") return false;
+  }
+  return true;
+}
+
 /** Parse `sheets_json` from Postgres into `Sheet[]` (deep clone for safe mutation). */
 export function sheetsFromJsonb(value: unknown): Sheet[] {
   if (!Array.isArray(value)) return [];

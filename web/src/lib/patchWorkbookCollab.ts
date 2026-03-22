@@ -177,8 +177,6 @@ export function usePatchWorkbookCollab(opts: {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressLocalOpsRef = useRef(false);
   const intentionalDisconnectRef = useRef(false);
-  /** Dedupes identical consecutive onOp batches (e.g. React Strict Mode double invoke). */
-  const lastPushedOpsJsonRef = useRef<string | null>(null);
   const pageVisible = usePageVisible();
 
   const [conn, setConn] = useState<"connecting" | "connected" | "error">("connecting");
@@ -303,14 +301,6 @@ export function usePatchWorkbookCollab(opts: {
       if (suppressLocalOpsRef.current) return;
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      const serialized = JSON.stringify(ops);
-      if (serialized === lastPushedOpsJsonRef.current) return;
-      lastPushedOpsJsonRef.current = serialized;
-      queueMicrotask(() => {
-        if (lastPushedOpsJsonRef.current === serialized) {
-          lastPushedOpsJsonRef.current = null;
-        }
-      });
       onLocalOp?.();
       try {
         ws.send(JSON.stringify({ type: "op", data: ops }));

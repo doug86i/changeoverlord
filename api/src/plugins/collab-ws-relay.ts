@@ -16,6 +16,7 @@ import {
   applyOpBatchToSheets,
   sheetsFromJsonb,
   sheetsLookUsableAfterOpLogReplay,
+  sheetsSafeForCollabPersist,
 } from "../lib/workbook-ops.js";
 
 const WS_MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
@@ -68,10 +69,10 @@ async function loadSheetsForTemplate(templateId: string): Promise<Sheet[]> {
 
 async function persistRoom(room: RoomState): Promise<void> {
   if (!room.dirty) return;
-  if (!sheetsLookUsableAfterOpLogReplay(room.sheets)) {
+  if (!sheetsSafeForCollabPersist(room.sheets)) {
     relayLog.warn(
       { kind: room.kind, id: room.entityId, sheetCount: room.sheets.length },
-      "skip persist: sheets not usable",
+      "skip persist: sheets failed minimum persist checks",
     );
     return;
   }
