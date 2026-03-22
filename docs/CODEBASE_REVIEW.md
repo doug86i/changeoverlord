@@ -4,6 +4,8 @@
 **Purpose:** single canonical list of known issues, doc drift, and follow-ups from a full-repo audit (API, web, DB, Docker, CSS, docs, realtime).  
 **Maintenance:** update this file when items are fixed or superseded; do not duplicate operator-facing detail in [`USER_GUIDE.md`](USER_GUIDE.md).
 
+**Recently addressed (low-risk, 2025-03):** **#4** raw download **ENOENT → 404**; **#11** pool **`error`** listener + log; **#13** PDF iframe background uses **`var(--color-surface)`** in **`FileAttachments`**; **#14** header **`aria-label`**s (**`App.tsx`**); **#15** **`KeyboardShortcuts`** / **`SearchDialog`** timer cleanup; **#19** **`REALTIME.md`** template collab path; **#22** merged duplicate **`[Unreleased] ### Fixed`** in **`CHANGELOG.md`**; **#23–24** **`pitfalls.mdc`** (oplog replay caveat + bridge file paths); **#25** root **`README.md`** already lists **`PATCH_TEMPLATE_JSON.md`**; **#26** **`code-patterns.mdc`** shows **`useQueryClient()`**; **#32** deferred **`revokeObjectURL`** in **`downloadWorkbookJson`**; **#18** partial **`AGENTS.md`** file map refresh (lib + web modules + **`0005`** migration).
+
 ---
 
 ## Critical / high severity

@@ -154,12 +154,15 @@ api/
       realtime-sse.ts     # SSE endpoint
     plugins/
       auth-guard.ts       # cookie auth middleware
-      collab-ws.ts        # WebSocket routes for Yjs collaboration
+      collab-ws.ts        # WebSocket routes for Yjs collaboration (performance + template)
     lib/
       log.ts              # Pino logger, createLogger
+      drizzle-logger.ts   # optional Drizzle SQL logger when LOG_LEVEL=debug
       realtime-bus.ts     # broadcastInvalidate (EventEmitter → SSE)
       uploads-dir.ts      # getUploadsDir()
       pdf.ts              # PDF page count + single-page extract (pdf-lib)
+      pdf-thumbnails.ts   # Poppler JPEG data URLs for PDF previews
+      convert-to-pdf.ts   # ImageMagick / LibreOffice / pdf-lib → PDF
       upload-allowlists.ts # allowed MIME/extensions for files + patch templates
       excel-to-sheets.ts  # OOXML Excel → Sheet[]; normalizeSheetFromRaw (+ JSON native passthrough)
       json-patch-template.ts  # FortuneSheet JSON → Sheet[] (upload + REST import; envelope + raw roots)
@@ -179,6 +182,7 @@ api/
     0002_patch_templates.sql  # templates + stage FK
     0003_add_fk_indexes.sql   # FK column indexes
     0004_file_assets_scope.sql  # performance_id, parent_file_id on file_assets
+    0005_file_purpose_drop_plot_from_rider.sql  # migrate plot_from_rider → plot_pdf
     meta/_journal.json    # migration journal — update when adding migrations
 
 web/
@@ -186,6 +190,7 @@ web/
   src/
     main.tsx              # React root — QueryClient, ThemeProvider, imports CSS
     App.tsx               # routes + Layout + root ErrorBoundary
+    ClockNavContext.tsx   # clock nav + “My stage today” preferred stage-day
     global.css            # ALL CSS — tokens, base styles, utility classes
     api/
       client.ts           # apiGet, apiSend, apiSendForm, 401 redirect
@@ -202,10 +207,12 @@ web/
       KeyboardShortcuts.tsx       # ? help overlay + useGlobalShortcuts hook
       PerformanceBandNav.tsx      # prev/next/jump band navigation
       MiniClock.tsx               # small server-synced clock widget
+      ClockEndOfDayOverlay.tsx    # post-last-act / next-day crew messaging on clock
       FileAttachments.tsx         # drag-drop upload, inline PDF viewer, extract
+      PatchPageSidebar.tsx        # patch page sticky context (clock, changeover, files)
       ExportImportTools.tsx       # export/import event buttons
       PrintDaySheet.tsx           # print-friendly running order table
-    pages/                # one file per route
+    pages/                # one file per route (incl. PerformanceFilesPage, PatchPage, …)
     realtime/
       ConnectionContext.tsx  # ConnectionProvider + useConnectionState
       RealtimeSync.tsx       # SSE → TanStack Query invalidation + connection state
@@ -216,6 +223,12 @@ web/
       dateFormat.ts        # formatDateFriendly, formatDateShort, minutesBetween, formatDuration, formatCountdown
       useLastVisited.ts    # last-visited stage-day id (localStorage key exported)
       myStageToday.ts      # resolve /stage-days/:id for “today” (My stage today nav)
+      patchWorkbookCollab.ts   # shared Yjs/WebSocket workbook hook + op routing
+      patchWorkbookYjs.ts      # Yjs hydrate/recalc / sheet activation helpers
+      stageDayClockMetrics.ts  # clock page derived metrics (incl. changeover)
+      clockSchedule.ts         # clock schedule helpers
+    hooks/
+      useFitCountdownInBox.ts  # countdown text scaling for clock UI
 ```
 
 ## Handoff — next agent (patch templates / FortuneSheet)

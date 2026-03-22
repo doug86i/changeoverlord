@@ -68,6 +68,9 @@ export function MyPage() {
 ## Adding a frontend mutation
 
 ```tsx
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+const qc = useQueryClient();
 const mut = useMutation({
   mutationFn: (body: CreateBody) =>
     apiSend("/api/v1/my-things", "POST", body),

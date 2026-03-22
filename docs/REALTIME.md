@@ -58,7 +58,10 @@ When one browser changes schedule or domain data (events, stages, days, performa
 
 ## Collaboration spreadsheet (Yjs) — separate system
 
-The **FortuneSheet / Yjs** workbook uses **WebSockets** at **`/ws/v1/collab/:performanceId`** — **binary Yjs sync**, not SSE.
+The **FortuneSheet / Yjs** workbook uses **WebSockets** — **binary Yjs sync**, not SSE:
+
+- **Performances (patch & RF):** **`/ws/v1/collab/:performanceId`**
+- **Template editor (Settings):** **`/ws/v1/collab-template/:templateId`**
 
 - **Do not** send workbook updates through `/api/v1/realtime`.
 - **Do not** move schedule/performance rows into Yjs “to get realtime” — use REST + invalidation above.
