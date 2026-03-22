@@ -11,6 +11,31 @@ import { logDebug } from "./debug";
 export const PATCH_WORKBOOK_Y_ORIGIN = "fortune-local";
 
 /**
+ * Full-sheet formula pass (twice for dependency order). Must match post–opLog-replay behaviour.
+ * Suppresses `onOp` so recalc does not append large patches to Yjs (see FortuneSheet `setCellValue` paths).
+ */
+function flushWorkbookFormulaRecalc(
+  wb: WorkbookInstance,
+  suppressYjsOpsRef?: MutableRefObject<boolean>,
+): void {
+  if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
+  try {
+    flushSync(() => {
+      wb.calculateFormula();
+    });
+    flushSync(() => {
+      wb.calculateFormula();
+    });
+  } finally {
+    if (suppressYjsOpsRef) {
+      setTimeout(() => {
+        suppressYjsOpsRef.current = false;
+      }, 0);
+    }
+  }
+}
+
+/**
  * FortuneSheet only receives remote changes via `applyOp`. Yjs may sync the full `opLog`
  * before `<Workbook>` mounts, so `yops.observe` runs while `wbRef.current` is still null and
  * those updates are dropped — empty sheet, “wrong” template, or edits that never appear.
@@ -28,9 +53,17 @@ export function usePatchWorkbookOpLogEffects(
   suppressYjsOpsRef?: MutableRefObject<boolean>,
 ): void {
   const hydratedRef = useRef(false);
+  /** Coalesce multiple remote Yjs inserts in one frame into a single recalc. */
+  const remoteRecalcNeededRef = useRef(false);
+  const remoteRecalcRafRef = useRef<number | null>(null);
 
   useEffect(() => {
     hydratedRef.current = false;
+    remoteRecalcNeededRef.current = false;
+    if (remoteRecalcRafRef.current != null) {
+      cancelAnimationFrame(remoteRecalcRafRef.current);
+      remoteRecalcRafRef.current = null;
+    }
   }, [roomId]);
 
   // React Strict Mode (and leaving the route) unmounts then remounts with the same roomId.
@@ -42,9 +75,29 @@ export function usePatchWorkbookOpLogEffects(
   }, []);
 
   useEffect(() => {
+    const queueRemoteFormulaRecalc = () => {
+      remoteRecalcNeededRef.current = true;
+      if (remoteRecalcRafRef.current != null) return;
+      remoteRecalcRafRef.current = requestAnimationFrame(() => {
+        remoteRecalcRafRef.current = null;
+        if (!remoteRecalcNeededRef.current) return;
+        remoteRecalcNeededRef.current = false;
+        const wb = wbRef.current;
+        if (!wb) return;
+        // Remote peers apply edits via Immer `applyPatches` only — FortuneSheet does not run
+        // `execFunctionGroup` for those mutations, so dependent formulas stay stale until recalc.
+        requestAnimationFrame(() => {
+          const w = wbRef.current;
+          if (!w) return;
+          flushWorkbookFormulaRecalc(w, suppressYjsOpsRef);
+        });
+      });
+    };
+
     const handler = (event: YArrayEvent<string>, transaction: Transaction) => {
       if (!hydratedRef.current) return;
       if (transaction.origin === PATCH_WORKBOOK_Y_ORIGIN) return;
+      let appliedRemote = false;
       for (const d of event.changes.delta) {
         if (d.insert === undefined) continue;
         const inserts = Array.isArray(d.insert) ? d.insert : [d.insert];
@@ -53,17 +106,24 @@ export function usePatchWorkbookOpLogEffects(
           try {
             const ops = JSON.parse(item) as Op[];
             wbRef.current?.applyOp(ops);
+            appliedRemote = true;
           } catch {
             /* ignore bad remote payload */
           }
         }
       }
+      if (appliedRemote) queueRemoteFormulaRecalc();
     };
     yops.observe(handler);
     return () => {
       yops.unobserve(handler);
+      if (remoteRecalcRafRef.current != null) {
+        cancelAnimationFrame(remoteRecalcRafRef.current);
+        remoteRecalcRafRef.current = null;
+      }
+      remoteRecalcNeededRef.current = false;
     };
-  }, [yops, wbRef]);
+  }, [yops, wbRef, suppressYjsOpsRef]);
 
   useLayoutEffect(() => {
     if (!synced || !canShowWorkbook || !roomId) return;
@@ -104,21 +164,7 @@ export function usePatchWorkbookOpLogEffects(
           if (cancelled) return;
           const wb = wbRef.current;
           if (!wb) return;
-          if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
-          try {
-            flushSync(() => {
-              wb.calculateFormula();
-            });
-            flushSync(() => {
-              wb.calculateFormula();
-            });
-          } finally {
-            if (suppressYjsOpsRef) {
-              setTimeout(() => {
-                suppressYjsOpsRef.current = false;
-              }, 0);
-            }
-          }
+          flushWorkbookFormulaRecalc(wb, suppressYjsOpsRef);
         });
       }
     };

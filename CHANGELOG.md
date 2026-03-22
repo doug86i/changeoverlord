@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web — collaborative patch workbook:** Remote **`applyOp`** updates applied only **Immer patches** to the grid; FortuneSheet’s **`execFunctionGroup`** (dependent formula refresh) does not run for those mutations. After **hydration** we already called **`calculateFormula`**; we now **queue the same full recalc** (with **`onOp` suppressed**) when **remote** Yjs ops arrive so summaries and lookups stay in sync with other editors.
+
 - **API — Yjs persistence:** Edits could be silently lost on container restart. The 3-second debounce timer was killed by SIGTERM with no shutdown handler to flush pending writes. Added **graceful shutdown** (SIGTERM / SIGINT) that persists every active Yjs doc to Postgres before exit. Debounce reduced from **3 s → 1 s**. Compose now uses `init: true` and `stop_grace_period: 15s` for reliable signal delivery.
 
 - **API — Yjs opLog compaction:** The Yjs opLog (append-only array of cell edits) grew unboundedly, making page-load replay slow and fragile. Persistence now **compacts** the opLog to a single `replace luckysheetfile` op when it exceeds 200 entries, keeping snapshots small and replay fast.
