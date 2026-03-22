@@ -123,8 +123,10 @@ The project consumes **`@fortune-sheet/core`** and **`@fortune-sheet/react`** fr
 2. **`getSheetIndex`** (`utils/index.ts`): compare `String(id)` for Yjs string/number round-trip safety; return `null` when id is nullish.
 3. **`addSheet`** (`modules/sheet.ts`): only block when `allowEdit === false` AND no `sheetData`; collab replay with `sheetData` runs on read-only viewers.
 4. **`deleteSheet`** (`modules/sheet.ts`): remove `allowEdit === false` guard so remote deletes apply everywhere.
+5. **`applyOp` + `initSheetData` (remote add tab):** `patchToOp` can emit **`addSheet`** with **`value: addSheetOps[0]?.value`** — that value is sometimes **`undefined`**. Upstream **`applyOp`** still called **`api.initSheetData(ctx_, fileIndex, specialOp.value)`**, which destructures **`newData`** and **throws**. Fork guards: skip when payload is missing; call **`initSheetData`** only when **`getSheetIndex`** is non-null (`packages/react/src/components/Workbook/api.ts`).
+6. **`initSheetData` (core):** return **`null`** when **`newData`** is nullish; resolve the target row in **`luckysheetfile`** by **`newData.id`** when the passed index is null or does not match that id (`packages/core/src/api/sheet.ts`).
 
-**To update the fork:** clone `doug86i/fortune-sheet`, checkout `dhsl/v1.0.4`, edit TypeScript source in `packages/core/src/`, run `yarn install && npm run build`, then `npm pack` in `packages/core/` and `packages/react/`, copy `.tgz` to `vendor/`, `npm install` in main project. Prefer **upstream PRs** when practical; drop fork commits when merged.
+**To update the fork:** clone `doug86i/fortune-sheet`, checkout `dhsl/v1.0.4`, edit TypeScript source, run `yarn install && npm run build`, then `npm pack` in `packages/core/` and `packages/react/`, copy `.tgz` to **`vendor/`**. In this repo, refresh **`package-lock.json`** integrity so npm extracts the new bytes: e.g. **`npm install -w @changeoverlord/web @fortune-sheet/react@file:./vendor/fortune-sheet-react-1.0.4.tgz`** and the same for **`@fortune-sheet/core`** on **`api`**, or delete **`node_modules/@fortune-sheet`** and reinstall after replacing tarballs. Prefer **upstream PRs** when practical; drop fork commits when merged.
 
 ---
 
