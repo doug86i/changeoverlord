@@ -437,7 +437,9 @@ Fix: add `flex-shrink: 0` (and `white-space: nowrap` where appropriate) to each 
 
 ### 83. Duplicate sheet tabs on remote peers after **Add sheet** *(addressed — 2026-03)*
 
-**Root cause:** FortuneSheet **`addSheet`** is **not idempotent**; applying the **same** batch twice appends twice. Duplicate batches reached the relay from **double `onOp`** (e.g. React 18 Strict Mode) and from **multiple WebSocket messages** for one user action; remotes ran **`applyOp`** for every broadcast.
+**Root cause:** FortuneSheet **`addSheet`** is **not idempotent** at the workbook level; applying duplicate batches appends extra tabs. Duplicate **`onOp`** reaches the relay from **`emitOp` running inside `setContext` functional updaters** in React **`Workbook`** (`setContextWithProduce`, undo/redo) — a **side effect where React expects a pure updater** — plus **multiple WebSocket messages** for one UI action. **Each** spurious batch often carries a **new sheet `id`**, so server **`addSheet` skip-if-id-exists** in **`applyOpBatchToSheets`** does **not** dedupe.
+
+**Proper fix (fork):** Defer **`onOp` / `emitOp`** until **after** the state commit (e.g. **`useLayoutEffect`** + ref), one emission per transition — see **`docs/DECISIONS.md`** (FortuneSheet fork, commit bullet **#8**). Rebuild **`vendor/fortune-sheet-react-*.tgz`** from **`doug86i/fortune-sheet`** `dhsl/v1.0.4`.
 
 **Mitigation (current code):**
 
