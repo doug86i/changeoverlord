@@ -353,6 +353,13 @@ export function usePatchWorkbookOpLogEffects(
     batchIndex?: number;
     opSummary?: { count: number; head: string };
   }) => void,
+  /**
+   * When true, `<Workbook data={…}>` was populated from a server-side `sheets-export` snapshot
+   * that already reflects the full opLog. The initial drain is skipped — hydration completes
+   * as soon as Yjs syncs and the workbook mounts. Live ops arriving after sync are still applied
+   * by the `yops.observe` handler.
+   */
+  hasBootstrapData = false,
 ): void {
   const hydratedRef = useRef(false);
   /** Bumps on each hydration layout effect so stale async `run()` cannot set `hydratedRef`. */
@@ -490,6 +497,48 @@ export function usePatchWorkbookOpLogEffects(
 
     onHydrationChange?.(false);
 
+    // ── Bootstrap fast path ──────────────────────────────────────────
+    // When bootstrap data was loaded from the server (sheets-export), the `<Workbook data={…}>`
+    // prop already reflects the full opLog history replayed server-side. Draining the opLog
+    // client-side would double-apply addSheet/deleteSheet/cell ops on top of the correct state,
+    // producing duplicate sheets and Immer patch errors. Instead: wait for the workbook ref to
+    // mount, run the formula recalc, and mark hydrated. Live ops arriving after this point are
+    // handled by the `yops.observe` handler.
+    if (hasBootstrapData) {
+      const hydrateFast = () => {
+        if (cancelled || runId !== hydrationRunIdRef.current) return;
+        const wb = wbRef.current;
+        if (!wb) {
+          if (attempts++ < maxAttempts) requestAnimationFrame(hydrateFast);
+          return;
+        }
+        logDebug("patch-workbook-yjs", "bootstrap fast-path hydration (drain skipped)", {
+          roomId,
+          opLogLength: yops.length,
+        });
+
+        if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
+        try {
+          flushWorkbookFormulaRecalc(wb, suppressYjsOpsRef, {
+            skipIfBroken: replayBrokenRef,
+          });
+        } catch (e) {
+          logDebug("patch-workbook-yjs", "post-bootstrap formula recalc failed", e);
+        } finally {
+          if (suppressYjsOpsRef) suppressYjsOpsRef.current = false;
+        }
+
+        hydratedRef.current = true;
+        onHydrationChange?.(true);
+      };
+      requestAnimationFrame(hydrateFast);
+      return () => {
+        cancelled = true;
+        onHydrationChange?.(false);
+      };
+    }
+
+    // ── Full drain path (placeholder / no bootstrap) ─────────────────
     const run = async () => {
       if (cancelled || runId !== hydrationRunIdRef.current) return;
       const wb = wbRef.current;
@@ -594,5 +643,6 @@ export function usePatchWorkbookOpLogEffects(
     suppressYjsOpsRef,
     onHydrationChange,
     onReplayFailure,
+    hasBootstrapData,
   ]);
 }

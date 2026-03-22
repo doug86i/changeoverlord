@@ -48,11 +48,17 @@ export function PatchTemplateEditorPage() {
       ? WORKBOOK_PLACEHOLDER
       : bootstrapQ.data;
 
+  const hasBootstrapData =
+    bootstrapQ.isSuccess &&
+    bootstrapQ.data != null &&
+    bootstrapQ.data.length > 0;
+
   const { wbRef, onOp, conn, synced, workbookHydrated, workbookReplayError } =
     usePatchWorkbookCollab({
       roomId: templateId,
       mode: "template",
       workbookReady,
+      hasBootstrapData,
     });
 
   const blockingWorkbook =

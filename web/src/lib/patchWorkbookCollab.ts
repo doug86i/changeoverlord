@@ -40,6 +40,13 @@ export function usePatchWorkbookCollab(opts: {
   roomId: string | undefined;
   mode: PatchWorkbookCollabMode;
   workbookReady: boolean;
+  /**
+   * When true, the `<Workbook data={...}>` prop was populated from a server-side `sheets-export`
+   * snapshot — the workbook already reflects the full opLog history. Skip the initial
+   * `drainOpLogWithQuietFrames` replay (which would double-apply addSheet / cell ops on top of
+   * the correct state) and hydrate immediately after Yjs sync.
+   */
+  hasBootstrapData?: boolean;
   /** Called after each local op is pushed to Yjs (e.g. mark performance workbook dirty). */
   onLocalOp?: () => void;
   /**
@@ -63,6 +70,7 @@ export function usePatchWorkbookCollab(opts: {
     roomId,
     mode,
     workbookReady,
+    hasBootstrapData = false,
     onLocalOp,
     pauseWhenHidden = false,
     readOnly = false,
@@ -216,6 +224,7 @@ export function usePatchWorkbookCollab(opts: {
     suppressYjsOpsForFormulaRecalcRef,
     onHydrationChange,
     onReplayFailure,
+    hasBootstrapData,
   );
 
   return { wbRef, onOp, conn, synced, workbookHydrated, workbookReplayError };
