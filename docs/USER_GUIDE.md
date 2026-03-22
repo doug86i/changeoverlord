@@ -76,6 +76,16 @@ Typical URL shape as you drill in: `/events/:eventId` → `/stages/:stageId` →
 
 **Live updates:** when someone else on the LAN changes the schedule, lists usually refresh automatically (server push). If something looks stale, reload the page.
 
+### Stage and event chat
+
+While you are inside an **event** (event detail, a **stage**, a **stage day**, **patch / RF** for a band, or **performance files**), a **Chat** bar appears at the **bottom-right** of the screen. It does **not** appear on **Clock** pages (including clock day URLs), so fullscreen displays stay clear.
+
+- **Stage context** — You see messages for **that stage** plus anything sent to the **whole event**. On the **event** detail page, use the **Stage** dropdown in the bar to pick which stage thread you are viewing.
+- **Sending** — Choose **This stage only** (crew on that stage) or **Whole event** (everyone in the event, on every stage view). Enter a **display name** once; it is stored in **this browser only** (not a login account).
+- **New messages** — When someone else sends a message you should see, the chat **opens** and the bar **flashes** briefly so you notice it. Your own sends do not flash the dock.
+
+Chat is meant for **short coordination** on the LAN; there is no private DM or edit/delete.
+
 ---
 
 ## Patch and RF spreadsheet (workbook)
