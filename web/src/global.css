@@ -1531,6 +1531,201 @@ a.patch-sidebar-perf-link:hover {
   caret-color: #000;
 }
 
+/* ── Stage / event chat dock ───────────────────────────────── */
+
+.stage-chat-dock {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 90;
+  max-width: min(420px, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.stage-chat-dock__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+
+.stage-chat-dock__toggle {
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.15rem 0;
+}
+
+.stage-chat-dock__toggle:hover {
+  color: var(--color-brand);
+}
+
+.stage-chat-dock__stage-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.stage-chat-dock__select {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  max-width: 11rem;
+}
+
+.stage-chat-dock__panel {
+  padding: 0.75rem;
+  max-height: min(52vh, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+
+.stage-chat-dock__messages {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 120px;
+  max-height: 220px;
+  padding-right: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.stage-chat-dock__msg {
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stage-chat-dock__msg:last-child {
+  border-bottom: none;
+}
+
+.stage-chat-dock__msg-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.stage-chat-dock__msg-who {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.stage-chat-dock__badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-brand) 18%, var(--color-surface));
+  color: var(--color-brand);
+}
+
+.stage-chat-dock__msg-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.stage-chat-dock__composer {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.stage-chat-dock__input,
+.stage-chat-dock__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.stage-chat-dock__textarea {
+  resize: vertical;
+  min-height: 4rem;
+  font-family: inherit;
+}
+
+.stage-chat-dock__scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  font-size: 0.8rem;
+}
+
+.stage-chat-dock__scope label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stage-chat-dock__err {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-brand);
+}
+
+@keyframes stage-chat-dock-flash {
+  0%,
+  100% {
+    box-shadow: 0 2px 12px color-mix(in srgb, var(--color-text) 12%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--color-brand),
+      0 4px 20px color-mix(in srgb, var(--color-brand) 35%, transparent);
+  }
+}
+
+.stage-chat-dock--flash .stage-chat-dock__bar {
+  animation: stage-chat-dock-flash 0.45s ease-in-out 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-chat-dock--flash .stage-chat-dock__bar {
+    animation: none;
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 640px) {
+  .stage-chat-dock {
+    left: 0.75rem;
+    right: 0.75rem;
+    max-width: none;
+  }
+}
+
 /* ── Print ─────────────────────────────────────────────────── */
 
 .print-only {
@@ -1544,6 +1739,7 @@ a.patch-sidebar-perf-link:hover {
   .conn-banner,
   .skip-link,
   .toast,
+  .stage-chat-dock,
   button:not(.print-keep) {
     display: none !important;
   }

@@ -3,10 +3,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet } from "../api/client";
 import { logDebug } from "../lib/debug";
 import { useConnectionState } from "./ConnectionContext";
+import {
+  dispatchChatPush,
+  type RealtimeChatPushV1,
+} from "./chatPush";
 
 type RealtimeMessageV1 = {
   v: 1;
   invalidate: (string | null)[][];
+  chat?: RealtimeChatPushV1;
 };
 
 /**
@@ -48,6 +53,10 @@ export function RealtimeSync() {
         logDebug("realtime", "invalidate", msg.invalidate);
         for (const key of msg.invalidate) {
           void qc.invalidateQueries({ queryKey: key });
+        }
+        if (msg.chat) {
+          logDebug("realtime", "chat push", msg.chat.id);
+          dispatchChatPush(msg.chat);
         }
       } catch {
         /* ignore malformed */

@@ -53,6 +53,17 @@ export type PerformanceRow = {
   endTime: string | null;
 };
 
+/** Stage thread or event-wide chat message (`GET/POST /api/v1/chat/messages`). */
+export type ChatMessageRow = {
+  id: string;
+  eventId: string;
+  stageId: string | null;
+  scope: "stage" | "event";
+  author: string;
+  body: string;
+  createdAt: string;
+};
+
 export type FileAssetPurpose = "rider_pdf" | "plot_pdf" | "generic";
 
 export type FileAssetRow = {

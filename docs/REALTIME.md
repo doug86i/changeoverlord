@@ -25,6 +25,26 @@ When one browser changes schedule or domain data (events, stages, days, performa
 { "v": 1, "invalidate": [["performances", "<stageDayId>"], ["performance", "<performanceId>"]] }
 ```
 
+Optional **`chat`** (same `v: 1`): after **`POST /api/v1/chat/messages`**, the server may include an instant payload so the web chat dock can open and highlight without waiting for refetch:
+
+```json
+{
+  "v": 1,
+  "invalidate": [["chatMessages", "<eventId>"]],
+  "chat": {
+    "id": "<uuid>",
+    "eventId": "<uuid>",
+    "stageId": "<uuid> | null",
+    "scope": "stage | event",
+    "author": "",
+    "body": "",
+    "createdAt": "<ISO8601>"
+  }
+}
+```
+
+Clients that do not implement chat should **ignore** unknown top-level fields and still process **`invalidate`**.
+
 - **`v`:** increment when the payload shape changes; update **`RealtimeSync`** to handle new versions in parallel if needed.
 - **`invalidate`:** each inner array is a **`queryKey`** exactly as used in **`web/src/`** (string segments; `null` allowed if a query uses it).
 

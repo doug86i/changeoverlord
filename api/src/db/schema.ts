@@ -123,3 +123,19 @@ export const performanceYjsSnapshots = pgTable("performance_yjs_snapshots", {
     .defaultNow()
     .notNull(),
 });
+
+/** Stage-scoped or event-wide operator chat (LAN session). */
+export const stageChatMessages = pgTable("stage_chat_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  stageId: uuid("stage_id").references(() => stages.id, { onDelete: "cascade" }),
+  /** `stage` = one stage thread; `event` = visible on every stage in the event. */
+  scope: text("scope").notNull(),
+  author: text("author").notNull().default(""),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

@@ -19,6 +19,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { PatchPage } from "./pages/PatchPage";
 import { PatchTemplateEditorPage } from "./pages/PatchTemplateEditorPage";
 import { PerformanceFilesPage } from "./pages/PerformanceFilesPage";
+import { StageChatDock } from "./components/StageChatDock";
 
 function Layout() {
   const { toggle, theme } = useTheme();
@@ -147,6 +148,7 @@ function Layout() {
       </footer>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       <KeyboardShortcutsOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <StageChatDock />
     </div>
   );
 }

@@ -84,3 +84,27 @@ export const patchPerformanceBody = z.object({
   endTime: timeStr.optional().nullable(),
   sortOrder: z.number().int().optional(),
 });
+
+export const chatMessagesQuery = z.object({
+  eventId: z.string().uuid(),
+  stageId: z.string().uuid(),
+});
+
+export const postChatMessageBody = z
+  .object({
+    eventId: z.string().uuid(),
+    scope: z.enum(["stage", "event"]),
+    /** Required when `scope` is `stage` (must belong to `eventId`). */
+    stageId: z.string().uuid().optional(),
+    author: z.string().max(80).optional().default(""),
+    body: z.string().min(1).max(2000),
+  })
+  .superRefine((data, ctx) => {
+    if (data.scope === "stage" && !data.stageId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "stageId is required when scope is stage",
+        path: ["stageId"],
+      });
+    }
+  });
