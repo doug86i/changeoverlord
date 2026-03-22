@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **API / Docs:** **`collab-ws-relay`** logs **`collab ws: client json parse failed`** (debug), **`collab ws: client message rejected`** (warn, first Zod **issues**), and **`collab ws: op payload is not an array`** (warn) when inbound WebSocket frames are dropped. **`docs/LOGGING.md`** — **`outbound cell op batches (aggregated)`** in NDJSON vs server **`relay op batch applied`** for save diagnostics.
+
 - **Docker (fast) / API:** Client collab debug NDJSON is written under **`${DATA_DIR}/logs/client-debug.ndjson`** (Compose mount **`…/logs` → `/var/changeoverlord/logs`**, with **`db/`** and **`uploads/`**). **`POST /api/v1/debug/client-log`** allows paths under **`dirname(UPLOADS_DIR)`** as well as the repo cwd. Docs: **`data/README.md`**, **`docs/LOGGING.md`**.
 
 - **API / Web / DB (breaking):** Replaced **Yjs** patch workbook sync with a **WebSocket JSON op relay** (`fullState` + `op` batches). Persistence is **`performance_workbooks.sheets_json`** and **`patch_templates.sheets_json`** (migration **`0010_replace_yjs_with_json`** — drops **`performance_yjs_snapshots`** and template **`snapshot` bytea**). Event **export/import** uses **`version`: 2** with workbook **`sheets`** arrays; **v1** packages with base64 Yjs snapshots are no longer supported. See **`docs/DECISIONS.md`**, **`docs/REALTIME.md`**, **`AGENTS.md`**.

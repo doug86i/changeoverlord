@@ -84,6 +84,7 @@ Use **`make dev-fast`** (or classic stack) so the API and Vite proxy match **[`d
    - **`broadcast`:** **`fullState-to-peers`** (structural: new/delete tab or whole-workbook replace) vs **`op`** (cell edits).
    - **`sheetCount`**, **`structural`**, **`opCount`**, **`kinds`** (op names, truncated), **`addSheetIds`** (including **`(no-id)`** when Fortune omitted an id — server cannot dedupe).
    - **`workbook persisted`** (debug) after debounced flush; **`skip persist: sheets failed minimum persist checks`** (warn) if tabs lack ids.
+   - **`collab ws: client json parse failed`** (debug) — malformed frame; **`collab ws: client message rejected`** (warn) — Zod shape mismatch (first few **`issues`** only); **`collab ws: op payload is not an array`** (warn).
 
 2. **Browser console**  
    Set **`VITE_LOG_DEBUG=true`** for the **web** service in **`docker-compose.fast.yml`** (or local **`.env`**) and rebuild/restart **web** so **`logDebug("patch-workbook-collab", …)`** appears in DevTools.
@@ -91,6 +92,7 @@ Use **`make dev-fast`** (or classic stack) so the API and Vite proxy match **[`d
 3. **NDJSON file (two browsers / repro)**  
    Default fast stack: **`data/logs/client-debug.ndjson`** on the host (or **`$DATA_DIR/logs/…`**) with **`VITE_CLIENT_LOG_FILE=true`** and **`CLIENT_LOG_FILE`** on the API. **`logClientDebugCollab`** records:
    - **`onOp skipped: websocket not open`** / **`readOnly`** / **`suppressLocalOps`** — edits **not** sent to the relay (common “not saving” cause).
+   - **`outbound cell op batches (aggregated)`** — debounced summary of **cell** batches **after** a successful **`ws.send`** (no cell payloads); if edits “don’t save” and this line **never** appears, Fortune may not be emitting **`onOp`** or the socket never reached **OPEN**.
    - **`outbound structural op batch sent`** — includes **`addSheetIds`**.
    - **`fullState received`** — **`sheetCount`**, **`midSessionRemount`** when the grid key bumps.
    - **`applyOp failed for remote batch`** — client could not apply peer ops.  

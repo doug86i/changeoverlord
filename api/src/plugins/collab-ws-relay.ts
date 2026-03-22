@@ -160,6 +160,10 @@ function collabOpBatchSummary(ops: Op[]): {
   };
 }
 
+function wsIncomingByteLength(raw: Buffer | string): number {
+  return typeof raw === "string" ? raw.length : raw.length;
+}
+
 function broadcastFullStateToPeers(
   room: RoomState,
   exclude: { send: (s: string) => void },
@@ -324,12 +328,31 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         try {
           parsed = JSON.parse(typeof raw === "string" ? raw : raw.toString("utf8"));
         } catch {
+          relayLog.debug(
+            { performanceId: id, byteLength: wsIncomingByteLength(raw) },
+            "collab ws: client json parse failed",
+          );
           return;
         }
         const msg = clientMessageSchema.safeParse(parsed);
-        if (!msg.success) return;
+        if (!msg.success) {
+          relayLog.warn(
+            {
+              performanceId: id,
+              issues: msg.error.issues.slice(0, 6).map((i) => ({
+                path: i.path.join("."),
+                message: i.message,
+              })),
+            },
+            "collab ws: client message rejected",
+          );
+          return;
+        }
         const ops = msg.data.data as Op[];
-        if (!Array.isArray(ops)) return;
+        if (!Array.isArray(ops)) {
+          relayLog.warn({ performanceId: id }, "collab ws: op payload is not an array");
+          return;
+        }
         try {
           applyOpBatchToSheets(room.sheets, ops);
         } catch (err) {
@@ -401,12 +424,31 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         try {
           parsed = JSON.parse(typeof raw === "string" ? raw : raw.toString("utf8"));
         } catch {
+          relayLog.debug(
+            { templateId: id, byteLength: wsIncomingByteLength(raw) },
+            "collab ws: client json parse failed",
+          );
           return;
         }
         const msg = clientMessageSchema.safeParse(parsed);
-        if (!msg.success) return;
+        if (!msg.success) {
+          relayLog.warn(
+            {
+              templateId: id,
+              issues: msg.error.issues.slice(0, 6).map((i) => ({
+                path: i.path.join("."),
+                message: i.message,
+              })),
+            },
+            "collab ws: client message rejected",
+          );
+          return;
+        }
         const ops = msg.data.data as Op[];
-        if (!Array.isArray(ops)) return;
+        if (!Array.isArray(ops)) {
+          relayLog.warn({ templateId: id }, "collab ws: op payload is not an array");
+          return;
+        }
         try {
           applyOpBatchToSheets(room.sheets, ops);
         } catch (err) {

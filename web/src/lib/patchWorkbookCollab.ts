@@ -104,7 +104,9 @@ function flushRemoteFormulaRecalc(
       }
     }
   } finally {
-    requestAnimationFrame(() => {
+    /* One frame after the current stack — shorter than double rAF so local `onOp` is less likely to drop
+     * while another tab’s cell ops are being merged (suppress blocked outbound edits). */
+    queueMicrotask(() => {
       requestAnimationFrame(() => {
         suppressLocalOpsRef.current = false;
       });
@@ -143,6 +145,15 @@ export function usePatchWorkbookCollab(opts: {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressLocalOpsRef = useRef(false);
   const intentionalDisconnectRef = useRef(false);
+  const roomIdRef = useRef<string | undefined>(roomId);
+  roomIdRef.current = roomId;
+  /** Batches NDJSON lines for non-structural `onOp` sends (cell edits) — see docs/LOGGING.md. */
+  const cellOutboundAggRef = useRef<{
+    timer: ReturnType<typeof setTimeout> | null;
+    batches: number;
+    opCount: number;
+    lastHead: string;
+  }>({ timer: null, batches: 0, opCount: 0, lastHead: "" });
   /** After first `fullState` of this WS session, further `fullState` messages bump {@link workbookDataRev}. */
   const awaitingFirstFullStateRef = useRef(true);
   const pageVisible = usePageVisible();
@@ -274,6 +285,30 @@ export function usePatchWorkbookCollab(opts: {
   }, [roomId, workbookReady, connectWs, clearReconnectTimer]);
 
   useEffect(() => {
+    return () => {
+      const acc = cellOutboundAggRef.current;
+      if (acc.timer != null) {
+        clearTimeout(acc.timer);
+        acc.timer = null;
+      }
+      if (acc.batches > 0) {
+        const rid = roomIdRef.current;
+        if (rid) {
+          logClientDebugCollab("patch-workbook-collab", "outbound cell op batches (aggregated, flush)", {
+            roomId: rid,
+            aggregatedBatches: acc.batches,
+            aggregatedOpCount: acc.opCount,
+            lastBatchHead: acc.lastHead,
+          });
+        }
+        acc.batches = 0;
+        acc.opCount = 0;
+        acc.lastHead = "";
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const ws = wsRef.current;
     if (!ws) return;
     if (!pauseWhenHidden) return;
@@ -312,10 +347,62 @@ export function usePatchWorkbookCollab(opts: {
       try {
         ws.send(JSON.stringify({ type: "op", data: ops }));
         if (batchHasStructuralOps(ops)) {
+          const acc = cellOutboundAggRef.current;
+          if (acc.timer != null) {
+            clearTimeout(acc.timer);
+            acc.timer = null;
+          }
+          if (acc.batches > 0) {
+            const rid = roomIdRef.current;
+            if (rid) {
+              logClientDebugCollab(
+                "patch-workbook-collab",
+                "outbound cell op batches (aggregated, before structural)",
+                {
+                  roomId: rid,
+                  aggregatedBatches: acc.batches,
+                  aggregatedOpCount: acc.opCount,
+                  lastBatchHead: acc.lastHead,
+                },
+              );
+            }
+            acc.batches = 0;
+            acc.opCount = 0;
+            acc.lastHead = "";
+          }
           logClientDebugCollab("patch-workbook-collab", "outbound structural op batch sent", {
             roomId,
             ...summarizeOpsForClientLog(ops),
           });
+        } else {
+          const sum = summarizeOpsForClientLog(ops);
+          const acc = cellOutboundAggRef.current;
+          acc.batches += 1;
+          acc.opCount += sum.count;
+          acc.lastHead = sum.head;
+          if (acc.timer == null) {
+            acc.timer = setTimeout(() => {
+              const a = cellOutboundAggRef.current;
+              a.timer = null;
+              if (a.batches === 0) return;
+              const rid = roomIdRef.current;
+              if (rid) {
+                logClientDebugCollab(
+                  "patch-workbook-collab",
+                  "outbound cell op batches (aggregated)",
+                  {
+                    roomId: rid,
+                    aggregatedBatches: a.batches,
+                    aggregatedOpCount: a.opCount,
+                    lastBatchHead: a.lastHead,
+                  },
+                );
+              }
+              a.batches = 0;
+              a.opCount = 0;
+              a.lastHead = "";
+            }, 450);
+          }
         }
       } catch (e) {
         logDebug("patch-workbook-collab", "send op failed", e);
