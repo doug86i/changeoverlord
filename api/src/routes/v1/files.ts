@@ -38,8 +38,8 @@ const listQuery = z
     stageId: z.string().uuid().optional(),
     performanceId: z.string().uuid().optional(),
   })
-  .refine((q) => q.stageId || q.performanceId, {
-    message: "stageId or performanceId required",
+  .refine((q) => Boolean(q.stageId) !== Boolean(q.performanceId), {
+    message: "Provide exactly one of stageId or performanceId",
   });
 
 const uploadQuery = z

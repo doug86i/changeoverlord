@@ -14,7 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Web — stage page:** **Stage files** is **collapsed by default** (header shows **Show (n)**). Expanded copy explains that **Rider** / **Stage plot** on that list are **stage-wide** (no performance picker) and points operators to **day → act → Files** for per-band uploads. **Performance Files** page intro is shortened to avoid duplicating the file-list help.
+- **Web — stage files:** **Rider** / **Stage plot** toggles are **hidden** on the stage-wide file list (use each act’s **Files** page). The list **filters out** any row with a `performanceId` so band files never show on the stage screen; a short notice appears if the API/cache returned any. **API:** `GET /files` must pass **exactly one** of `stageId` or `performanceId` (reject both or neither).
+
+- **Web — stage page:** **Stage files** is **collapsed by default** (header shows **Show (n)**). Expanded copy explains stage vs per-act uploads. **Performance Files** page intro is shortened to avoid duplicating the file-list help.
 
 - **Web — patch sidebar:** **Stage plot** preview no longer falls back to **stage-wide** plots (those live under **Stage → Stage files**). Only a file marked **Stage plot** on **this act’s Files** is previewed, so a new performance is not shown another act’s shared plot by mistake. **Rider** still falls back to the stage rider when the act has none.
 

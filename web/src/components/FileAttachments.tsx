@@ -77,7 +77,15 @@ function InlinePdfViewer({ fileId, onClose }: { fileId: string; onClose: () => v
   );
 }
 
-function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
+function FileRow({
+  f,
+  queryKey,
+  showPurposeToggles,
+}: {
+  f: FileAssetRow;
+  queryKey: unknown[];
+  showPurposeToggles: boolean;
+}) {
   const qc = useQueryClient();
   const [purpose, setPurpose] = useState<FileAssetPurpose>(f.purpose);
   const [extractOpen, setExtractOpen] = useState(false);
@@ -154,16 +162,25 @@ function FileRow({ f, queryKey }: { f: FileAssetRow; queryKey: unknown[] }) {
               {formatBytes(f.byteSize)}
               {f.pageCount ? ` · ${f.pageCount} pages` : ""}
             </div>
-            <div style={{ marginTop: "0.35rem", maxWidth: "22rem" }}>
-              <FilePurposeToggle
-                purpose={purpose}
-                disabled={patchPurpose.isPending}
-                onPatch={(next) => {
-                  setPurpose(next);
-                  patchPurpose.mutate(next);
-                }}
-              />
-            </div>
+            {showPurposeToggles ? (
+              <div style={{ marginTop: "0.35rem", maxWidth: "22rem" }}>
+                <FilePurposeToggle
+                  purpose={purpose}
+                  disabled={patchPurpose.isPending}
+                  onPatch={(next) => {
+                    setPurpose(next);
+                    patchPurpose.mutate(next);
+                  }}
+                />
+              </div>
+            ) : f.purpose !== "generic" ? (
+              <p className="muted" style={{ fontSize: "0.8rem", margin: "0.35rem 0 0" }}>
+                Legacy tag:{" "}
+                {f.purpose === "rider_pdf" ? "Rider" : f.purpose === "plot_pdf" ? "Stage plot" : f.purpose}{" "}
+                (not used for stage-wide lists; set <strong>Rider</strong> / <strong>Stage plot</strong> on each
+                act’s <strong>Files</strong> page.)
+              </p>
+            ) : null}
           </div>
           <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
             {isPdf && (
@@ -388,9 +405,16 @@ export function FileAttachments({
     [upload],
   );
 
-  const fileCount = filesQ.data?.files.length;
-  const countLabel =
-    filesQ.isLoading ? "…" : fileCount != null ? String(fileCount) : "0";
+  const showPurposeToggles = scope.kind === "performance";
+  const rawFiles = filesQ.data?.files ?? [];
+  /** Defensive: never show performance-scoped rows on the stage list (stale cache or bad query). */
+  const visibleFiles =
+    scope.kind === "stage"
+      ? rawFiles.filter((row) => row.performanceId == null)
+      : rawFiles;
+
+  const fileCount = visibleFiles.length;
+  const countLabel = filesQ.isLoading ? "…" : String(fileCount);
 
   const stageScopeHelp = (
     <>
@@ -450,6 +474,13 @@ export function FileAttachments({
         <div id={`file-attachments-${scope.kind}-${scope.kind === "stage" ? scope.stageId : scope.performanceId}`}>
       {scope.kind === "stage" ? stageScopeHelp : performanceScopeHelp}
 
+      {scope.kind === "stage" && rawFiles.length > visibleFiles.length ? (
+        <p role="status" className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.65rem" }}>
+          {rawFiles.length - visibleFiles.length} band-scoped file(s) omitted here — open that act’s{" "}
+          <strong>Files</strong> page to manage them.
+        </p>
+      ) : null}
+
       {/* Drop zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -489,14 +520,19 @@ export function FileAttachments({
         </p>
       )}
       {filesQ.isLoading && <p className="muted">Loading files…</p>}
-      {filesQ.data && filesQ.data.files.length > 0 && (
+      {visibleFiles.length > 0 && (
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {filesQ.data.files.map((file) => (
-            <FileRow key={file.id} f={file} queryKey={[...qk]} />
+          {visibleFiles.map((file) => (
+            <FileRow
+              key={file.id}
+              f={file}
+              queryKey={[...qk]}
+              showPurposeToggles={showPurposeToggles}
+            />
           ))}
         </ul>
       )}
-      {filesQ.data && filesQ.data.files.length === 0 && !filesQ.isLoading && (
+      {filesQ.data && visibleFiles.length === 0 && !filesQ.isLoading && (
         <p className="muted">No files yet.</p>
       )}
         </div>
