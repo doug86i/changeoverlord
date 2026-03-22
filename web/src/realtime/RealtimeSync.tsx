@@ -52,7 +52,7 @@ export function RealtimeSync() {
         if (msg.v !== 1 || !Array.isArray(msg.invalidate)) return;
         logDebug("realtime", "invalidate", msg.invalidate);
         for (const key of msg.invalidate) {
-          void qc.invalidateQueries({ queryKey: key });
+          void qc.invalidateQueries({ queryKey: key, exact: false });
         }
         if (msg.chat) {
           logDebug("realtime", "chat push", msg.chat.id);

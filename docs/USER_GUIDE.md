@@ -11,6 +11,7 @@ Changeoverlord helps festival **sound crew** run **multi-day schedules**, **chan
 
 - If an administrator has set a **shared password** in **Settings**, browsers must sign in once; the session lasts about a week.
 - If **no password** is set, the app is open on the LAN (still treat the network as trusted).
+- Too many failed sign-in attempts from one device in a short window show **Too many attempts, try again in 5 minutes.** (this limits password guessing).
 
 ---
 
@@ -20,7 +21,7 @@ Changeoverlord helps festival **sound crew** run **multi-day schedules**, **chan
 |------|----------------|
 | **Events** | List and open **events** (festivals, tours, etc.). |
 | **Clock** | **Stage clocks** — now/next and fullscreen display for a stage day. |
-| **Settings** | Shared password, **patch / RF spreadsheet templates** (global library), and other app options. |
+| **Settings** | Shared password, **global patch / RF templates**, and other app options. |
 
 The header links **Events**, **Clock**, and **Settings** on every screen. On **mobile**, tap the **hamburger menu** (☰) to expand the navigation.
 
@@ -30,6 +31,10 @@ The header links **Events**, **Clock**, and **Settings** on every screen. On **m
 - **My stage today** — In the header, **My stage today** opens **today’s** stage-day **running order** (same screen as drilling in from Events → Stage → Day). It uses the **server date** and, when it matches, your **last visited** stage-day. If several stages have a day today, you’re sent to **Clock** to pick one. Shortcut: **`g`** then **`m`**.
 - **Keyboard shortcuts** — Press **`?`** to see all shortcuts (e.g. `g e` = Events, `g m` = My stage today, `g c` = Clock).
 - **Last visited stage-day** — The app remembers your last visited stage-day in the browser (for **My stage today** when that day is today).
+
+### If the page crashes
+
+You may see **Something went wrong** with a **Reload** button — use it to recover. Operators normally **screenshot** that screen and share **when** it happened; **server logs** carry the technical detail. A **Copy technical details** control appears only in **developer** builds (not typical show laptops).
 
 ### Connection status
 
@@ -41,7 +46,7 @@ A **banner** appears at the top of the screen when the connection to the server 
 
 ## Schedule workflow (events → stages → days → performances)
 
-1. **Events** — Create or open an **event** (one location; times are **local event time**). You can **edit** or **delete** events using the ✎ and ✕ buttons.
+1. **Events** — Create or open an **event** (one location; times are **local event time**). You can **edit** or **delete** events using the ✎ and ✕ buttons. With **many** events, use **Load more** at the bottom of the list to fetch the next page.
 2. **Stages** — Inside an event, add **stages** (e.g. Main, Second). Stages are editable and deletable inline.
 3. **Stage days** — For each stage, add **days** (individual dates or **bulk add** from a date range). Days can be deleted.
 4. **Performances** — On a **stage day**, add **performances** (bands/slots) with **start**, **end** (either as a clock time or as **set length** in minutes), plus notes. Every slot has a finite end.
@@ -82,7 +87,7 @@ While you are inside an **event** (event detail, a **stage**, a **stage day**, *
 
 - **Stage context** — You see messages for **that stage** plus anything sent to the **whole event**. On the **event** detail page, open **Options** and use **Stage** there to pick which thread you are viewing.
 - **Sending** — **Enter** sends; **Shift+Enter** adds a new line (also noted in the message box placeholder). **Options** holds **Name**, **Stage** (when you opened the event from its detail page), and **This stage** vs **Whole event**.
-- **Open / minimize** — Tap **Chat** to open the full window; **Minimize** (or **click outside** / **Escape** after closing **Options**) returns to the small **Chat** button. **New messages** open the panel and flash so you do not miss them. Your own sends do not flash the dock.
+- **Open / minimize** — Tap **Chat** to open the full window; **Minimize** (or **click outside** / **Escape** after closing **Options**) returns to the small **Chat** button. **New messages** open the panel and **flash until you click or focus the dock** (including the **Chat** button when it is collapsed). If you close the panel without touching the dock, the **Chat** button keeps flashing. Your own sends do not flash the dock.
 
 Chat is meant for **short coordination** on the LAN; there is no private DM or edit/delete.
 
@@ -98,7 +103,7 @@ Each **performance** can have a **patch / RF workbook** — a multi-sheet grid (
 
 ### Patch page sidebar (stay on the sheet)
 
-On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** keeps schedule, plot, and files next to the sheet (see **`docs/FEATURE_REQUIREMENTS.md`**).
+On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** keeps schedule, plot, and files next to the sheet.
 
 - **Hide »** / **« Context** — Collapse or expand the sidebar; preference is remembered on this device.
 - **Changeover** — Shown when the day is in a gap between acts (same condition as the stage clock).
@@ -126,9 +131,16 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 
 **Export / import workbook JSON (this act)** — Next to the title, **Export JSON** downloads the current band’s spreadsheet as a JSON file (FortuneSheet-native; includes a small **`changeoverlordWorkbook`** envelope). **Import JSON** replaces this act’s workbook from a file you choose. The page **reloads** after import so everyone sees the same grid. Use this to edit in external tools, share with agents, or copy a sheet between servers. Details: **`docs/PATCH_TEMPLATE_JSON.md`**.
 
-### Templates (shared library)
+### Templates (global and stage)
 
-**Spreadsheet templates** are **global**: manage them in **Settings** (or add from a **stage**), then **assign a default template per stage** on the **stage** screen. New performances get a copy seeded from that template when one is selected.
+Templates come in two tiers:
+
+- **Global templates** — managed in **Settings**, available to every stage.
+- **Stage templates** — created on a **stage** page, belong to that stage only. Safe to edit, rename, replace, or delete without affecting other stages.
+
+Each stage picks one template (global or stage) as its **default for new performances**. New performances get a copy of the template snapshot when created; existing band patch workbooks are not updated.
+
+Adding a stage template (file upload, **Import workbook JSON**, or **Create blank template**) **selects it automatically** as that stage’s default when the upload succeeds; you can still pick another template in the dropdown.
 
 **Creating templates**
 
@@ -138,18 +150,12 @@ When viewing a patch workbook or performance files, a **navigation bar** shows:
 
 If the spreadsheet shows **`sheet not found`** (FortuneSheet error), the workbook usually has a **cross-sheet formula** pointing at a **missing or renamed tab**, **hidden columns** from Excel that confuse the grid (`colhidden`), or a bad import — see **`docs/PATCH_TEMPLATE_JSON.md`** § *FortuneSheet browser error: `sheet not found`* for fixes (single-sheet templates, re-import JSON, clear column hides in Excel).
 
-**Stages and performances** — Each stage must choose a **stored** template for new performances (upload at least one template first, or use **Create blank template**). Patch workbooks always come from the library snapshot seeded into each performance.
+**Global template actions (Settings)** — full control: **Edit spreadsheet**, **Preview**, **Edit name**, **Duplicate**, **Replace (Excel/JSON)**, **Export JSON**, **Import JSON**, **Delete**. A long library may show **Load more templates** at the bottom.
 
-On **Settings** and on the **stage** template picker you can:
+**Stage template actions (stage page)** — same full control, but scoped to this stage only.
 
-- **Edit spreadsheet** — Open the full **FortuneSheet** editor; edits persist automatically to this template’s snapshot on the server (same WebSocket path as band patch sheets). **New** performances copy that snapshot only **when they are created** if this template is the stage’s default then — **existing** band patch workbooks are not updated.
-- **Preview** — See a sample of sheets/cells without opening the full editor.
-- **Edit name** — Change the **display name** of a template in the library.
-- **Duplicate** — Copy a template to a new library entry (name becomes **"… (copy)"**; rename if you like).
-- **Replace (Excel/JSON)** — Upload a new Excel-compatible workbook **or** FortuneSheet **`.json`** for an existing template (updates the stored file and snapshot). If the browser labels the file as plain text, the server still detects workbook JSON by content.
-- **Export JSON** / **Import JSON** — Download or replace the template workbook as JSON. **Export** reflects the **current collaborative snapshot** (edits from **Edit spreadsheet**), not only the original upload file. Same envelope as performance exports; good for tooling and copying templates between systems.
-- **Import workbook JSON** — On a **stage**’s template section only: create a **new** library template from a JSON file (optional display name applies). In **Settings**, use **Upload Excel (.xlsx, …) or FortuneSheet JSON (.json)** for the same result.
-- **Delete** — Remove a template from the library (stages using it may need a new assignment).
+**Global template on the stage page** — when a global template is selected as the stage default, destructive actions (rename, replace, delete, import) are hidden. Instead you can **Copy to stage template** to create a local copy, plus **Edit spreadsheet**, **Preview**, and **Export JSON**.
+
 
 ---
 
@@ -204,6 +210,8 @@ All uploaded files (patch templates, riders, plots) live on the **server's data 
 
 Maximum upload size is **100 MB** per file (see **[`DECISIONS.md`](DECISIONS.md)** for limits).
 
+**Server validation** — The API checks that common types (PDF, images, Office docs, etc.) match their real file signatures, so renaming a random file to `.pdf` is rejected. Deployers who need **extra extensions** (e.g. proprietary desk files) can set **`RIDER_EXTRA_EXTENSIONS`** in **`.env`** (comma-separated, with or without a leading dot); those extensions are accepted without magic checks. See **`.env.example`**.
+
 ---
 
 ## Responsive layout
@@ -217,7 +225,7 @@ The app works on **desktop**, **tablet**, and **phone**:
 
 ## Theming
 
-**Light / dark** mode can be toggled from the header (☀ / ☾ icon). Visual tokens are described for designers in **[`DESIGN.md`](DESIGN.md)**.
+**Light / dark** mode can be toggled from the header (☀ / ☾ icon). Visual tokens are described in **[`DECISIONS.md`](DECISIONS.md)** (Visual design section).
 
 ---
 
@@ -226,8 +234,7 @@ The app works on **desktop**, **tablet**, and **phone**:
 | Need | Document |
 |------|----------|
 | Install & Docker | **[`README.md`](../README.md)** |
-| Product vision & roadmap | **[`PLAN.md`](PLAN.md)** |
-| Feature requirements | **[`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md)** |
+| Product vision & roadmap | **[`ROADMAP.md`](ROADMAP.md)** |
 | Engineering behaviour (API, limits) | **[`DECISIONS.md`](DECISIONS.md)** |
 
-If something in this guide doesn't match the app, the app wins — please report or fix the doc (see **[`MAINTAINING_DOCS.md`](MAINTAINING_DOCS.md)**).
+If something in this guide doesn't match the app, the app wins — please report or fix the doc (see the documentation maintenance section in **[`DEVELOPMENT.md`](DEVELOPMENT.md)**).

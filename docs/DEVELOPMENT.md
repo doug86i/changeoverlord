@@ -205,4 +205,92 @@ Schema changes use **Drizzle migrations**. If a dev database is in a bad state, 
 
 ## New machine or teammate
 
-Clone, `.env`, **`make dev`**, and moving **`DATA_DIR`** are documented in **[`HANDOVER.md`](HANDOVER.md)** so setup on another computer stays consistent with this repo.
+### Fresh clone (code only)
+
+```bash
+git clone <repository-url>
+cd <repo-directory>
+```
+
+Copy **`.env.example`** to **`.env`** if you need a non-default **port** (`HOST_PORT`), **data path** (`DATA_DIR`), **log level**, or **session secret**.
+
+Then from the **repository root**, choose one:
+
+**Deploy** (pre-built app from GHCR — no source build):
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+**Develop — fast** (Postgres + hot reload — recommended for daily work):
+
+```bash
+make dev-fast
+```
+
+**Develop — classic** (single `app` image, compiled SPA + API):
+
+```bash
+make dev
+```
+
+The first run creates **`data/db/`** and **`data/uploads/`** under your `DATA_DIR`.
+
+**Health check:** `curl -s http://localhost/api/v1/health` should return JSON with `"ok":true`.
+
+### Moving show / prep data to another computer
+
+**Option A — Full data directory (Postgres + files)**
+1. On the old machine: stop the stack (`make dev-down` or `docker compose down`).
+2. Copy the entire **`DATA_DIR`** tree (see **[`data/README.md`](../data/README.md)**).
+3. On the new machine: put it at the same relative path, or set **`DATA_DIR`** in **`.env`** to that absolute path.
+4. Start with **`make dev-fast`** or **`make dev`**.
+
+**Option B — Logical export (schedules + patch snapshots)**
+Use **Export event** in the app to download a JSON package, then **Import event** on the new instance (see **[`USER_GUIDE.md`](USER_GUIDE.md)**).
+
+---
+
+## Documentation maintenance
+
+This project splits docs by **audience** so nothing important lives only in chat or in code comments.
+
+### What lives where
+
+| Audience | Canonical place | Purpose |
+|----------|-----------------|---------|
+| **Operators / crew** | **[`USER_GUIDE.md`](USER_GUIDE.md)** | How to use the app. Plain language; no Docker internals. |
+| **Deploy / install** | Root **[`README.md`](../README.md)** | Quick start, Compose, ports, data directory. |
+| **Developers** | **`DEVELOPMENT.md`** (this file), **[`REALTIME.md`](REALTIME.md)**, **[`DECISIONS.md`](DECISIONS.md)**, **[`LOGGING.md`](LOGGING.md)**, **[`KNOWN_ISSUES.md`](KNOWN_ISSUES.md)** | Implementation, sync model, decisions, logging, known issues. |
+| **Product / roadmap** | **[`ROADMAP.md`](ROADMAP.md)** | Vision, user personas, feature requirements, competitive analysis. |
+| **AI & architecture** | **[`AGENTS.md`](../AGENTS.md)**, **[`.cursor/rules/`](../.cursor/rules/)** | Query keys, realtime split, deploy-after-change habits. |
+| **Release notes** | **[`CHANGELOG.md`](../CHANGELOG.md)** | What changed between versions. |
+
+### When to update what
+
+| Change | Update |
+|--------|--------|
+| Notable fix, feature, or engineering change that ships | **`CHANGELOG.md`** — `[Unreleased]` section. |
+| New or renamed user-visible feature, route, or label | **`USER_GUIDE.md`**. |
+| REST / SSE / TanStack keys / Yjs behaviour | **`REALTIME.md`**, **`AGENTS.md`**, and code. |
+| Docker, env, ports, migrations | **`README.md`**, **`DEVELOPMENT.md`**, **`data/README.md`** as appropriate. |
+| Patches, Dockerfile changes | **`DEVELOPMENT.md`** (Patches section); **`AGENTS.md`**; **`CHANGELOG.md`** if behaviour changes. |
+| Codebase audit / engineering backlog | **`KNOWN_ISSUES.md`** — edit or remove sections when addressed. |
+| Feature completed or priorities shift | **`ROADMAP.md`**. |
+| Stack or licence change | **`DECISIONS.md`**, **`LICENSING.md`**. |
+| Patch template library (Excel/JSON upload, API) | **`PATCH_TEMPLATE_JSON.md`**, **`examples/README.md`**, **`USER_GUIDE.md`**. |
+
+### Index and discoverability
+
+When you add or rename a top-level doc under `docs/`, add a row to **[`docs/README.md`](README.md)**.
+
+### Style (user guide)
+
+- **Second person** ("you") or neutral imperatives ("Open Settings").
+- Prefer stable concepts (event → stage → day → performance) over transient button text.
+- Don't duplicate install steps from `README.md` — link instead.
+
+### Review cadence
+
+- With each release: skim `USER_GUIDE.md` against the app.
+- Roadmap items marked shipped: update `USER_GUIDE.md` in the same change set.

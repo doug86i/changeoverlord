@@ -1,23 +1,2 @@
-import { useCallback } from "react";
-
+/** localStorage key for “last opened” stage day (see `ClockNavContext`, `myStageToday`). */
 export const LAST_STAGE_DAY_STORAGE_KEY = "changeoverlord-last-stage-day";
-
-export function useLastVisited() {
-  const lastStageDayId = (): string | null => {
-    try {
-      return localStorage.getItem(LAST_STAGE_DAY_STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  };
-
-  const setLastStageDayId = useCallback((id: string) => {
-    try {
-      localStorage.setItem(LAST_STAGE_DAY_STORAGE_KEY, id);
-    } catch {
-      /* localStorage unavailable */
-    }
-  }, []);
-
-  return { lastStageDayId, setLastStageDayId };
-}

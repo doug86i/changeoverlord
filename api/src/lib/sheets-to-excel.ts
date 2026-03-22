@@ -22,6 +22,7 @@ export async function sheetsToExcelBuffer(sheets: Sheet[]): Promise<Buffer> {
     const matrix: CellMatrix = sh.data ?? [];
     for (let r = 0; r < matrix.length; r++) {
       const row = matrix[r];
+      if (!row) continue;
       for (let c = 0; c < row.length; c++) {
         const v = cellValue(row[c]);
         if (v === undefined) continue;

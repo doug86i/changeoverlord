@@ -17,7 +17,7 @@ When one browser changes schedule or domain data (events, stages, days, performa
 1. **REST** unchanged — mutations stay `POST` / `PATCH` / `DELETE` under `/api/v1/...`.
 2. **Server-Sent Events (SSE)** — `GET /api/v1/realtime` is a long-lived stream (same auth as other API routes when a password is set).
 3. After a successful mutation, the API calls **`broadcastInvalidate()`** (`api/src/lib/realtime-bus.ts`) with a small JSON payload listing **TanStack Query `queryKey` tuples** to invalidate.
-4. The web app opens **one** `EventSource` in **`RealtimeSync`** (`web/src/realtime/RealtimeSync.tsx`). It only connects when **`GET /api/v1/auth/session`** allows API access (open LAN or logged in). On each message, it runs `queryClient.invalidateQueries({ queryKey })` so affected screens **refetch** immediately.
+4. The web app opens **one** `EventSource` in **`RealtimeSync`** (`web/src/realtime/RealtimeSync.tsx`). It only connects when **`GET /api/v1/auth/session`** allows API access (open LAN or logged in). On each message, it runs `queryClient.invalidateQueries({ queryKey, exact: false })` so a broadcast key also matches **longer** client keys (e.g. **`["allStagesForClock"]`** invalidates **`["allStagesForClock", "<serialized-event-ids>"]`** on **ClockPage**).
 
 ### Wire format (versioned)
 
@@ -46,7 +46,7 @@ Optional **`chat`** (same `v: 1`): after **`POST /api/v1/chat/messages`**, the s
 Clients that do not implement chat should **ignore** unknown top-level fields and still process **`invalidate`**.
 
 - **`v`:** increment when the payload shape changes; update **`RealtimeSync`** to handle new versions in parallel if needed.
-- **`invalidate`:** each inner array is a **`queryKey`** exactly as used in **`web/src/`** (string segments; `null` allowed if a query uses it).
+- **`invalidate`:** each inner array is a **`queryKey` prefix** as used in **`web/src/`** (string segments; `null` allowed if a query uses it). The client applies **`exact: false`**, so the tuple may be shorter than the **`useQuery`** key (see **Clock** **`allStagesForClock`**).
 
 ---
 
@@ -60,6 +60,8 @@ Clients that do not implement chat should **ignore** unknown top-level fields an
    - `["stages", eventId]`, `["stage", stageId]`, `["patchTemplates"]`, `["patchTemplate"]` (global patch/RF templates — REST or Yjs autosave from the template editor)
    - `["stageDays", stageId]`, `["stageDay", stageDayId]`
    - `["performances", stageDayId]`, `["performance", performanceId]`
+   - `["allStagesForClock"]` — prefix key for the multi-event stages aggregator on **`ClockPage`** (invalidate after event / stage / stage-day mutations that change which days exist)
+   - `["patchTemplatePreview"]` — prefix for template preview queries when templates change
    - `["files", stageId]` (stage-scoped PDF list), `["files", "performance", performanceId]` (performance-scoped PDF list)
    - `["settings"]`, `["authSession"]` (password / auth visibility)
 3. **Deletes** that cascade (e.g. event → stages → days → performances) should prefetch child IDs **before** delete (see existing **`events`** / **`stages`** route handlers) and invalidate **all** keys a client might have cached.

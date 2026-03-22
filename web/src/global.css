@@ -121,6 +121,33 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Router <Link> styled like default <button> (e.g. Edit spreadsheet) */
+a.button-link {
+  font-family: inherit;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  min-height: 44px;
+  font-size: 0.875rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+a.button-link:hover {
+  text-decoration: none;
+  filter: brightness(1.05);
+}
+
+a.button-link:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
 button.icon-btn,
 a.icon-btn {
   padding: 0.4rem 0.6rem;
@@ -384,6 +411,15 @@ textarea {
 .confirm-box {
   max-width: 420px;
   width: 100%;
+}
+
+a.search-dialog-result:hover {
+  background: color-mix(in srgb, var(--color-border) 18%, var(--color-surface));
+}
+
+a.search-dialog-result:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
 }
 
 /* ── Status colours ────────────────────────────────────────── */
@@ -1816,7 +1852,7 @@ a.patch-sidebar-perf-link:hover {
 
 .stage-chat-dock--flash .stage-chat-dock__peek-btn,
 .stage-chat-dock--flash .stage-chat-dock__panel {
-  animation: stage-chat-dock-flash 0.45s ease-in-out 3;
+  animation: stage-chat-dock-flash 0.45s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

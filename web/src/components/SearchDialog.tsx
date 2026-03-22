@@ -1,6 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { Link } from "react-router-dom";
 import { apiGet } from "../api/client";
+
+const searchResultLinkStyle: CSSProperties = {
+  display: "block",
+  width: "100%",
+  textAlign: "left",
+  marginBottom: "0.25rem",
+  textDecoration: "none",
+  color: "var(--color-text)",
+  padding: "0.35rem 0.4rem",
+  borderRadius: "var(--radius-sm)",
+  boxSizing: "border-box",
+};
 
 type SearchResult = {
   performances: { id: string; bandName: string; startTime: string; stageDayId: string }[];
@@ -13,7 +31,6 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [results, setResults] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -53,11 +70,6 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     }, 250);
   }, []);
 
-  const go = (path: string) => {
-    onClose();
-    navigate(path);
-  };
-
   if (!open) return null;
 
   const total = results
@@ -87,9 +99,15 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
           <>
             <div className="title-bar" style={{ margin: "0.5rem 0 0.25rem" }}>Events</div>
             {results.events.map((e) => (
-              <button key={e.id} type="button" style={{ display: "block", width: "100%", textAlign: "left", marginBottom: "0.25rem" }} onClick={() => go(`/events/${e.id}`)}>
+              <Link
+                key={e.id}
+                to={`/events/${e.id}`}
+                className="search-dialog-result"
+                onClick={() => onClose()}
+                style={searchResultLinkStyle}
+              >
                 {e.name} <span className="muted">({e.startDate})</span>
-              </button>
+              </Link>
             ))}
           </>
         )}
@@ -97,9 +115,15 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
           <>
             <div className="title-bar" style={{ margin: "0.5rem 0 0.25rem" }}>Stages</div>
             {results.stages.map((s) => (
-              <button key={s.id} type="button" style={{ display: "block", width: "100%", textAlign: "left", marginBottom: "0.25rem" }} onClick={() => go(`/stages/${s.id}`)}>
+              <Link
+                key={s.id}
+                to={`/stages/${s.id}`}
+                className="search-dialog-result"
+                onClick={() => onClose()}
+                style={searchResultLinkStyle}
+              >
                 {s.name}
-              </button>
+              </Link>
             ))}
           </>
         )}
@@ -107,9 +131,15 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
           <>
             <div className="title-bar" style={{ margin: "0.5rem 0 0.25rem" }}>Performances</div>
             {results.performances.map((p) => (
-              <button key={p.id} type="button" style={{ display: "block", width: "100%", textAlign: "left", marginBottom: "0.25rem" }} onClick={() => go(`/stage-days/${p.stageDayId}`)}>
+              <Link
+                key={p.id}
+                to={`/stage-days/${p.stageDayId}`}
+                className="search-dialog-result"
+                onClick={() => onClose()}
+                style={searchResultLinkStyle}
+              >
                 {p.bandName} <span className="muted">({p.startTime})</span>
-              </button>
+              </Link>
             ))}
           </>
         )}

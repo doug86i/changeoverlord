@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useClockNav } from "../ClockNavContext";
 import { useFitCountdownInBox } from "../hooks/useFitCountdownInBox";
+import { useServerTime } from "../hooks/useServerTime";
 import {
   formatDateShort,
   minutesBetween,
@@ -19,8 +20,6 @@ import {
   formatCountdownOrDays,
   formatClockHeroCountdown,
 } from "../lib/dateFormat";
-
-type TimeRes = { iso: string; unixMs: number };
 
 function parseLocal(dayDate: string, hhmm: string): Date {
   return new Date(`${dayDate}T${hhmm}:00`);
@@ -114,24 +113,10 @@ export function ClockDayPage() {
     enabled: Boolean(stageDayId),
   });
 
-  const timeQ = useQuery({
-    queryKey: ["serverTime"],
-    queryFn: () => apiGet<TimeRes>("/api/v1/time"),
-    refetchInterval: 30_000,
+  const { now } = useServerTime({
+    tickIntervalMs: 250,
+    refetchIntervalMs: 30_000,
   });
-
-  const [offsetMs, setOffsetMs] = useState(0);
-  useEffect(() => {
-    if (timeQ.data) setOffsetMs(timeQ.data.unixMs - Date.now());
-  }, [timeQ.data]);
-
-  const [tick, setTick] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setTick(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const now = useMemo(() => new Date(tick + offsetMs), [tick, offsetMs]);
 
   const sorted = useMemo(
     () => sortPerformances(perfQ.data?.performances ?? []),
@@ -384,7 +369,12 @@ export function ClockDayPage() {
 
   if (!stageDayId) return null;
   if (dayQ.isLoading || perfQ.isLoading) return <p className="muted">Loading…</p>;
-  if (!dayQ.data) return <p role="alert">Day not found.</p>;
+  if (dayQ.isError || (!dayQ.isLoading && !dayQ.data)) {
+    return <p role="alert">Day not found.</p>;
+  }
+  if (perfQ.isError) {
+    return <p role="alert">Failed to load performances.</p>;
+  }
 
   const stage = stageQ.data?.stage;
   const focus = sorted[focusIdx];

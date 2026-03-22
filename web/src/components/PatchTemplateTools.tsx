@@ -1,6 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   apiGet,
   apiSend,
@@ -8,7 +13,10 @@ import {
   downloadWorkbookJson,
   readFileAsText,
 } from "../api/client";
+import { fetchAllPatchTemplates } from "../api/paginated";
+import { ConfirmDialog } from "./ConfirmDialog";
 import type {
+  PaginatedPatchTemplatesResponse,
   PatchTemplatePreview,
   PatchTemplateRow,
 } from "../api/types";
@@ -21,27 +29,20 @@ function PreviewModal({
   title,
   loading,
   preview,
+  errorMessage,
   onClose,
 }: {
   title: string;
   loading: boolean;
   preview: PatchTemplatePreview | null;
+  errorMessage?: string | null;
   onClose: () => void;
 }) {
   return (
     <div
       role="dialog"
       aria-modal
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--color-overlay)",
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-      }}
+      className="confirm-overlay"
       onClick={onClose}
       onKeyDown={(e) => e.key === "Escape" && onClose()}
     >
@@ -58,10 +59,16 @@ function PreviewModal({
           {title}
         </div>
         {loading && <p className="muted">Loading…</p>}
-        {!loading && !preview && (
+        {!loading && errorMessage && (
+          <p role="alert" style={{ color: "var(--color-danger)" }}>
+            {errorMessage}
+          </p>
+        )}
+        {!loading && !errorMessage && !preview && (
           <p className="muted">No preview data.</p>
         )}
         {!loading &&
+          !errorMessage &&
           preview?.sheets.map((sh) => (
           <div key={sh.name} style={{ marginBottom: "1.25rem" }}>
             <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>{sh.name}</p>
@@ -125,11 +132,20 @@ export function PatchTemplateLibrarySettings() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [newName, setNewName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const listQ = useQuery({
+  const TEMPLATE_PAGE = 200;
+  const listQ = useInfiniteQuery({
     queryKey: ["patchTemplates"],
-    queryFn: () =>
-      apiGet<{ patchTemplates: PatchTemplateRow[] }>("/api/v1/patch-templates"),
+    queryFn: ({ pageParam }) =>
+      apiGet<PaginatedPatchTemplatesResponse>(
+        `/api/v1/patch-templates?page=${pageParam}&limit=${TEMPLATE_PAGE}`,
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
   });
 
   const previewQ = useQuery({
@@ -224,21 +240,37 @@ export function PatchTemplateLibrarySettings() {
     },
   });
 
-  const rows = listQ.data?.patchTemplates ?? [];
+  const rows = listQ.data?.pages.flatMap((p) => p.patchTemplates) ?? [];
+
+  useEffect(() => {
+    if (!editId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEditId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editId]);
 
   return (
-    <div className="card" style={{ marginBottom: "1rem" }}>
+    <div
+      className="card"
+      style={{
+        marginBottom: "1rem",
+        minWidth: 0,
+        maxWidth: "100%",
+        boxSizing: "border-box",
+      }}
+    >
       <div className="title-bar" style={{ marginBottom: "0.75rem" }}>
-        Patch / RF spreadsheet templates
+        Global patch / RF templates
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        Add templates by <strong>uploading Excel</strong> or <strong>create a blank template</strong>{" "}
+        <strong>Global templates</strong> are available to all stages. Stages can also create their own{" "}
+        <strong>stage templates</strong> (managed on each stage page).{" "}
+        Upload Excel or <strong>create a blank template</strong>{" "}
         (two empty tabs — <strong>Input</strong> and <strong>RF</strong>) and edit in the browser.
         Use <strong>Export JSON</strong> / <strong>Import JSON</strong> to share FortuneSheet-native
-        workbooks with tools or another server (see <code>docs/PATCH_TEMPLATE_JSON.md</code>). Starter
-        workbooks can come from <code>examples/</code> in the repo. Each stage picks a{" "}
-        <strong>stored</strong> template for new performances. Max 10&nbsp;MB per upload; JSON body
-        import limit 12&nbsp;MB.
+        workbooks. Max 10&nbsp;MB per upload; JSON body import limit 12&nbsp;MB.
       </p>
 
       <div
@@ -248,10 +280,19 @@ export function PatchTemplateLibrarySettings() {
           flexWrap: "wrap",
           alignItems: "flex-end",
           marginBottom: "1rem",
+          minWidth: 0,
         }}
       >
-        <label>
-          <span className="muted" style={{ display: "block", marginBottom: 4 }}>
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            minWidth: 0,
+            flex: "1 1 12rem",
+          }}
+        >
+          <span className="muted" style={{ display: "block" }}>
             Display name for next upload (optional)
           </span>
           <input
@@ -259,11 +300,19 @@ export function PatchTemplateLibrarySettings() {
             placeholder="e.g. Festival default"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            style={{ minWidth: 200 }}
+            style={{ width: "100%", minWidth: 0, boxSizing: "border-box" }}
           />
         </label>
-        <label>
-          <span className="muted" style={{ display: "block", marginBottom: 4 }}>
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            minWidth: 0,
+            flex: "1 1 14rem",
+          }}
+        >
+          <span className="muted" style={{ display: "block" }}>
             Upload Excel (.xlsx, …) or FortuneSheet JSON (.json)
           </span>
           <input
@@ -282,12 +331,13 @@ export function PatchTemplateLibrarySettings() {
           className="primary"
           disabled={createBlankTpl.isPending || createTpl.isPending}
           onClick={() => createBlankTpl.mutate(newName)}
+          style={{ maxWidth: "100%", boxSizing: "border-box" }}
         >
           Create blank template
         </button>
       </div>
 
-      {listQ.isLoading && <p className="muted">Loading templates…</p>}
+      {listQ.isPending && <p className="muted">Loading templates…</p>}
       {listQ.isError && (
         <p role="alert">Could not load templates. {(listQ.error as Error).message}</p>
       )}
@@ -307,22 +357,36 @@ export function PatchTemplateLibrarySettings() {
                   gap: "0.5rem",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  minWidth: 0,
                 }}
               >
-                <div>
+                <div
+                  style={{
+                    minWidth: 0,
+                    flex: "1 1 12rem",
+                    overflowWrap: "anywhere",
+                  }}
+                >
                   <strong>{t.name}</strong>
                   <span className="muted" style={{ fontSize: "0.85rem" }}>
                     {" "}
                     — {t.originalName} ({(t.byteSize / 1024).toFixed(1)} KB)
                   </span>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/patch-templates/${t.id}/edit`)}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "0.4rem",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Link
+                    to={`/patch-templates/${t.id}/edit`}
+                    className="button-link"
                   >
                     Edit spreadsheet
-                  </button>
+                  </Link>
                   <button
                     type="button"
                     disabled={duplicateTpl.isPending}
@@ -379,15 +443,7 @@ export function PatchTemplateLibrarySettings() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          `Delete template “${t.name}”? Stages that used it will need to pick another template (their default is cleared).`,
-                        )
-                      ) {
-                        deleteTpl.mutate(t.id);
-                      }
-                    }}
+                    onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
                     disabled={deleteTpl.isPending}
                   >
                     Delete
@@ -397,6 +453,18 @@ export function PatchTemplateLibrarySettings() {
             </li>
           ))}
         </ul>
+      )}
+
+      {listQ.hasNextPage && (
+        <div style={{ marginTop: "0.75rem", textAlign: "center" }}>
+          <button
+            type="button"
+            disabled={listQ.isFetchingNextPage}
+            onClick={() => void listQ.fetchNextPage()}
+          >
+            {listQ.isFetchingNextPage ? "Loading…" : "Load more templates"}
+          </button>
+        </div>
       )}
 
       <input
@@ -434,8 +502,11 @@ export function PatchTemplateLibrarySettings() {
       {previewId && (
         <PreviewModal
           title="Template preview"
-          loading={previewQ.isLoading}
+          loading={previewQ.isPending || previewQ.isFetching}
           preview={previewQ.data ?? null}
+          errorMessage={
+            previewQ.isError ? (previewQ.error as Error).message : null
+          }
           onClose={() => setPreviewId(null)}
         />
       )}
@@ -444,15 +515,7 @@ export function PatchTemplateLibrarySettings() {
         <div
           role="dialog"
           aria-modal
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "var(--color-overlay)",
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          className="confirm-overlay"
           onClick={() => setEditId(null)}
         >
           <div
@@ -486,6 +549,22 @@ export function PatchTemplateLibrarySettings() {
         </div>
       )}
 
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete template?"
+        message={
+          deleteTarget
+            ? `Delete template "${deleteTarget.name}"? Stages that used it will need to pick another template (their default is cleared).`
+            : ""
+        }
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deleteTarget) deleteTpl.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       {(createTpl.isError ||
         createBlankTpl.isError ||
         renameTpl.isError ||
@@ -493,7 +572,7 @@ export function PatchTemplateLibrarySettings() {
         deleteTpl.isError ||
         duplicateTpl.isError ||
         replaceWorkbookJson.isError) && (
-        <p role="alert" style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
+        <p role="alert" style={{ color: "var(--color-danger)", marginTop: "0.75rem" }}>
           {(createTpl.error ??
             createBlankTpl.error ??
             renameTpl.error ??
@@ -520,7 +599,6 @@ export function StagePatchTemplatePicker({
   defaultPatchTemplateId,
   hasPatchTemplate,
 }: StagePickerProps) {
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const replaceRef = useRef<HTMLInputElement>(null);
   const replaceJsonRef = useRef<HTMLInputElement>(null);
@@ -529,11 +607,14 @@ export function StagePatchTemplatePicker({
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [stageNewName, setStageNewName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const listQ = useQuery({
-    queryKey: ["patchTemplates"],
-    queryFn: () =>
-      apiGet<{ patchTemplates: PatchTemplateRow[] }>("/api/v1/patch-templates"),
+    queryKey: ["patchTemplates", stageId],
+    queryFn: () => fetchAllPatchTemplates(stageId),
   });
 
   const previewQ = useQuery({
@@ -545,15 +626,18 @@ export function StagePatchTemplatePicker({
     enabled: Boolean(previewId),
   });
 
+  const invalidateStage = () => {
+    void qc.invalidateQueries({ queryKey: ["stage", stageId] });
+    void qc.invalidateQueries({ queryKey: ["stages", eventId] });
+    void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
+  };
+
   const patchStage = useMutation({
     mutationFn: (templateId: string) =>
       apiSend(`/api/v1/stages/${stageId}`, "PATCH", {
         defaultPatchTemplateId: templateId,
       }),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["stage", stageId] });
-      void qc.invalidateQueries({ queryKey: ["stages", eventId] });
-    },
+    onSuccess: invalidateStage,
   });
 
   const renameTpl = useMutation({
@@ -579,18 +663,19 @@ export function StagePatchTemplatePicker({
   const importNewWorkbookJson = useMutation({
     mutationFn: async ({ text, name }: { text: string; name: string }) => {
       const body = JSON.parse(text) as unknown;
-      const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
+      const params = new URLSearchParams();
+      if (name.trim()) params.set("name", name.trim());
+      params.set("stageId", stageId);
       return apiSend<{ patchTemplate: { id: string } }>(
-        `/api/v1/patch-templates/sheets-import${q}`,
+        `/api/v1/patch-templates/sheets-import?${params}`,
         "POST",
         body,
       );
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
-      void qc.invalidateQueries({ queryKey: ["stage", stageId] });
-      void qc.invalidateQueries({ queryKey: ["stages", eventId] });
+    onSuccess: (data) => {
+      invalidateStage();
       setStageNewName("");
+      patchStage.mutate(data.patchTemplate.id);
     },
   });
 
@@ -608,22 +693,19 @@ export function StagePatchTemplatePicker({
   const deleteTpl = useMutation({
     mutationFn: (id: string) =>
       apiSend(`/api/v1/patch-templates/${id}`, "DELETE"),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
-      void qc.invalidateQueries({ queryKey: ["stage", stageId] });
-      void qc.invalidateQueries({ queryKey: ["stages", eventId] });
-    },
+    onSuccess: invalidateStage,
   });
 
-  const duplicateTpl = useMutation({
+  const copyToLocal = useMutation({
     mutationFn: (id: string) =>
       apiSend<{ patchTemplate: { id: string } }>(
         `/api/v1/patch-templates/${id}/duplicate`,
         "POST",
-        {},
+        { stageId },
       ),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
+    onSuccess: (data) => {
+      invalidateStage();
+      patchStage.mutate(data.patchTemplate.id);
     },
   });
 
@@ -631,29 +713,68 @@ export function StagePatchTemplatePicker({
     mutationFn: ({ file, name }: { file: File; name: string }) => {
       const fd = new FormData();
       fd.append("file", file);
-      const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
-      return apiSendForm(`/api/v1/patch-templates${q}`, "POST", fd);
+      const params = new URLSearchParams();
+      if (name.trim()) params.set("name", name.trim());
+      params.set("stageId", stageId);
+      return apiSendForm<{ patchTemplate: { id: string } }>(
+        `/api/v1/patch-templates?${params}`,
+        "POST",
+        fd,
+      );
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["patchTemplates"] });
+    onSuccess: (data) => {
+      invalidateStage();
       setStageNewName("");
+      patchStage.mutate(data.patchTemplate.id);
     },
   });
 
-  const rows = listQ.data?.patchTemplates ?? [];
+  const createBlankTpl = useMutation({
+    mutationFn: (name: string) =>
+      apiSend<{ patchTemplate: { id: string } }>(
+        "/api/v1/patch-templates/blank",
+        "POST",
+        { name: name.trim() || undefined, stageId },
+      ),
+    onSuccess: (data) => {
+      invalidateStage();
+      setStageNewName("");
+      patchStage.mutate(data.patchTemplate.id);
+    },
+  });
+
+  const rows = listQ.data ?? [];
+  const globalRows = rows.filter((t) => !t.stageId);
+  const localRows = rows.filter((t) => t.stageId === stageId);
   const selected = rows.find((t) => t.id === defaultPatchTemplateId);
+  const isLocal = selected ? selected.stageId === stageId : false;
+
+  useEffect(() => {
+    if (!editId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEditId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editId]);
 
   return (
-    <div className="card" style={{ marginBottom: "1.5rem" }}>
+    <div
+      className="card"
+      style={{
+        marginBottom: "1.5rem",
+        minWidth: 0,
+        maxWidth: "100%",
+        boxSizing: "border-box",
+      }}
+    >
       <div className="title-bar" style={{ marginBottom: "0.75rem" }}>
         Default patch / RF template
       </div>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Choose a <strong>stored</strong> spreadsheet template for new performances on this stage.
-        Upload templates in Settings (e.g. from <code>examples/</code>) or import a{" "}
-        <strong>workbook JSON</strong> package. Use <strong>Export JSON</strong> /{" "}
-        <strong>Import JSON</strong> on the selected template to share with tools or another
-        server. Manage all templates in Settings.
+      <p className="muted" style={{ marginTop: 0, fontSize: "0.85rem" }}>
+        <strong>Global</strong> templates are shared (manage in{" "}
+        <Link to="/settings">Settings</Link>).{" "}
+        <strong>Stage</strong> templates belong to this stage only.
       </p>
 
       <div style={{ marginBottom: "0.75rem" }}>
@@ -662,8 +783,8 @@ export function StagePatchTemplatePicker({
         </label>
         {rows.length === 0 ? (
           <p className="muted" style={{ marginTop: 0 }}>
-            No templates yet — add one in <Link to="/settings">Settings</Link> before scheduling
-            patch workbooks.
+            No templates yet — add a global template in{" "}
+            <Link to="/settings">Settings</Link>, or create a stage template below.
           </p>
         ) : (
         <select
@@ -672,20 +793,39 @@ export function StagePatchTemplatePicker({
             const v = e.target.value;
             if (v) patchStage.mutate(v);
           }}
-          disabled={patchStage.isPending || listQ.isLoading}
-          style={{ minWidth: 280, maxWidth: "100%", padding: "0.45rem 0.6rem" }}
+          disabled={patchStage.isPending || listQ.isPending}
+          style={{
+            width: "100%",
+            minWidth: 0,
+            maxWidth: "100%",
+            padding: "0.45rem 0.6rem",
+            boxSizing: "border-box",
+          }}
           required
         >
           {defaultPatchTemplateId == null && (
             <option value="" disabled>
-              Select a template…
+              {listQ.isPending ? "Loading templates…" : "Select a template…"}
             </option>
           )}
-          {rows.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
+          {localRows.length > 0 && (
+            <optgroup label="Stage templates">
+              {localRows.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {globalRows.length > 0 && (
+            <optgroup label="Global templates">
+              {globalRows.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
         )}
       </div>
@@ -693,121 +833,169 @@ export function StagePatchTemplatePicker({
       {hasPatchTemplate && selected && (
         <div
           style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0.5rem",
-            alignItems: "center",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-sm, 6px)",
+            padding: "0.75rem",
             marginBottom: "0.75rem",
           }}
         >
-          <span className="muted" style={{ fontSize: "0.9rem" }}>
-            Selected: {selected.name} ({selected.originalName})
-          </span>
-          <button
-            type="button"
-            onClick={() => navigate(`/patch-templates/${selected.id}/edit`)}
-          >
-            Edit spreadsheet
-          </button>
-          <button
-            type="button"
-            disabled={duplicateTpl.isPending}
-            onClick={() => duplicateTpl.mutate(selected.id)}
-          >
-            Duplicate
-          </button>
-          <button type="button" onClick={() => setPreviewId(selected.id)}>
-            Preview
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEditId(selected.id);
-              setEditName(selected.name);
+          <div style={{ marginBottom: "0.5rem" }}>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                color: isLocal ? "var(--color-brand)" : "var(--color-text-muted)",
+              }}
+            >
+              {isLocal ? "Stage template" : "Global template"}
+            </span>
+            <div style={{ fontWeight: 500, overflowWrap: "anywhere" }}>
+              {selected.name}
+            </div>
+            <span className="muted" style={{ fontSize: "0.8rem" }}>
+              {selected.originalName}
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.4rem",
             }}
           >
-            Edit name
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              replaceRef.current?.setAttribute("data-id", selected.id);
-              replaceRef.current?.click();
-            }}
-          >
-            Replace (Excel/JSON)
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={async () => {
-              try {
-                await downloadWorkbookJson(
-                  `/api/v1/patch-templates/${selected.id}/sheets-export`,
-                  `${selected.name}_workbook.json`,
-                );
-              } catch (err) {
-                window.alert((err as Error).message);
-              }
-            }}
-          >
-            Export JSON
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={() => {
-              replaceJsonRef.current?.setAttribute("data-id", selected.id);
-              replaceJsonRef.current?.click();
-            }}
-          >
-            Import JSON
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (
-                confirm(
-                  `Delete template “${selected.name}” from the system? Stages that used it must pick another template (their default is cleared).`,
-                )
-              ) {
-                deleteTpl.mutate(selected.id);
-              }
-            }}
-            disabled={deleteTpl.isPending}
-          >
-            Delete template
-          </button>
+            <Link
+              to={`/patch-templates/${selected.id}/edit`}
+              className="button-link"
+            >
+              Edit spreadsheet
+            </Link>
+            <button type="button" onClick={() => setPreviewId(selected.id)}>
+              Preview
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await downloadWorkbookJson(
+                    `/api/v1/patch-templates/${selected.id}/sheets-export`,
+                    `${selected.name}_workbook.json`,
+                  );
+                } catch (err) {
+                  window.alert((err as Error).message);
+                }
+              }}
+            >
+              Export JSON
+            </button>
+
+            {isLocal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditId(selected.id);
+                    setEditName(selected.name);
+                  }}
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    replaceRef.current?.setAttribute("data-id", selected.id);
+                    replaceRef.current?.click();
+                  }}
+                >
+                  Replace
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    replaceJsonRef.current?.setAttribute("data-id", selected.id);
+                    replaceJsonRef.current?.click();
+                  }}
+                >
+                  Import JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteTarget({ id: selected.id, name: selected.name })
+                  }
+                  disabled={deleteTpl.isPending}
+                >
+                  Delete
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="primary"
+                disabled={copyToLocal.isPending}
+                onClick={() => copyToLocal.mutate(selected.id)}
+              >
+                Copy to stage template
+              </button>
+            )}
+          </div>
+
+          {!isLocal && (
+            <p className="muted" style={{ marginTop: "0.5rem", marginBottom: 0, fontSize: "0.8rem" }}>
+              Manage global templates in <Link to="/settings">Settings</Link>.{" "}
+              <strong>Copy to stage template</strong> creates an editable local copy.
+            </p>
+          )}
         </div>
       )}
 
       <div style={{ marginTop: "0.75rem" }}>
-        <span className="muted" style={{ display: "block", marginBottom: 4 }}>
-          Add template to library (upload Excel)
+        <span
+          className="muted"
+          style={{
+            display: "block",
+            marginBottom: "0.5rem",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
+          Add stage template
         </span>
+        <input
+          type="text"
+          placeholder="Display name (optional)"
+          value={stageNewName}
+          onChange={(e) => setStageNewName(e.target.value)}
+          style={{
+            width: "100%",
+            maxWidth: "16rem",
+            minWidth: 0,
+            boxSizing: "border-box",
+            marginBottom: "0.5rem",
+          }}
+        />
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: "0.5rem",
+            gap: "0.4rem",
             alignItems: "center",
           }}
         >
-          <input
-            type="text"
-            placeholder="Display name (optional)"
-            value={stageNewName}
-            onChange={(e) => setStageNewName(e.target.value)}
-            style={{ maxWidth: 200 }}
-          />
-          <label style={{ margin: 0 }}>
-            <span className="muted" style={{ marginRight: 6 }}>
-              Excel or JSON
-            </span>
+          <label
+            className="button-link"
+            style={{ margin: 0, cursor: "pointer" }}
+          >
+            Upload Excel / JSON
             <input
               type="file"
               accept={PATCH_TEMPLATE_FILE_ACCEPT}
               disabled={createTpl.isPending}
+              style={{ display: "none" }}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) createTpl.mutate({ file: f, name: stageNewName });
@@ -821,6 +1009,13 @@ export function StagePatchTemplatePicker({
             onClick={() => newWorkbookJsonRef.current?.click()}
           >
             Import workbook JSON
+          </button>
+          <button
+            type="button"
+            disabled={createBlankTpl.isPending || createTpl.isPending}
+            onClick={() => createBlankTpl.mutate(stageNewName)}
+          >
+            Create blank
           </button>
           <input
             ref={newWorkbookJsonRef}
@@ -878,8 +1073,11 @@ export function StagePatchTemplatePicker({
       {previewId && (
         <PreviewModal
           title="Template preview"
-          loading={previewQ.isLoading}
+          loading={previewQ.isPending || previewQ.isFetching}
           preview={previewQ.data ?? null}
+          errorMessage={
+            previewQ.isError ? (previewQ.error as Error).message : null
+          }
           onClose={() => setPreviewId(null)}
         />
       )}
@@ -888,15 +1086,7 @@ export function StagePatchTemplatePicker({
         <div
           role="dialog"
           aria-modal
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "var(--color-overlay)",
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          className="confirm-overlay"
           onClick={() => setEditId(null)}
         >
           <div
@@ -930,21 +1120,39 @@ export function StagePatchTemplatePicker({
         </div>
       )}
 
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete stage template?"
+        message={
+          deleteTarget
+            ? `Delete stage template "${deleteTarget.name}"? This only affects this stage.`
+            : ""
+        }
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deleteTarget) deleteTpl.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       {(patchStage.isError ||
         createTpl.isError ||
+        createBlankTpl.isError ||
         renameTpl.isError ||
         replaceTpl.isError ||
         deleteTpl.isError ||
-        duplicateTpl.isError ||
+        copyToLocal.isError ||
         importNewWorkbookJson.isError ||
         replaceWorkbookJson.isError) && (
-        <p role="alert" style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
+        <p role="alert" style={{ color: "var(--color-danger)", marginTop: "0.75rem" }}>
           {(patchStage.error ??
             createTpl.error ??
+            createBlankTpl.error ??
             renameTpl.error ??
             replaceTpl.error ??
             deleteTpl.error ??
-            duplicateTpl.error ??
+            copyToLocal.error ??
             importNewWorkbookJson.error ??
             replaceWorkbookJson.error)?.message}
         </p>

@@ -6,7 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Security
+
+- **API:** **Rider / plot attachments** — after extension allowlisting, buffers are checked against **magic bytes** (PDF, common images, Office docs, etc.); optional **`RIDER_EXTRA_EXTENSIONS`** skips magic for listed extensions (see **`.env.example`**).
+- **API:** Credentialed CORS is no longer `origin: true` in production — set **`CORS_ALLOWED_ORIGINS`** (comma-separated) for split-origin dev; development **`NODE_ENV`** keeps permissive CORS when the allowlist is empty.
+- **API:** **`@fastify/helmet`** (**CSP off** for the LAN SPA — see comment in **`app.ts`**), **`@fastify/rate-limit`** on **`POST /auth/login`** (15 / 5 min per IP, message *Too many attempts, try again in 5 minutes.*), WebSocket **`maxPayload`**, SSE **per-IP connection cap**, **`trustProxy`** for forwarded **`X-Forwarded-Proto`**.
+- **API:** **`SESSION_SECRET`** must not be empty or the public dev fallback when **`NODE_ENV=production`** (container image).
+- **Web:** **`returnTo`** after login is validated as an internal path only (no open redirect).
+
+### Fixed
+
+- **API:** **`upload-allowlists`** — `allRiderExtensions()` is defined after **`RIDER_EXT`** so env extras do not hit a temporal dead zone at load.
+- **API:** **Patch template** **replace** / **JSON sheets-import** write the **new** file first, **update the DB**, then remove the **old** file; **unlink the new** file if the DB update fails. **Duplicate** cleans up the copied file if insert fails.
+- **API:** Event **import** uses **Zod** + a single **DB transaction**; **search** escapes **`ILIKE`** wildcards; **convert-to-PDF** returns a generic client message; **file uploads** unlink on DB insert failure; **stored paths** resolved under uploads root; **performance** create / swap / shift use **transactions**; **Postgres pool** timeouts + **`pool.end()`** on shutdown; **SSE** writes wrapped for disconnected clients.
+- **API / Web:** **`RealtimeSync`** invalidates query keys with **`exact: false`** so **`["allStagesForClock"]`** refreshes **Clock**’s nested key; **`GET /events`** and **`GET /patch-templates`** paginate (**`page`**, **`limit`**, default **200**, max **500**, **`hasMore`**).
+- **DB:** Migration **`0007_stages_default_patch_template_index`** — index on **`stages.default_patch_template_id`**.
+- **Web:** Shared **`useServerTime`** hook; **ClockPage** parallel fetches + loading/errors; **ClockDayPage** / **SettingsPage** error handling; **Y.Doc** lifecycle in **`patchWorkbookCollab`**; error boundaries show friendly copy with **Copy technical details** only when client debug logging is enabled.
+
+### Changed
+
+- **API:** **`hasPassword`** checks in **`auth-guard`** and **`GET /auth/session`** use a short-TTL **`getCachedHasPassword()`** cache; password mutations call **`invalidatePasswordSettingsCache()`**.
+- **API:** **`GET /events/:id/export`** loads **stage days**, **performances**, and **Yjs snapshots** with **`inArray`** batch queries instead of nested per-row selects; **event delete** invalidation resolves **stage-day** ids in one query.
+- **API:** **Rate limits** — **`POST /files`** (120/min), **`POST /import`** (20/min), **`POST /patch-templates`** and **`POST /patch-templates/:id/replace`** (40/min each).
+- **API:** When the template **Yjs** snapshot is empty and the on-disk file cannot be read, **preview** / **sheets-export** return **503** with a short message (throws after **warn** log).
+- **Web:** **Events** list and **Settings** global template library use **Load more** against paginated APIs; **Clock**, **My stage today**, and the **stage** template picker fetch all pages (**`fetchAllEvents`**, **`fetchAllPatchTemplates`**).
+- **Web:** **Search** modal — results are **`Link`**s (new tab / context menu); hover and focus styles via **`search-dialog-result`** in **`global.css`**.
+- **Web:** **Settings** + **patch template** cards (**`SettingsPage`**, **`PatchTemplateLibrarySettings`**, **`StagePatchTemplatePicker`**) — avoid horizontal overflow on narrow viewports: **`minWidth: 0`** / **`maxWidth: "100%"`** on containers, password fields capped with **`min(20rem, 100%)`**, flexible upload labels, full-width template **`select`**, **`overflowWrap: "anywhere"`** on long template metadata.
+- **Web:** **Patch** and **performance Files** breadcrumbs use **`formatDateShort`** for the stage-day date (matches other pages).
+- **Web:** **Known-issues sweep** — mutation errors use **`--color-danger`** + **`role="alert"`** where still using brand red (**Patch**, **Settings**, **PatchTemplateTools**, **Events** create); template **rename** modals close on **Escape**; list **action** clusters use **`flexShrink: 0`** (**Events**, **Event detail**, **Stage detail** days, **Stage day** performance row, **FileAttachments**).
+- **Web:** **Stage chat** — new-message **flash** repeats until the user **clicks or focuses** the dock (or the collapsed **Chat** control); closing the panel by clicking outside no longer stops the flash on the collapsed button. **Own sends** do not flash even if **SSE** arrives before the **POST** response (**pending-echo** fingerprint + existing **`lastSentIdRef`**).
+- **Web:** **Stage** patch template picker — after a successful **Excel/JSON upload** or **Import workbook JSON**, the new template is **set as the stage default** (same as choosing it in the dropdown).
+- **Web:** **Patch template** tools — **delete** uses **`ConfirmDialog`**; **Edit spreadsheet** is a **`Link`** with **`button-link`** styling; preview / rename overlays use **`confirm-overlay`**; selected-template action row uses **`flexShrink: 0`**.
+- **`Dockerfile.fast`:** run as **`USER node`**.
+- **Web:** Login error styling uses **`--color-danger`** + **`role="alert"`**.
+- **Docs:** **`KNOWN_ISSUES.md`** — reconciled **§5–11**, **§44**, **§46–§48**, **§52–§53**, **§56**, **§7**, **§17**, **§41**, **§42**, **§49**, **§54** with current code; closed the **“Confirm before…”** UX table (items shipped).
 
 ---
 

@@ -41,6 +41,7 @@ export const stageDaysRoutes: FastifyPluginAsync = async (app) => {
         ["stageDays", stageId],
         ["stage", stageId],
         ["stageDay", row.id],
+        ["allStagesForClock"],
       ]);
       req.log.debug({ stageDayId: row.id, stageId }, "stage day created");
       return reply.code(201).send({ stageDay: row });
@@ -82,6 +83,7 @@ export const stageDaysRoutes: FastifyPluginAsync = async (app) => {
         ["stageDays", row.stageId],
         ["stage", row.stageId],
         ["performances", id],
+        ["allStagesForClock"],
       ]);
       req.log.debug({ stageDayId: id }, "stage day updated");
       return { stageDay: row };
@@ -110,6 +112,7 @@ export const stageDaysRoutes: FastifyPluginAsync = async (app) => {
       ["stageDays", existing.stageId],
       ["stage", existing.stageId],
       ["performances", id],
+      ["allStagesForClock"],
     ]);
     req.log.debug({ stageDayId: id }, "stage day deleted");
     return reply.code(204).send();

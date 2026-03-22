@@ -1,10 +1,69 @@
 import type { FastifyPluginAsync } from "fastify";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "../../db/client.js";
-import { events, stages, stageDays, performances, fileAssets, performanceYjsSnapshots } from "../../db/schema.js";
+import {
+  events,
+  stages,
+  stageDays,
+  performances,
+  performanceYjsSnapshots,
+} from "../../db/schema.js";
 import { normalizePerformanceBandName } from "../../lib/performance-band-name.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { uuidParam } from "../../schemas/api.js";
+
+const importBodySchema = z.object({
+  version: z.literal(1),
+  event: z.object({
+    id: z.string().uuid(),
+    name: z.string().min(1).max(500),
+    startDate: z.string().min(1).max(32),
+    endDate: z.string().min(1).max(32),
+  }),
+  stages: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string().min(1).max(200),
+        sortOrder: z.number().int(),
+        eventId: z.string().uuid(),
+      }),
+    )
+    .max(500),
+  stageDays: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        stageId: z.string().uuid(),
+        dayDate: z.string().min(1).max(32),
+        sortOrder: z.number().int(),
+      }),
+    )
+    .max(5000),
+  performances: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        stageDayId: z.string().uuid(),
+        sortOrder: z.number().int(),
+        bandName: z.string().nullable().optional(),
+        notes: z.string().nullable().optional(),
+        startTime: z.string().min(1).max(16),
+        endTime: z.string().nullable().optional(),
+      }),
+    )
+    .max(50_000),
+  snapshots: z
+    .array(
+      z.object({
+        performanceId: z.string().uuid(),
+        snapshot: z.string().max(80_000_000),
+      }),
+    )
+    .max(5000)
+    .optional(),
+});
 
 export const exportImportRoutes: FastifyPluginAsync = async (app) => {
   app.get("/events/:id/export", async (req, reply) => {
@@ -13,22 +72,24 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
     if (!ev) return reply.code(404).send({ error: "NotFound" });
 
     const stageRows = await db.select().from(stages).where(eq(stages.eventId, id));
-    const dayRows: (typeof stageDays.$inferSelect)[] = [];
-    const perfRows: (typeof performances.$inferSelect)[] = [];
-    const snapshotRows: (typeof performanceYjsSnapshots.$inferSelect)[] = [];
-
-    for (const st of stageRows) {
-      const days = await db.select().from(stageDays).where(eq(stageDays.stageId, st.id));
-      dayRows.push(...days);
-      for (const d of days) {
-        const perfs = await db.select().from(performances).where(eq(performances.stageDayId, d.id));
-        perfRows.push(...perfs);
-        for (const p of perfs) {
-          const [snap] = await db.select().from(performanceYjsSnapshots).where(eq(performanceYjsSnapshots.performanceId, p.id));
-          if (snap) snapshotRows.push(snap);
-        }
-      }
-    }
+    const stageIds = stageRows.map((s) => s.id);
+    const dayRows =
+      stageIds.length > 0
+        ? await db.select().from(stageDays).where(inArray(stageDays.stageId, stageIds))
+        : [];
+    const dayIds = dayRows.map((d) => d.id);
+    const perfRows =
+      dayIds.length > 0
+        ? await db.select().from(performances).where(inArray(performances.stageDayId, dayIds))
+        : [];
+    const perfIds = perfRows.map((p) => p.id);
+    const snapshotRows =
+      perfIds.length > 0
+        ? await db
+            .select()
+            .from(performanceYjsSnapshots)
+            .where(inArray(performanceYjsSnapshots.performanceId, perfIds))
+        : [];
 
     const payload = {
       version: 1,
@@ -54,83 +115,118 @@ export const exportImportRoutes: FastifyPluginAsync = async (app) => {
     return reply.send(JSON.stringify(payload, null, 2));
   });
 
-  app.post("/import", async (req, reply) => {
-    const body = req.body as {
-      version: number;
-      event: typeof events.$inferSelect;
-      stages: (typeof stages.$inferSelect)[];
-      stageDays: (typeof stageDays.$inferSelect)[];
-      performances: (typeof performances.$inferSelect)[];
-      snapshots?: { performanceId: string; snapshot: string; updatedAt: Date }[];
-    };
-
-    if (!body?.version || !body?.event) {
-      return reply.code(400).send({ error: "Invalid export format" });
+  app.post(
+    "/import",
+    {
+      config: {
+        rateLimit: {
+          max: 20,
+          timeWindow: "1 minute",
+        },
+      },
+    },
+    async (req, reply) => {
+    const parsed = importBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: "Invalid export package",
+        details: parsed.error.flatten(),
+      });
     }
+    const body = parsed.data;
 
-    const [ev] = await db
-      .insert(events)
-      .values({
-        name: body.event.name + " (imported)",
-        startDate: body.event.startDate,
-        endDate: body.event.endDate,
-      })
-      .returning();
-
-    const idMap = new Map<string, string>();
-    idMap.set(body.event.id, ev.id);
-
-    for (const st of body.stages) {
-      const [row] = await db
-        .insert(stages)
-        .values({ eventId: ev.id, name: st.name, sortOrder: st.sortOrder })
-        .returning();
-      idMap.set(st.id, row.id);
-    }
-
-    for (const d of body.stageDays) {
-      const newStageId = idMap.get(d.stageId);
-      if (!newStageId) continue;
-      const [row] = await db
-        .insert(stageDays)
-        .values({ stageId: newStageId, dayDate: d.dayDate, sortOrder: d.sortOrder })
-        .returning();
-      idMap.set(d.id, row.id);
-    }
-
-    for (const p of body.performances) {
-      const newStageDayId = idMap.get(p.stageDayId);
-      if (!newStageDayId) continue;
-      const [row] = await db
-        .insert(performances)
-        .values({
-          stageDayId: newStageDayId,
-          sortOrder: p.sortOrder,
-          bandName: normalizePerformanceBandName(p.bandName ?? ""),
-          notes: p.notes,
-          startTime: p.startTime,
-          endTime: p.endTime,
-        })
-        .returning();
-      idMap.set(p.id, row.id);
-    }
-
-    if (body.snapshots) {
-      for (const s of body.snapshots) {
-        const newPerfId = idMap.get(s.performanceId);
-        if (!newPerfId) continue;
-        await db
-          .insert(performanceYjsSnapshots)
+    try {
+      const ev = await db.transaction(async (tx) => {
+        const [newEv] = await tx
+          .insert(events)
           .values({
-            performanceId: newPerfId,
-            snapshot: Buffer.from(s.snapshot, "base64"),
+            name: `${body.event.name} (imported)`,
+            startDate: body.event.startDate,
+            endDate: body.event.endDate,
           })
-          .onConflictDoNothing();
-      }
-    }
+          .returning();
 
-    broadcastInvalidate([["events"]]);
-    req.log.debug({ importedEventId: ev.id, originalName: body.event.name }, "event imported");
-    return reply.code(201).send({ event: ev });
-  });
+        const idMap = new Map<string, string>();
+        idMap.set(body.event.id, newEv!.id);
+
+        for (const st of body.stages) {
+          const [row] = await tx
+            .insert(stages)
+            .values({
+              eventId: newEv!.id,
+              name: st.name,
+              sortOrder: st.sortOrder,
+            })
+            .returning();
+          idMap.set(st.id, row!.id);
+        }
+
+        for (const d of body.stageDays) {
+          const newStageId = idMap.get(d.stageId);
+          if (!newStageId) continue;
+          const [row] = await tx
+            .insert(stageDays)
+            .values({
+              stageId: newStageId,
+              dayDate: d.dayDate,
+              sortOrder: d.sortOrder,
+            })
+            .returning();
+          idMap.set(d.id, row!.id);
+        }
+
+        for (const p of body.performances) {
+          const newStageDayId = idMap.get(p.stageDayId);
+          if (!newStageDayId) continue;
+          const [row] = await tx
+            .insert(performances)
+            .values({
+              stageDayId: newStageDayId,
+              sortOrder: p.sortOrder,
+              bandName: normalizePerformanceBandName(p.bandName ?? ""),
+              notes: p.notes ?? "",
+              startTime: p.startTime,
+              endTime: p.endTime ?? null,
+            })
+            .returning();
+          idMap.set(p.id, row!.id);
+        }
+
+        if (body.snapshots) {
+          for (const s of body.snapshots) {
+            const newPerfId = idMap.get(s.performanceId);
+            if (!newPerfId) continue;
+            let buf: Buffer;
+            try {
+              buf = Buffer.from(s.snapshot, "base64");
+            } catch {
+              continue;
+            }
+            if (buf.length === 0) continue;
+            await tx
+              .insert(performanceYjsSnapshots)
+              .values({
+                performanceId: newPerfId,
+                snapshot: buf,
+              })
+              .onConflictDoNothing();
+          }
+        }
+
+        return newEv!;
+      });
+
+      broadcastInvalidate([["events"], ["allStagesForClock"]]);
+      req.log.debug(
+        { importedEventId: ev.id, originalName: body.event.name },
+        "event imported",
+      );
+      return reply.code(201).send({ event: ev });
+    } catch (e) {
+      req.log.error({ err: e }, "import transaction failed");
+      return reply.code(500).send({ error: "InternalError", message: "Import failed" });
+    }
+    },
+  );
 };

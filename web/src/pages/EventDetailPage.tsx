@@ -209,7 +209,7 @@ export function EventDetailPage() {
             ) : (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                 <Link to={`/stages/${s.id}`} style={{ fontWeight: 600 }}>{s.name}</Link>
-                <div style={{ display: "flex", gap: "0.4rem" }}>
+                <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
                   <button
                     type="button"
                     className="icon-btn"

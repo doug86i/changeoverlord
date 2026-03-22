@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { apiGet } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { FileAttachments } from "../components/FileAttachments";
+import { formatDateShort } from "../lib/dateFormat";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
 
 export function PerformanceFilesPage() {
@@ -55,7 +56,7 @@ export function PerformanceFilesPage() {
             {" / "}
             <Link to={`/stages/${stage.id}`}>{stage.name}</Link>
             {" / "}
-            <Link to={`/stage-days/${day.id}`}>{day.dayDate}</Link>
+            <Link to={`/stage-days/${day.id}`}>{formatDateShort(day.dayDate)}</Link>
             {" / "}
           </>
         )}

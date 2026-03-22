@@ -1,7 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { apiGet, apiSend } from "../api/client";
-import type { EventRow } from "../api/types";
+import type { EventRow, PaginatedEventsResponse } from "../api/types";
 import { useState } from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ImportEventButton } from "../components/ExportImportTools";
@@ -9,10 +13,21 @@ import { formatDateFriendly } from "../lib/dateFormat";
 
 export function EventsPage() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useQuery({
+  const EVENT_PAGE = 200;
+  const eventsQ = useInfiniteQuery({
     queryKey: ["events"],
-    queryFn: () => apiGet<{ events: EventRow[] }>("/api/v1/events"),
+    queryFn: ({ pageParam }) =>
+      apiGet<PaginatedEventsResponse>(
+        `/api/v1/events?page=${pageParam}&limit=${EVENT_PAGE}`,
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
   });
+
+  const dataEvents =
+    eventsQ.data?.pages.flatMap((p) => p.events) ?? [];
+  const isLoading = eventsQ.isLoading;
+  const error = eventsQ.error;
 
   const [name, setName] = useState("");
   const [start, setStart] = useState(() => new Date().toISOString().slice(0, 10));
@@ -56,7 +71,7 @@ export function EventsPage() {
   if (isLoading) return <p className="muted">Loading events…</p>;
   if (error) return <p role="alert">Failed to load events.</p>;
 
-  const sorted = [...data!.events].sort(
+  const sorted = [...dataEvents].sort(
     (a, b) => b.startDate.localeCompare(a.startDate),
   );
 
@@ -105,7 +120,7 @@ export function EventsPage() {
           </button>
         </div>
         {create.isError && (
-          <p style={{ color: "var(--color-danger)", marginTop: "0.75rem" }}>
+          <p role="alert" style={{ color: "var(--color-danger)", marginTop: "0.75rem" }}>
             {(create.error as Error).message}
           </p>
         )}
@@ -147,7 +162,7 @@ export function EventsPage() {
                     {formatDateFriendly(e.startDate)} → {formatDateFriendly(e.endDate)}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "0.4rem" }}>
+                <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
                   <button
                     type="button"
                     className="icon-btn"
@@ -192,6 +207,18 @@ export function EventsPage() {
         onConfirm={() => deleteId && deleteEvent.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}
       />
+
+      {eventsQ.hasNextPage && (
+        <div style={{ marginTop: "1rem", textAlign: "center" }}>
+          <button
+            type="button"
+            disabled={eventsQ.isFetchingNextPage}
+            onClick={() => void eventsQ.fetchNextPage()}
+          >
+            {eventsQ.isFetchingNextPage ? "Loading…" : "Load more events"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

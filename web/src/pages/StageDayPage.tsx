@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { apiGet, apiSend } from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow, EventRow } from "../api/types";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useServerTime } from "../hooks/useServerTime";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import {
   formatDateShort,
@@ -13,8 +14,6 @@ import {
 } from "../lib/dateFormat";
 import { useClockNav } from "../ClockNavContext";
 import { PrintDaySheet } from "../components/PrintDaySheet";
-
-type TimeRes = { iso: string; unixMs: number };
 
 function parseLocal(dayDate: string, hhmm: string): Date {
   return new Date(`${dayDate}T${hhmm}:00`);
@@ -134,23 +133,10 @@ export function StageDayPage() {
     enabled: Boolean(stageDayId),
   });
 
-  const timeQ = useQuery({
-    queryKey: ["serverTime"],
-    queryFn: () => apiGet<TimeRes>("/api/v1/time"),
-    refetchInterval: 30_000,
+  const { now } = useServerTime({
+    tickIntervalMs: 1000,
+    refetchIntervalMs: 30_000,
   });
-
-  const [offsetMs, setOffsetMs] = useState(0);
-  useEffect(() => {
-    if (timeQ.data) setOffsetMs(timeQ.data.unixMs - Date.now());
-  }, [timeQ.data]);
-
-  const [tick, setTick] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setTick(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  const now = useMemo(() => new Date(tick + offsetMs), [tick, offsetMs]);
 
   const [band, setBand] = useState("");
   const [start, setStart] = useState("12:00");
@@ -746,6 +732,7 @@ export function StageDayPage() {
                       flexWrap: "wrap",
                       marginTop: "0.5rem",
                       alignItems: "center",
+                      flexShrink: 0,
                     }}
                   >
                     <Link

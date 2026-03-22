@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
-import { eq, desc } from "drizzle-orm";
+import { count, desc, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { events, stageDays, stages } from "../../db/schema.js";
@@ -9,13 +10,25 @@ import {
   uuidParam,
 } from "../../schemas/api.js";
 
+const eventsListQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(500).default(200),
+});
+
 export const eventsRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/events", async () => {
+  app.get("/events", async (req) => {
+    const { page, limit } = eventsListQuery.parse(req.query);
+    const offset = (page - 1) * limit;
+    const [countRow] = await db.select({ total: count() }).from(events);
+    const total = Number(countRow?.total ?? 0);
     const rows = await db
       .select()
       .from(events)
-      .orderBy(desc(events.createdAt));
-    return { events: rows };
+      .orderBy(desc(events.createdAt))
+      .limit(limit)
+      .offset(offset);
+    const hasMore = offset + rows.length < total;
+    return { events: rows, total, page, limit, hasMore };
   });
 
   app.post("/events", async (req, reply) => {
@@ -34,7 +47,7 @@ export const eventsRoutes: FastifyPluginAsync = async (app) => {
         endDate: body.endDate,
       })
       .returning();
-    broadcastInvalidate([["events"]]);
+    broadcastInvalidate([["events"], ["allStagesForClock"]]);
     req.log.debug({ eventId: row.id }, "event created");
     return reply.code(201).send({ event: row });
   });
@@ -68,7 +81,7 @@ export const eventsRoutes: FastifyPluginAsync = async (app) => {
       })
       .where(eq(events.id, id))
       .returning();
-    broadcastInvalidate([["events"], ["event", id]]);
+    broadcastInvalidate([["events"], ["event", id], ["allStagesForClock"]]);
     req.log.debug({ eventId: id }, "event updated");
     return { event: row };
   });
@@ -82,18 +95,24 @@ export const eventsRoutes: FastifyPluginAsync = async (app) => {
       .select({ id: stages.id })
       .from(stages)
       .where(eq(stages.eventId, id));
-    const dayIds: string[] = [];
-    for (const s of stRows) {
-      const ds = await db
-        .select({ id: stageDays.id })
-        .from(stageDays)
-        .where(eq(stageDays.stageId, s.id));
-      for (const d of ds) dayIds.push(d.id);
-    }
+    const stageIds = stRows.map((s) => s.id);
+    const dayRows =
+      stageIds.length > 0
+        ? await db
+            .select({ id: stageDays.id })
+            .from(stageDays)
+            .where(inArray(stageDays.stageId, stageIds))
+        : [];
+    const dayIds = dayRows.map((d) => d.id);
 
     await db.delete(events).where(eq(events.id, id));
 
-    const keys: (string | null)[][] = [["events"], ["event", id], ["stages", id]];
+    const keys: (string | null)[][] = [
+      ["events"],
+      ["event", id],
+      ["stages", id],
+      ["allStagesForClock"],
+    ];
     for (const s of stRows) {
       keys.push(["stage", s.id], ["stageDays", s.id]);
     }

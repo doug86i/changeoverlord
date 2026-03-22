@@ -6,6 +6,7 @@ import {
   uuid,
   date,
   customType,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -39,7 +40,11 @@ export const events = pgTable("events", {
     .notNull(),
 });
 
-/** Global patch/RF workbook templates (upload once; stages reference by id). */
+/**
+ * Patch/RF workbook templates.
+ * `stage_id IS NULL` → global (managed in Settings, available to all stages).
+ * `stage_id` set   → local to that stage (managed on the stage page).
+ */
 export const patchTemplates = pgTable("patch_templates", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -48,6 +53,8 @@ export const patchTemplates = pgTable("patch_templates", {
   mimeType: text("mime_type").notNull(),
   byteSize: integer("byte_size").notNull(),
   snapshot: bytea("snapshot").notNull(),
+  /** NULL = global template; set = local to this stage. */
+  stageId: uuid("stage_id").references((): AnyPgColumn => stages.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

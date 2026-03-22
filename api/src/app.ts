@@ -1,5 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
 import path from "node:path";
@@ -24,11 +26,42 @@ export async function buildApp() {
   const app = Fastify({
     loggerInstance: log,
     requestIdHeader: "x-request-id",
+    trustProxy: true,
     // Per-request timing + method/url when troubleshooting; enable with LOG_LEVEL=debug even in production NODE_ENV.
     disableRequestLogging: process.env.NODE_ENV === "production" && !debug,
   });
 
-  await app.register(cors, { origin: true, credentials: true });
+  const corsAllowlist =
+    process.env.CORS_ALLOWED_ORIGINS?.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean) ?? [];
+
+  await app.register(cors, {
+    credentials: true,
+    origin: (origin, cb) => {
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      if (corsAllowlist.length > 0) {
+        cb(null, corsAllowlist.includes(origin));
+        return;
+      }
+      if (process.env.NODE_ENV !== "production") {
+        cb(null, true);
+        return;
+      }
+      cb(null, false);
+    },
+  });
+
+  // No CSP for now (LAN SPA); other Helmet defaults still apply. Enable CSP later with nonces/hashes if needed.
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  });
+
+  await app.register(rateLimit, { global: false });
 
   await registerAuth(app);
 

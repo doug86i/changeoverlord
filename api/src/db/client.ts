@@ -13,6 +13,8 @@ const connectionString =
 export const pool = new pg.Pool({
   connectionString,
   max: 20,
+  connectionTimeoutMillis: 10_000,
+  idleTimeoutMillis: 30_000,
 });
 
 pool.on("error", (err) => {

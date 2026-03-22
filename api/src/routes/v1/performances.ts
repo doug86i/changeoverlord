@@ -32,7 +32,9 @@ import { z } from "zod";
 const JSON_SHEETS_BODY_LIMIT = 12 * 1024 * 1024;
 
 function addMinutes(hhmm: string, delta: number): string {
-  let total = hhmmToMinutes(hhmm) + delta;
+  const base = hhmmToMinutes(hhmm);
+  if (Number.isNaN(base)) return hhmm;
+  let total = base + delta;
   total = Math.max(0, Math.min(24 * 60 - 1, total));
   const h = Math.floor(total / 60);
   const m = total % 60;
@@ -94,19 +96,6 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    const [row] = await db
-      .insert(performances)
-      .values({
-        id: newId,
-        stageDayId,
-        bandName: body.bandName,
-        notes: body.notes ?? "",
-        startTime: body.startTime,
-        endTime: body.endTime ?? null,
-        sortOrder: body.sortOrder ?? 0,
-      })
-      .returning();
-
     const [seed] = await db
       .select({ snapshot: patchTemplates.snapshot })
       .from(stages)
@@ -116,22 +105,39 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       )
       .where(eq(stages.id, day.stageId))
       .limit(1);
-    if (seed?.snapshot?.length) {
-      await db
-        .insert(performanceYjsSnapshots)
+
+    const row = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(performances)
         .values({
-          performanceId: row.id,
-          snapshot: seed.snapshot,
-          updatedAt: new Date(),
+          id: newId,
+          stageDayId,
+          bandName: body.bandName,
+          notes: body.notes ?? "",
+          startTime: body.startTime,
+          endTime: body.endTime ?? null,
+          sortOrder: body.sortOrder ?? 0,
         })
-        .onConflictDoUpdate({
-          target: performanceYjsSnapshots.performanceId,
-          set: {
+        .returning();
+
+      if (seed?.snapshot?.length) {
+        await tx
+          .insert(performanceYjsSnapshots)
+          .values({
+            performanceId: inserted!.id,
             snapshot: seed.snapshot,
             updatedAt: new Date(),
-          },
-        });
-    }
+          })
+          .onConflictDoUpdate({
+            target: performanceYjsSnapshots.performanceId,
+            set: {
+              snapshot: seed.snapshot,
+              updatedAt: new Date(),
+            },
+          });
+      }
+      return inserted!;
+    });
 
     broadcastInvalidate([
       ["performances", stageDayId],
@@ -260,10 +266,15 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       const mergedStart = body.startTime ?? before.startTime;
       const mergedEnd =
         body.endTime !== undefined ? body.endTime : before.endTime;
-      if (
-        mergedEnd !== null &&
-        hhmmToMinutes(mergedEnd) <= hhmmToMinutes(mergedStart)
-      ) {
+      const startM = hhmmToMinutes(mergedStart);
+      const endM = mergedEnd !== null ? hhmmToMinutes(mergedEnd) : null;
+      if (Number.isNaN(startM) || (endM !== null && Number.isNaN(endM))) {
+        return reply.code(400).send({
+          error: "ValidationError",
+          message: "Invalid time (use HH:mm)",
+        });
+      }
+      if (mergedEnd !== null && endM! <= startM) {
         return reply.code(400).send({
           error: "ValidationError",
           message: "End time must be after start time",
@@ -315,14 +326,16 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
         .send({ error: "Can only swap performances on the same day" });
     }
 
-    await db
-      .update(performances)
-      .set({ bandName: b.bandName, notes: b.notes })
-      .where(eq(performances.id, id));
-    await db
-      .update(performances)
-      .set({ bandName: a.bandName, notes: a.notes })
-      .where(eq(performances.id, targetId));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(performances)
+        .set({ bandName: b.bandName, notes: b.notes })
+        .where(eq(performances.id, id));
+      await tx
+        .update(performances)
+        .set({ bandName: a.bandName, notes: a.notes })
+        .where(eq(performances.id, targetId));
+    });
 
     broadcastInvalidate([
       ["performances", a.stageDayId],
@@ -360,15 +373,17 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
 
     const toShift = rows.slice(fromIdx);
     const updated: string[] = [];
-    for (const p of toShift) {
-      const newStart = addMinutes(p.startTime, minutes);
-      const newEnd = p.endTime ? addMinutes(p.endTime, minutes) : null;
-      await db
-        .update(performances)
-        .set({ startTime: newStart, endTime: newEnd })
-        .where(eq(performances.id, p.id));
-      updated.push(p.id);
-    }
+    await db.transaction(async (tx) => {
+      for (const p of toShift) {
+        const newStart = addMinutes(p.startTime, minutes);
+        const newEnd = p.endTime ? addMinutes(p.endTime, minutes) : null;
+        await tx
+          .update(performances)
+          .set({ startTime: newStart, endTime: newEnd })
+          .where(eq(performances.id, p.id));
+        updated.push(p.id);
+      }
+    });
 
     broadcastInvalidate([
       ["performances", stageDayId],

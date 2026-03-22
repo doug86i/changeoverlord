@@ -38,6 +38,7 @@ Exports use **`api/src/lib/workbook-json-envelope.ts`**:
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| `GET` | `/api/v1/patch-templates` | List template metadata. Query **`page`**, **`limit`** (default **200**, max **500**), optional **`stageId`**. Response: **`patchTemplates`**, **`total`**, **`page`**, **`limit`**, **`hasMore`**. |
 | `GET` | `/api/v1/patch-templates/:id/sheets-export` | Download workbook as JSON (**attachment**); decodes the **Postgres `snapshot`** by replaying the full **Yjs `opLog`**, so the file matches edits made in the template editor, not only the uploaded **`.xlsx`** / **`.json`** on disk. |
 | `PUT` | `/api/v1/patch-templates/:id/sheets-import` | Replace template workbook from JSON body (updates disk file, DB snapshot, live template collab room if open) |
 | `POST` | `/api/v1/patch-templates/sheets-import?name=` | Create a **new** library template from JSON body (optional **`name`** query) |

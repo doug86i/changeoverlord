@@ -7,6 +7,7 @@ import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
 import { PatchPageSidebar } from "../components/PatchPageSidebar";
+import { formatDateShort } from "../lib/dateFormat";
 import {
   WORKBOOK_PLACEHOLDER,
   usePatchWorkbookCollab,
@@ -158,7 +159,7 @@ export function PatchPage() {
             {" / "}
             <Link to={`/stages/${stage.id}`}>{stage.name}</Link>
             {" / "}
-            <Link to={`/stage-days/${day.id}`}>{day.dayDate}</Link>
+            <Link to={`/stage-days/${day.id}`}>{formatDateShort(day.dayDate)}</Link>
             {" / "}
           </>
         )}
@@ -235,7 +236,7 @@ export function PatchPage() {
         </div>
       </div>
       {importPerfWorkbookJson.isError && (
-        <p role="alert" style={{ color: "var(--color-brand)", marginTop: 0 }}>
+        <p role="alert" style={{ color: "var(--color-danger)", marginTop: 0 }}>
           {(importPerfWorkbookJson.error as Error).message}
         </p>
       )}

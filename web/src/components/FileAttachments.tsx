@@ -182,7 +182,7 @@ function FileRow({
               </p>
             ) : null}
           </div>
-          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center", flexShrink: 0 }}>
             {isPdf && (
               <button
                 type="button"

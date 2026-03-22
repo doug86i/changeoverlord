@@ -34,6 +34,7 @@ function sampleGrid(
       Array.from<CellValue>({ length: maxCols }).fill(null),
     );
     for (const entry of sheet.celldata as { r: number; c: number; v: Cell | null }[]) {
+      if (entry.r < 0 || entry.c < 0) continue;
       if (entry.r < maxRows && entry.c < maxCols) {
         grid[entry.r][entry.c] = cellPreview(entry.v);
       }

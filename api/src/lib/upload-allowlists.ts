@@ -1,4 +1,5 @@
 import path from "node:path";
+import { parseRiderExtraExtensions } from "./rider-extensions-env.js";
 
 /** OOXML spreadsheet formats ExcelJS can load via `workbook.xlsx.load`. */
 const EXCEL_OOXML_EXT = new Set([
@@ -134,17 +135,26 @@ const EXT_FALLBACK_MIME: Record<string, string> = {
   ".rtf": "application/rtf",
 };
 
+function allRiderExtensions(): Set<string> {
+  const s = new Set(RIDER_EXT);
+  for (const e of parseRiderExtraExtensions()) {
+    s.add(e);
+  }
+  return s;
+}
+
 export function isAllowedRiderAttachment(
   filename: string | undefined,
   mimetype: string,
 ): boolean {
   const ext = path.extname(filename || "").toLowerCase();
   const m = (mimetype || "").toLowerCase();
+  const exts = allRiderExtensions();
   if (m === "application/octet-stream" || m === "") {
-    return RIDER_EXT.has(ext);
+    return exts.has(ext);
   }
   if (RIDER_MIME.has(m)) return true;
-  if (RIDER_EXT.has(ext)) return true;
+  if (exts.has(ext)) return true;
   return false;
 }
 
@@ -153,7 +163,8 @@ export function riderStorageExtension(
   mimetype: string,
 ): string {
   const ext = path.extname(filename || "").toLowerCase();
-  if (ext && RIDER_EXT.has(ext)) return ext;
+  const exts = allRiderExtensions();
+  if (ext && exts.has(ext)) return ext;
   const m = (mimetype || "").toLowerCase();
   if (m === "application/pdf") return ".pdf";
   if (m.startsWith("image/")) {

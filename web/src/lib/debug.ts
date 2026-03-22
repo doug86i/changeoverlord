@@ -2,8 +2,10 @@
  * Browser debug logging — **no secrets**. Enable with Vite dev server or
  * `VITE_LOG_DEBUG=true` at build time (see `docs/LOGGING.md`).
  */
-const enabled =
+export const isClientDebugLoggingEnabled =
   import.meta.env.DEV || import.meta.env.VITE_LOG_DEBUG === "true";
+
+const enabled = isClientDebugLoggingEnabled;
 
 export function logDebug(
   scope: string,

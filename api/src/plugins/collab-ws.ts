@@ -1,8 +1,13 @@
 import websocket from "@fastify/websocket";
 import { setupWSConnection, setPersistence } from "@y/websocket-server/utils";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
+import { eq } from "drizzle-orm";
+import { db } from "../db/client.js";
+import { performances, patchTemplates } from "../db/schema.js";
 import { createYjsPersistence } from "../lib/yjs-persistence.js";
 import { createLogger } from "../lib/log.js";
+
+const WS_MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
 
 const wsLog = createLogger("collab-ws");
 
@@ -15,16 +20,28 @@ const uuidRe =
 export const collabWsPlugin: FastifyPluginAsync = async (app) => {
   setPersistence(createYjsPersistence());
 
-  await app.register(websocket);
+  await app.register(websocket, {
+    options: { maxPayload: WS_MAX_PAYLOAD_BYTES },
+  });
 
   app.get<CollabParams>(
     "/ws/v1/collab/:performanceId",
     { websocket: true },
-    (socket, req: FastifyRequest<CollabParams>) => {
+    async (socket, req: FastifyRequest<CollabParams>) => {
       const id = req.params.performanceId;
       if (!id || !uuidRe.test(id)) {
         wsLog.warn({ performanceId: id }, "reject: invalid performance id");
         socket.close(1008, "Invalid performance id");
+        return;
+      }
+      const [perf] = await db
+        .select({ id: performances.id })
+        .from(performances)
+        .where(eq(performances.id, id))
+        .limit(1);
+      if (!perf) {
+        wsLog.warn({ performanceId: id }, "reject: performance not found");
+        socket.close(1008, "Performance not found");
         return;
       }
       wsLog.debug({ performanceId: id }, "websocket connection");
@@ -50,11 +67,21 @@ export const collabWsPlugin: FastifyPluginAsync = async (app) => {
   app.get<TemplateCollabParams>(
     "/ws/v1/collab-template/:templateId",
     { websocket: true },
-    (socket, req: FastifyRequest<TemplateCollabParams>) => {
+    async (socket, req: FastifyRequest<TemplateCollabParams>) => {
       const id = req.params.templateId;
       if (!id || !uuidRe.test(id)) {
         wsLog.warn({ templateId: id }, "reject: invalid template id");
         socket.close(1008, "Invalid template id");
+        return;
+      }
+      const [tpl] = await db
+        .select({ id: patchTemplates.id })
+        .from(patchTemplates)
+        .where(eq(patchTemplates.id, id))
+        .limit(1);
+      if (!tpl) {
+        wsLog.warn({ templateId: id }, "reject: template not found");
+        socket.close(1008, "Template not found");
         return;
       }
       wsLog.debug({ templateId: id }, "template collab websocket");

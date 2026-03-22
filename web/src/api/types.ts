@@ -6,6 +6,15 @@ export type EventRow = {
   createdAt: string;
 };
 
+/** `GET /api/v1/events` paginated envelope (`page` / `limit` query params). */
+export type PaginatedEventsResponse = {
+  events: EventRow[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+};
+
 export type StageRow = {
   id: string;
   eventId: string;
@@ -17,14 +26,25 @@ export type StageRow = {
   hasPatchTemplate?: boolean;
 };
 
-/** Global patch/RF workbook template (upload once; stages reference by id). */
+/** Patch/RF workbook template. `stageId` null = global; set = local to that stage. */
 export type PatchTemplateRow = {
   id: string;
   name: string;
   originalName: string;
   byteSize: number;
+  /** NULL = global template; set = local to this stage. */
+  stageId: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+/** `GET /api/v1/patch-templates` paginated envelope. */
+export type PaginatedPatchTemplatesResponse = {
+  patchTemplates: PatchTemplateRow[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 };
 
 export type PatchTemplatePreview = {

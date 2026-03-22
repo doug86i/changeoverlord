@@ -61,8 +61,14 @@ export function usePatchWorkbookCollab(opts: {
   const [synced, setSynced] = useState(false);
   const [workbookHydrated, setWorkbookHydrated] = useState(false);
 
-  const ydoc = useMemo(() => new Y.Doc(), [roomId]);
+  const ydoc = useMemo(() => new Y.Doc(), [roomId ?? ""]);
   const yops = useMemo(() => ydoc.getArray<string>("opLog"), [ydoc]);
+
+  useEffect(() => {
+    return () => {
+      ydoc.destroy();
+    };
+  }, [ydoc]);
 
   const onOp = useCallback(
     (ops: Op[]) => {
@@ -126,7 +132,6 @@ export function usePatchWorkbookCollab(opts: {
 
     return () => {
       provider.destroy();
-      ydoc.destroy();
     };
   }, [roomId, ydoc, mode]);
 

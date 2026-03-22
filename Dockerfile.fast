@@ -10,4 +10,6 @@ RUN apk add --no-cache poppler-utils imagemagick libwebp-tools \
 RUN mkdir -p /srv/empty-static
 ENV WEB_PUBLIC_DIR=/srv/empty-static
 
+USER node
+
 EXPOSE 3000 5173

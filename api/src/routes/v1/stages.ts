@@ -50,7 +50,11 @@ export const stagesRoutes: FastifyPluginAsync = async (app) => {
         defaultPatchTemplateId: null,
       })
       .returning(stageCols);
-    broadcastInvalidate([["stages", eventId], ["stage", row.id]]);
+    broadcastInvalidate([
+      ["stages", eventId],
+      ["stage", row.id],
+      ["allStagesForClock"],
+    ]);
     req.log.debug({ stageId: row.id, eventId }, "stage created");
     return reply.code(201).send({ stage: row });
   });
@@ -98,6 +102,7 @@ export const stagesRoutes: FastifyPluginAsync = async (app) => {
       ["stage", id],
       ["patchTemplates"],
       ["events"],
+      ["allStagesForClock"],
     ]);
     req.log.debug({ stageId: id }, "stage updated");
     return { stage: row };
@@ -119,6 +124,7 @@ export const stagesRoutes: FastifyPluginAsync = async (app) => {
       ["stages", existing.eventId],
       ["stage", id],
       ["stageDays", id],
+      ["allStagesForClock"],
     ];
     for (const d of days) {
       keys.push(["stageDay", d.id], ["performances", d.id]);

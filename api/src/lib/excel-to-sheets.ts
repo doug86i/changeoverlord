@@ -21,6 +21,10 @@ function decodeHtmlEntities(s: string): string {
 
 type SparseCell = { r: number; c: number; v: Cell | null };
 
+/** Cap sparse JSON / malicious celldata before allocating huge matrices. */
+const MAX_CELLDATA_ENTRIES = 100_000;
+const MAX_CELL_INDEX = 10_000;
+
 /** Convert sparse `celldata` to dense `data` matrix (required by FortuneSheet's `applyOp`). */
 function celldataToMatrix(
   celldata: SparseCell[],
@@ -49,6 +53,7 @@ function celldataToMatrix(
 function sanitizeFortuneSheetDataMatrix(data: CellMatrix): void {
   for (let r = 0; r < data.length; r++) {
     const row = data[r];
+    if (!row) continue;
     for (let c = 0; c < row.length; c++) {
       const cell = row[c];
       if (cell == null) continue;
@@ -151,10 +156,23 @@ export function normalizeSheetFromRaw(
   let rows = typeof raw.row === "number" ? raw.row : 0;
   let cols = typeof raw.column === "number" ? raw.column : 0;
   const celldata: SparseCell[] | undefined = raw.celldata;
+  if (celldata && celldata.length > MAX_CELLDATA_ENTRIES) {
+    throw new Error(
+      `Too many sparse cells (max ${MAX_CELLDATA_ENTRIES} per sheet)`,
+    );
+  }
   if ((!rows || !cols) && celldata) {
     let maxR = 0;
     let maxC = 0;
     for (const c of celldata) {
+      if (!Number.isFinite(c.r) || !Number.isFinite(c.c) || c.r < 0 || c.c < 0) {
+        throw new Error("Invalid celldata coordinates");
+      }
+      if (c.r > MAX_CELL_INDEX || c.c > MAX_CELL_INDEX) {
+        throw new Error(
+          `Cell row/column index too large (max ${MAX_CELL_INDEX})`,
+        );
+      }
       if (c.r > maxR) maxR = c.r;
       if (c.c > maxC) maxC = c.c;
     }

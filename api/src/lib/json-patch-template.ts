@@ -23,6 +23,8 @@ function extractSheetArray(parsed: unknown): unknown[] {
  * Parse an already-parsed JSON value into `Sheet[]` (multipart upload, REST body, CLI).
  * Accepts the same shapes as file upload: sheet array, `{ sheets }`, `{ luckysheetfile }`,
  * or **`{ changeoverlordWorkbook: 1, sheets: [...] }`** export envelope.
+ * Per-sheet **`celldata`** size and coordinate limits are enforced inside **`normalizeSheetFromRaw`**
+ * (`excel-to-sheets.ts`, **`MAX_CELLDATA_ENTRIES`** / **`MAX_CELL_INDEX`**).
  */
 export function parseWorkbookJsonRoot(parsed: unknown): Sheet[] {
   if (parsed && typeof parsed === "object") {

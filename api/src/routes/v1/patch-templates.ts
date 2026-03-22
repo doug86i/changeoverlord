@@ -3,10 +3,11 @@ import type { Sheet } from "@fortune-sheet/core";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
+import { createLogger } from "../../lib/log.js";
 import { createDefaultPatchWorkbookSheets } from "../../lib/default-patch-sheets.js";
 import { excelBufferToSheets } from "../../lib/excel-to-sheets.js";
 import {
@@ -15,6 +16,7 @@ import {
   parseWorkbookJsonRoot,
 } from "../../lib/json-patch-template.js";
 import { getUploadsDir } from "../../lib/uploads-dir.js";
+import { resolvePathUnderUploadsRoot } from "../../lib/safe-upload-path.js";
 import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import { sheetsToPreviewPayload } from "../../lib/sheet-preview.js";
 import {
@@ -41,20 +43,29 @@ import {
 const MAX_BYTES = 10 * 1024 * 1024;
 const JSON_SHEETS_BODY_LIMIT = 12 * 1024 * 1024;
 
+const logPatchTemplates = createLogger("patch-templates");
+
 const patchNameBody = z.object({
   name: z.string().min(1).max(200),
 });
 
 const duplicateBody = z.object({
   name: z.string().min(1).max(200).optional(),
+  stageId: z.string().uuid().optional(),
 });
 
 const blankTemplateBody = z.object({
   name: z.string().min(1).max(200).optional(),
+  stageId: z.string().uuid().optional(),
 });
 
 function invalidateAll() {
-  broadcastInvalidate([["patchTemplates"], ["patchTemplate"], ["events"]]);
+  broadcastInvalidate([
+    ["patchTemplates"],
+    ["patchTemplate"],
+    ["patchTemplatePreview"],
+    ["events"],
+  ]);
 }
 
 function templateRowLooksLikeJson(row: {
@@ -125,40 +136,77 @@ async function loadSheetsForPatchTemplateRow(
   const fromYjs = decodeTemplateSnapshotToSheets(Buffer.from(row.snapshot));
   if (fromYjs.length > 0) return fromYjs;
   try {
-    const buf = await fs.readFile(path.join(uploadsRoot, row.storageKey));
+    const buf = await fs.readFile(resolvePathUnderUploadsRoot(uploadsRoot, row.storageKey));
     return templateRowLooksLikeJson(row)
       ? jsonBufferToSheets(buf)
       : await excelBufferToSheets(buf);
-  } catch {
-    return [];
+  } catch (err) {
+    logPatchTemplates.warn(
+      { err, templateId: row.id, storageKey: row.storageKey },
+      "failed to load template file for sheets",
+    );
+    throw new Error("TEMPLATE_STORAGE_READ_FAILED");
   }
 }
 
 export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/patch-templates", async () => {
-    const rows = await db
-      .select({
-        id: patchTemplates.id,
-        name: patchTemplates.name,
-        originalName: patchTemplates.originalName,
-        byteSize: patchTemplates.byteSize,
-        createdAt: patchTemplates.createdAt,
-        updatedAt: patchTemplates.updatedAt,
-      })
+  const listQuery = z.object({
+    stageId: z.string().uuid().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(500).default(200),
+  });
+
+  app.get("/patch-templates", async (req) => {
+    const { stageId, page, limit: pageLimit } = listQuery.parse(req.query);
+    const offset = (page - 1) * pageLimit;
+    const cols = {
+      id: patchTemplates.id,
+      name: patchTemplates.name,
+      originalName: patchTemplates.originalName,
+      byteSize: patchTemplates.byteSize,
+      stageId: patchTemplates.stageId,
+      createdAt: patchTemplates.createdAt,
+      updatedAt: patchTemplates.updatedAt,
+    };
+    const where = stageId
+      ? or(isNull(patchTemplates.stageId), eq(patchTemplates.stageId, stageId))
+      : isNull(patchTemplates.stageId);
+    const [countRow] = await db
+      .select({ total: count() })
       .from(patchTemplates)
-      .orderBy(desc(patchTemplates.createdAt));
-    return { patchTemplates: rows };
+      .where(where);
+    const total = Number(countRow?.total ?? 0);
+    const rows = await db
+      .select(cols)
+      .from(patchTemplates)
+      .where(where)
+      .orderBy(desc(patchTemplates.createdAt))
+      .limit(pageLimit)
+      .offset(offset);
+    const hasMore = offset + rows.length < total;
+    return {
+      patchTemplates: rows,
+      total,
+      page,
+      limit: pageLimit,
+      hasMore,
+    };
   });
 
   app.post("/patch-templates/blank", async (req, reply) => {
     const body = blankTemplateBody.parse(req.body ?? {});
     const displayName = body.name?.trim() || "New template";
+    const ownerStageId = body.stageId ?? null;
+    if (ownerStageId) {
+      const [st] = await db.select({ id: stages.id }).from(stages).where(eq(stages.id, ownerStageId)).limit(1);
+      if (!st) return reply.code(400).send({ error: "ValidationError", message: "Unknown stage" });
+    }
     const sheets = createDefaultPatchWorkbookSheets();
     const snapshot = encodeTemplateSnapshotFromSheets(sheets);
     const xlsxBuf = await sheetsToExcelBuffer(sheets);
     const uploadsRoot = getUploadsDir();
     const storageKey = `patch-templates/${randomUUID()}.xlsx`;
-    const abs = path.join(uploadsRoot, storageKey);
+    const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, xlsxBuf);
 
@@ -172,11 +220,12 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         byteSize: xlsxBuf.length,
         snapshot,
+        stageId: ownerStageId,
       })
       .returning({ id: patchTemplates.id });
 
     invalidateAll();
-    req.log.debug({ templateId: inserted?.id }, "patch template created from blank");
+    req.log.debug({ templateId: inserted?.id, stageId: ownerStageId }, "patch template created from blank");
     return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
   });
 
@@ -185,8 +234,16 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     { bodyLimit: JSON_SHEETS_BODY_LIMIT },
     async (req, reply) => {
       const q = z
-        .object({ name: z.string().min(1).max(200).optional() })
+        .object({
+          name: z.string().min(1).max(200).optional(),
+          stageId: z.string().uuid().optional(),
+        })
         .parse(req.query);
+      const ownerStageId = q.stageId ?? null;
+      if (ownerStageId) {
+        const [st] = await db.select({ id: stages.id }).from(stages).where(eq(stages.id, ownerStageId)).limit(1);
+        if (!st) return reply.code(400).send({ error: "ValidationError", message: "Unknown stage" });
+      }
       let sheets: Sheet[];
       try {
         sheets = parseWorkbookJsonRoot(req.body);
@@ -199,7 +256,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       const snapshot = encodeTemplateSnapshotFromSheets(sheets);
       const uploadsRoot = getUploadsDir();
       const storageKey = `patch-templates/${randomUUID()}.json`;
-      const abs = path.join(uploadsRoot, storageKey);
+      const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
       const fileStr = JSON.stringify(
         buildWorkbookJsonExportV1(
           "patchTemplate",
@@ -223,12 +280,13 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
           mimeType: "application/json",
           byteSize,
           snapshot,
+          stageId: ownerStageId,
         })
         .returning({ id: patchTemplates.id });
 
       invalidateAll();
       req.log.debug(
-        { templateId: inserted?.id },
+        { templateId: inserted?.id, stageId: ownerStageId },
         "patch template created from JSON body",
       );
       return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
@@ -268,7 +326,16 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(patchTemplates.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
     const uploadsRoot = getUploadsDir();
-    const sheets = await loadSheetsForPatchTemplateRow(row, uploadsRoot);
+    let sheets: Sheet[];
+    try {
+      sheets = await loadSheetsForPatchTemplateRow(row, uploadsRoot);
+    } catch {
+      return reply.code(503).send({
+        error: "ServiceUnavailable",
+        message:
+          "Could not load this template from storage. Try re-uploading the file in Settings or contact an administrator.",
+      });
+    }
     if (sheets.length === 0) {
       return reply.code(404).send({
         error: "NotFound",
@@ -314,14 +381,9 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       const docName = templateCollabDocName(id);
       const snapshot = workbookSnapshotBufferForPersist(docName, sheets);
       const uploadsRoot = getUploadsDir();
-      const oldAbs = path.join(uploadsRoot, existing.storageKey);
-      try {
-        await fs.unlink(oldAbs);
-      } catch {
-        /* ignore */
-      }
+      const oldAbs = resolvePathUnderUploadsRoot(uploadsRoot, existing.storageKey);
       const storageKey = `patch-templates/${randomUUID()}.json`;
-      const abs = path.join(uploadsRoot, storageKey);
+      const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
       const fileStr = JSON.stringify(
         buildWorkbookJsonExportV1(
           "patchTemplate",
@@ -336,17 +398,28 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       await fs.writeFile(abs, fileStr, "utf8");
       const byteSize = Buffer.byteLength(fileStr, "utf8");
 
-      await db
-        .update(patchTemplates)
-        .set({
-          storageKey,
-          mimeType: "application/json",
-          byteSize,
-          snapshot,
-          originalName: "workbook-import.json",
-          updatedAt: new Date(),
-        })
-        .where(eq(patchTemplates.id, id));
+      try {
+        await db
+          .update(patchTemplates)
+          .set({
+            storageKey,
+            mimeType: "application/json",
+            byteSize,
+            snapshot,
+            originalName: "workbook-import.json",
+            updatedAt: new Date(),
+          })
+          .where(eq(patchTemplates.id, id));
+      } catch (e) {
+        await fs.unlink(abs).catch(() => {});
+        throw e;
+      }
+
+      try {
+        await fs.unlink(oldAbs);
+      } catch {
+        /* ignore */
+      }
 
       invalidateAll();
       req.log.debug({ templateId: id }, "patch template workbook replaced from JSON");
@@ -362,14 +435,41 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(patchTemplates.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
     const uploadsRoot = getUploadsDir();
-    const sheets = await loadSheetsForPatchTemplateRow(row, uploadsRoot);
+    let sheets: Sheet[];
+    try {
+      sheets = await loadSheetsForPatchTemplateRow(row, uploadsRoot);
+    } catch {
+      return reply.code(503).send({
+        error: "ServiceUnavailable",
+        message:
+          "Could not load this template from storage. Try re-uploading the file in Settings or contact an administrator.",
+      });
+    }
     return sheetsToPreviewPayload(sheets);
   });
 
-  app.post("/patch-templates", async (req, reply) => {
+  app.post(
+    "/patch-templates",
+    {
+      config: {
+        rateLimit: {
+          max: 40,
+          timeWindow: "1 minute",
+        },
+      },
+    },
+    async (req, reply) => {
     const q = z
-      .object({ name: z.string().min(1).max(200).optional() })
+      .object({
+        name: z.string().min(1).max(200).optional(),
+        stageId: z.string().uuid().optional(),
+      })
       .parse(req.query);
+    const ownerStageId = q.stageId ?? null;
+    if (ownerStageId) {
+      const [st] = await db.select({ id: stages.id }).from(stages).where(eq(stages.id, ownerStageId)).limit(1);
+      if (!st) return reply.code(400).send({ error: "ValidationError", message: "Unknown stage" });
+    }
     const data = await req.file();
     if (!data) {
       return reply
@@ -401,7 +501,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     const uploadsRoot = getUploadsDir();
     const tmplExt = storageExtensionForTemplateUpload(buf, filename, mime);
     const storageKey = `patch-templates/${randomUUID()}${tmplExt}`;
-    const abs = path.join(uploadsRoot, storageKey);
+    const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, buf);
     const storedMime =
@@ -418,6 +518,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         mimeType: storedMime,
         byteSize: buf.length,
         snapshot,
+        stageId: ownerStageId,
       })
       .returning({ id: patchTemplates.id });
 
@@ -425,16 +526,23 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     req.log.debug(
       {
         templateId: inserted?.id,
+        stageId: ownerStageId,
         format: tmplExt === ".json" ? "json" : "excel",
       },
       "patch template created",
     );
     return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
-  });
+    },
+  );
 
   app.post("/patch-templates/:id/duplicate", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
     const body = duplicateBody.parse(req.body ?? {});
+    const ownerStageId = body.stageId ?? null;
+    if (ownerStageId) {
+      const [st] = await db.select({ id: stages.id }).from(stages).where(eq(stages.id, ownerStageId)).limit(1);
+      if (!st) return reply.code(400).send({ error: "ValidationError", message: "Unknown stage" });
+    }
     const [existing] = await db
       .select()
       .from(patchTemplates)
@@ -442,7 +550,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     if (!existing) return reply.code(404).send({ error: "NotFound" });
 
     const uploadsRoot = getUploadsDir();
-    const srcAbs = path.join(uploadsRoot, existing.storageKey);
+    const srcAbs = resolvePathUnderUploadsRoot(uploadsRoot, existing.storageKey);
     let fileBuf: Buffer;
     try {
       fileBuf = await fs.readFile(srcAbs);
@@ -455,7 +563,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
 
     const ext = path.extname(existing.storageKey) || ".xlsx";
     const newStorageKey = `patch-templates/${randomUUID()}${ext}`;
-    const dstAbs = path.join(uploadsRoot, newStorageKey);
+    const dstAbs = resolvePathUnderUploadsRoot(uploadsRoot, newStorageKey);
     await fs.mkdir(path.dirname(dstAbs), { recursive: true });
     await fs.writeFile(dstAbs, fileBuf);
 
@@ -465,21 +573,29 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
       "Copy";
     const displayName = base.slice(0, 200);
 
-    const [inserted] = await db
-      .insert(patchTemplates)
-      .values({
-        name: displayName,
-        originalName: existing.originalName,
-        storageKey: newStorageKey,
-        mimeType: existing.mimeType,
-        byteSize: existing.byteSize,
-        snapshot: existing.snapshot,
-      })
-      .returning({ id: patchTemplates.id });
+    let inserted: { id: string } | undefined;
+    try {
+      const [row] = await db
+        .insert(patchTemplates)
+        .values({
+          name: displayName,
+          originalName: existing.originalName,
+          storageKey: newStorageKey,
+          mimeType: existing.mimeType,
+          byteSize: existing.byteSize,
+          snapshot: existing.snapshot,
+          stageId: ownerStageId,
+        })
+        .returning({ id: patchTemplates.id });
+      inserted = row;
+    } catch (e) {
+      await fs.unlink(dstAbs).catch(() => {});
+      throw e;
+    }
 
     invalidateAll();
     req.log.info(
-      { templateId: inserted?.id, sourceTemplateId: id },
+      { templateId: inserted?.id, sourceTemplateId: id, stageId: ownerStageId },
       "patch template duplicated",
     );
     return reply.code(201).send({ patchTemplate: { id: inserted?.id } });
@@ -499,7 +615,17 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.post("/patch-templates/:id/replace", async (req, reply) => {
+  app.post(
+    "/patch-templates/:id/replace",
+    {
+      config: {
+        rateLimit: {
+          max: 40,
+          timeWindow: "1 minute",
+        },
+      },
+    },
+    async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
     const [existing] = await db
       .select()
@@ -538,15 +664,10 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
     const docName = templateCollabDocName(id);
     const snapshot = workbookSnapshotBufferForPersist(docName, sheets);
     const uploadsRoot = getUploadsDir();
-    const oldAbs = path.join(uploadsRoot, existing.storageKey);
-    try {
-      await fs.unlink(oldAbs);
-    } catch {
-      /* ignore */
-    }
+    const oldAbs = resolvePathUnderUploadsRoot(uploadsRoot, existing.storageKey);
     const tmplExt = storageExtensionForTemplateUpload(buf, filename, mime);
     const storageKey = `patch-templates/${randomUUID()}${tmplExt}`;
-    const abs = path.join(uploadsRoot, storageKey);
+    const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, buf);
     const storedMime =
@@ -554,22 +675,34 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
         ? "application/json"
         : normalizedTemplateMime(filename, mime);
 
-    await db
-      .update(patchTemplates)
-      .set({
-        originalName: filename || existing.originalName,
-        storageKey,
-        mimeType: storedMime,
-        byteSize: buf.length,
-        snapshot,
-        updatedAt: new Date(),
-      })
-      .where(eq(patchTemplates.id, id));
+    try {
+      await db
+        .update(patchTemplates)
+        .set({
+          originalName: filename || existing.originalName,
+          storageKey,
+          mimeType: storedMime,
+          byteSize: buf.length,
+          snapshot,
+          updatedAt: new Date(),
+        })
+        .where(eq(patchTemplates.id, id));
+    } catch (e) {
+      await fs.unlink(abs).catch(() => {});
+      throw e;
+    }
+
+    try {
+      await fs.unlink(oldAbs);
+    } catch {
+      /* ignore */
+    }
 
     invalidateAll();
     req.log.info({ templateId: id }, "patch template file replaced");
     return { ok: true };
-  });
+    },
+  );
 
   app.delete("/patch-templates/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
@@ -581,7 +714,7 @@ export const patchTemplatesRoutes: FastifyPluginAsync = async (app) => {
 
     const uploadsRoot = getUploadsDir();
     try {
-      await fs.unlink(path.join(uploadsRoot, existing.storageKey));
+      await fs.unlink(resolvePathUnderUploadsRoot(uploadsRoot, existing.storageKey));
     } catch {
       /* ignore */
     }

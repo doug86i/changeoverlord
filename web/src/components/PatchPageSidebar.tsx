@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { apiGet } from "../api/client";
 import type { FileAssetPurpose, FileAssetRow, PerformanceRow } from "../api/types";
 import { formatClockHeroCountdown } from "../lib/dateFormat";
@@ -8,8 +8,7 @@ import {
   computeStageDayClockMetrics,
   sortPerformancesByStart,
 } from "../lib/stageDayClockMetrics";
-
-type TimeRes = { iso: string; unixMs: number };
+import { useServerTime } from "../hooks/useServerTime";
 
 function isPlotAsset(f: FileAssetRow): boolean {
   if (f.purpose !== "plot_pdf") return false;
@@ -61,24 +60,10 @@ export function PatchPageSidebar({
     enabled: Boolean(stageDayId),
   });
 
-  const timeQ = useQuery({
-    queryKey: ["serverTime"],
-    queryFn: () => apiGet<TimeRes>("/api/v1/time"),
-    refetchInterval: 30_000,
+  const { now } = useServerTime({
+    tickIntervalMs: 250,
+    refetchIntervalMs: 30_000,
   });
-
-  const [offsetMs, setOffsetMs] = useState(0);
-  useEffect(() => {
-    if (timeQ.data) setOffsetMs(timeQ.data.unixMs - Date.now());
-  }, [timeQ.data]);
-
-  const [tick, setTick] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setTick(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const now = useMemo(() => new Date(tick + offsetMs), [tick, offsetMs]);
 
   const sorted = useMemo(
     () => sortPerformancesByStart(perfQ.data?.performances ?? []),

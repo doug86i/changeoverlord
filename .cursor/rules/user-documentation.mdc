@@ -25,8 +25,8 @@ If the change affects **what someone does in the browser** (new route, setting, 
 
 ## Patch template presets
 
-Patch workbooks come from **uploaded** library templates or **Create blank template** (Settings). `<Workbook>` mounts with a trivial placeholder; the Yjs opLog replay sets the real structure immediately. There is no client-side "seed" decoding — the WebSocket sync is the single path. If you change the template creation / Yjs snapshot flow, update **`web/src/lib/patchWorkbookCollab.ts`**, **`docs/USER_GUIDE.md`** (templates), and **`docs/MAINTAINING_DOCS.md`** if the maintenance table needs a new row.
+Patch workbooks come from **uploaded** library templates or **Create blank template** (Settings). `<Workbook>` mounts with a trivial placeholder; the Yjs opLog replay sets the real structure immediately. There is no client-side "seed" decoding — the WebSocket sync is the single path. If you change the template creation / Yjs snapshot flow, update **`web/src/lib/patchWorkbookCollab.ts`** and **`docs/USER_GUIDE.md`** (templates).
 
 ## Process detail
 
-See **`docs/MAINTAINING_DOCS.md`** for the full split of audiences and review habits.
+See **`docs/DEVELOPMENT.md`** § *Documentation maintenance* for the full split of audiences and review habits.

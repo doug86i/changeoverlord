@@ -17,6 +17,32 @@ import {
 
 const CHAT_NAME_KEY = "changeoverlord_chat_display_name";
 
+/** While POST is in flight, SSE may arrive before `onSuccess` sets `lastSentIdRef`. */
+type PendingOwnEcho = {
+  until: number;
+  eventId: string;
+  scope: "stage" | "event";
+  stageId: string | null;
+  author: string;
+  body: string;
+};
+
+function chatPushMatchesPendingOwnEcho(
+  msg: RealtimeChatPushV1,
+  p: PendingOwnEcho,
+  viewerStageId: string,
+): boolean {
+  if (Date.now() > p.until) return false;
+  if (msg.eventId !== p.eventId) return false;
+  if (msg.scope !== p.scope) return false;
+  if (msg.author !== p.author) return false;
+  if (msg.body !== p.body) return false;
+  if (p.scope === "stage") {
+    return msg.stageId === p.stageId && msg.stageId === viewerStageId;
+  }
+  return msg.scope === "event";
+}
+
 function formatChatTime(iso: string): string {
   try {
     const d = new Date(iso);
@@ -133,9 +159,14 @@ export function StageChatDock() {
   });
 
   const lastSentIdRef = useRef<string | null>(null);
+  const pendingOwnEchoRef = useRef<PendingOwnEcho | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const settingsOpenRef = useRef(false);
+
+  const acknowledgeChatAttention = useCallback(() => {
+    setFlash(false);
+  }, []);
 
   useEffect(() => {
     settingsOpenRef.current = settingsOpen;
@@ -172,10 +203,27 @@ export function StageChatDock() {
         },
       );
     },
+    onMutate: () => {
+      if (!eventId || !contextStageId) return;
+      const author = authorDraft.trim();
+      const body = draft.trim();
+      pendingOwnEchoRef.current = {
+        until: Date.now() + 15_000,
+        eventId,
+        scope: sendScope,
+        stageId: sendScope === "stage" ? contextStageId : null,
+        author,
+        body,
+      };
+    },
     onSuccess: (res) => {
+      pendingOwnEchoRef.current = null;
       lastSentIdRef.current = res.chatMessage.id;
       void qc.invalidateQueries({ queryKey: ["chatMessages", eventId] });
       setDraft("");
+    },
+    onError: () => {
+      pendingOwnEchoRef.current = null;
     },
   });
 
@@ -191,13 +239,21 @@ export function StageChatDock() {
       if (!eventId || !contextStageId) return;
       if (msg.eventId !== eventId) return;
       if (msg.scope === "stage" && msg.stageId !== contextStageId) return;
+      const pending = pendingOwnEchoRef.current;
+      if (
+        pending &&
+        chatPushMatchesPendingOwnEcho(msg, pending, contextStageId)
+      ) {
+        pendingOwnEchoRef.current = null;
+        lastSentIdRef.current = msg.id;
+        return;
+      }
       if (lastSentIdRef.current === msg.id) {
         lastSentIdRef.current = null;
         return;
       }
       setExpanded(true);
       setFlash(true);
-      window.setTimeout(() => setFlash(false), 1600);
     },
     [eventId, contextStageId],
   );
@@ -267,7 +323,14 @@ export function StageChatDock() {
 
   /** Portal to `document.body` so stacking is not trapped under `#root` / flex ancestors (FortuneSheet, etc.). */
   return createPortal(
-    <div ref={rootRef} className={panelClass} role="region" aria-label="Stage chat">
+    <div
+      ref={rootRef}
+      className={panelClass}
+      role="region"
+      aria-label="Stage chat"
+      onPointerDownCapture={acknowledgeChatAttention}
+      onFocusCapture={acknowledgeChatAttention}
+    >
       {!expanded ? (
         <button
           type="button"

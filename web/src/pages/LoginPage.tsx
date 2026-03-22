@@ -4,6 +4,20 @@ import { apiSend } from "../api/client";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+function safeReturnTo(raw: string | null): string {
+  if (!raw) return "/";
+  let p: string;
+  try {
+    p = decodeURIComponent(raw);
+  } catch {
+    return "/";
+  }
+  if (!p.startsWith("/")) return "/";
+  if (p.startsWith("//")) return "/";
+  if (p.includes("://")) return "/";
+  return p;
+}
+
 export function LoginPage() {
   const [password, setPassword] = useState("");
   const [searchParams] = useSearchParams();
@@ -16,7 +30,7 @@ export function LoginPage() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["authSession"] });
       const ret = searchParams.get("returnTo");
-      navigate(ret ? decodeURIComponent(ret) : "/", { replace: true });
+      navigate(safeReturnTo(ret), { replace: true });
     },
   });
 
@@ -56,7 +70,10 @@ export function LoginPage() {
           </button>
         </form>
         {login.isError && (
-          <p style={{ color: "var(--color-brand)", marginTop: "0.75rem" }}>
+          <p
+            role="alert"
+            style={{ color: "var(--color-danger)", marginTop: "0.75rem" }}
+          >
             {(login.error as Error).message}
           </p>
         )}

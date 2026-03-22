@@ -1,222 +1,124 @@
 # Changeoverlord
 
-Web app for festival **sound crew**: multi-day **schedules**, **changeovers**, **riders** / **stage plots**, collaborative **input patch** and **RF** grids, and **stage clocks**. Built for **LAN / offline** use at shows; the same stack can be hosted online later.
+A web app for festival **sound crew** — schedules, changeovers, collaborative patch sheets, riders, and stage clocks. Built for **LAN use** at live events; runs offline once set up.
 
 **Powered by [Doug Hunt Sound & Light](https://www.doughunt.co.uk/).**
 
 ---
 
-## Quick start (Docker)
+## What it does
 
-**Requirements:** [Docker](https://docs.docker.com/get-docker/) with Compose v2 (Linux, macOS, or Windows with Docker Desktop).
-
-| Goal | Command |
-|------|---------|
-| **Deploy** pre-built app (typical show / LAN) | See **[Deployment](#deployment)** below — `docker compose pull && docker compose up -d` |
-| **Develop** from source (fast — hot reload) | `make dev-fast` (**`docker-compose.fast.yml`**) — UI at **`http://localhost/`** (default **`FAST_WEB_PORT=80`**) |
-| **Develop** from source (classic — same `app` image as ship) | `make dev` (merges **`docker-compose.dev.yml`**) |
-
-After install, open **http://\<this-machine\>/** — default **port 80**. If port 80 is busy, set **`HOST_PORT`** in **`.env`** (from **`.env.example`**) and use **http://\<this-machine\>:\<HOST_PORT\>/**.
-
-- **`.env`** is optional and **infrastructure-only** (paths, port, log level, secrets). Schedules, optional shared password, etc. are set in the **app UI**.
-- After the first **`docker compose pull`** (deploy) or **`make dev`** / **`make dev-fast`** (develop), you can run **offline** if images are already local.
-
-**Fresh DB during development:** stop Compose, remove **`data/db/`** under **`DATA_DIR`** (throwaway data only), then **`make dev-fast`** or **`make dev`** again. **Back up `DATA_DIR`** before wiping real prep data.
-
-More detail: **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** · moving data: **[`docs/HANDOVER.md`](docs/HANDOVER.md)**.
+- **Schedule management** — Events, stages, days, and performances with inline editing, now/next indicators, changeover timers, and live updates across all connected devices.
+- **Collaborative patch & RF sheets** — Real-time multi-user spreadsheets for input lists and RF. Upload templates from Excel or build them in-app. Each band gets their own workbook, seeded from the stage's default template.
+- **Stage clocks** — Countdown timers with changeover mode, warning colours (green → amber → red), auto-advance, message overlay, and fullscreen/distance view for FOH displays.
+- **Riders & stage plots** — Upload PDFs, view inline, extract individual pages as stage plots, drag-and-drop.
+- **Fast navigation** — "My stage today" one-tap access, band-to-band navigation in the patch view, global search (`Ctrl+K`), keyboard shortcuts (`?` for help).
+- **Export & import** — Move event data between machines via JSON packages (prep laptop → show server via USB).
+- **Stage chat** — Short coordination messages between crew on the same stage or across the whole event.
 
 ---
 
-## Deployment
+## Quick start
 
-Use this for a **production-style** or **show laptop** install: run the **published** app container from **GitHub Container Registry** — **no** local `Dockerfile` build (only **`docker-compose.yml`** + optional **`.env`**).
-
-### 1. Prerequisites
-
-- **Docker** with **Compose v2** (Docker Desktop or Engine).
-- **Network** once: `docker compose pull` needs to reach **GHCR** (`ghcr.io`). After images are cached, the stack can run on an isolated LAN.
-
-### 2. Get the compose files
+**Requirements:** [Docker](https://docs.docker.com/get-docker/) with Compose v2 (Linux, macOS, or Windows with Docker Desktop).
 
 ```bash
 git clone https://github.com/doug86i/changeoverlord.git
 cd changeoverlord
+docker compose pull && docker compose up -d
 ```
 
-You only need the repo for **`docker-compose.yml`**, **`.env.example`**, and (implicitly) Compose’s project name from the folder — not the app source at runtime.
+Open **http://localhost/** — that's it. Other devices on the LAN can reach the same address using the server's IP or hostname.
 
-### 3. Configure (optional)
+After the first `docker compose pull`, the stack can run **fully offline**.
+
+### Configuration
+
+Copy `.env.example` to `.env` if you need to change any defaults:
+
+| Variable | Default | When to change |
+|----------|---------|----------------|
+| `HOST_PORT` | `80` | Port 80 is in use (e.g. use `8080`) |
+| `DATA_DIR` | `./data` | Store database and uploads elsewhere |
+| `SESSION_SECRET` | dev fallback | Set a random string for shared or internet-facing installs |
+| `LOG_LEVEL` | `debug` | Use `info` for quieter logs on a show machine |
+| `APP_IMAGE_TAG` | `latest` | Pin to a specific release tag (e.g. `v1.0.0`) |
+
+Schedules, the optional shared password, and other show settings are configured **inside the app**, not in `.env`.
+
+### Updates
 
 ```bash
-cp .env.example .env
+git pull && docker compose pull && docker compose up -d
 ```
 
-Edit **`.env`** if needed (see comments in **`.env.example`**):
+Database migrations run automatically on startup.
 
-| Variable | When to change |
-|----------|----------------|
-| **`HOST_PORT`** | Port **80** is in use or blocked (e.g. use **8080** on Windows without admin). |
-| **`DATA_DIR`** | Store Postgres + uploads somewhere other than **`./data`** (absolute path; forward slashes, including on Windows). |
-| **`SESSION_SECRET`** | **Set a long random string** for any shared or internet-facing deploy (defaults are for quick local use only). |
-| **`LOG_LEVEL`** | Use **`info`** for quieter logs on a show machine; **`debug`** for troubleshooting (**[`docs/LOGGING.md`](docs/LOGGING.md)**). |
-| **`APP_IMAGE_TAG`** | Pin a release tag instead of **`latest`** if you track versions (see GHCR package tags). |
-
-### 4. Start the stack
-
-```bash
-docker compose pull    # app image from GHCR + postgres:16-alpine
-docker compose up -d
-```
-
-First start creates **`${DATA_DIR}/db`** and **`${DATA_DIR}/uploads`** (default **`./data/...`**).
-
-### 5. Verify
-
-```bash
-docker compose ps
-curl -sS http://127.0.0.1/api/v1/health
-# If HOST_PORT is not 80:
-curl -sS "http://127.0.0.1:${HOST_PORT}/api/v1/health"
-```
-
-Expect **`{"ok":true,...}`** from **`/api/v1/health`**.
-
-### 6. Open in the browser
-
-- This machine: **http://localhost/** or **http://127.0.0.1/** (or **`http://localhost:<HOST_PORT>/`**).
-- Other devices on the LAN: **http://\<server-hostname-or-IP\>/** (same port). Ensure the host firewall allows inbound **TCP** on **`HOST_PORT`** if clients connect from elsewhere.
-
-### 7. Updates (new app version)
-
-From the same repo directory:
-
-```bash
-git pull                    # latest compose / docs
-docker compose pull
-docker compose up -d
-```
-
-Database migrations run when the **app** container starts.
-
-### 8. Stop
+### Stop
 
 ```bash
 docker compose down
 ```
 
-Data under **`DATA_DIR`** is kept. To remove containers **and** named volumes (if you ever add any), see Docker docs; default Postgres data is in the **`DATA_DIR/db`** bind mount, not an anonymous volume.
+Data under `DATA_DIR` (default `./data`) is kept.
 
-### Patch / RF workbook not persisting
+### Troubleshooting
 
-- **Postgres must stay on disk:** patch workbooks are stored in **`${DATA_DIR}/db`** (table **`performance_yjs_snapshots`**). If **`DATA_DIR`** is not a stable host path/volume, or the DB directory is wiped on every deploy, edits will disappear after restart.
-- **WebSockets:** the browser uses **`ws:`** / **`wss:`** to **`/ws/v1/collab/…`**. A reverse proxy must allow **WebSocket upgrade** (HTTP/1.1 **`Upgrade`** / **`Connection`**). Without it, the sheet may not stay connected long enough to sync.
-- **App version:** releases **after** the fix in **`api/src/lib/yjs-persistence.ts`** avoid a race where a slow DB load could overwrite a good snapshot; **`docker compose pull`** to update.
-
----
-
-## Development (build from source)
-
-From the repo root, with Docker:
-
-```bash
-# Fast: Postgres + tsx watch + Vite (bind mounts)
-make dev-fast
-
-# Classic: single app image (compiled SPA + API), same shape as production build
-make dev
-# Runs compose `up -d` and only passes `--build` when Docker inputs changed (see docs/DEVELOPMENT.md).
-```
-
-Use **`make dev-rebuild`** / **`FORCE_DOCKER_REBUILD=1 make dev`** to force a classic image rebuild, or **`make dev-fresh`** if layers look corrupt. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
-
-Do not run **`make dev-fast`** and **`make dev`** together against the same **`DATA_DIR`** (Postgres data bind-mount conflict) — stop one stack before starting the other.
+- **Port conflict** — Set `HOST_PORT=8080` (or another free port) in `.env`.
+- **Patch workbook not persisting** — Make sure `DATA_DIR` points to a stable path. If using a reverse proxy, it must allow WebSocket upgrade on `/ws/v1/collab/…`.
+- **Stale UI after update** — Try `docker compose build --no-cache app && docker compose up -d app`.
 
 ---
 
-## What’s in the box
+## Using the app
+
+See the **[User Guide](docs/USER_GUIDE.md)** for detailed instructions on schedules, patch sheets, templates, clocks, file management, and chat.
+
+---
+
+## Moving data to another machine
+
+**Full copy** — Stop the stack, copy `DATA_DIR` to the new machine, set the path in `.env`, start the stack.
+
+**Logical export** — Use **Export event** in the app to download a JSON package, then **Import event** on the other instance. See the [User Guide](docs/USER_GUIDE.md).
+
+---
+
+## Development
+
+See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for building from source, Docker workflows, and contributing.
+
+| Command | What it does |
+|---------|--------------|
+| `make dev-fast` | Postgres + hot-reload API and UI (bind-mounted source) |
+| `make dev` | Production-like single container build |
+
+### Stack
 
 | Layer | Technology |
-|-------|----------------|
-| API | **Fastify**, **TypeScript**, **Drizzle ORM**, **PostgreSQL**, **Zod** |
-| Web | **Vite**, **React**, **TypeScript**, **TanStack Query**, **React Router** |
-| Live schedule / lists | **SSE** `GET /api/v1/realtime` + TanStack cache invalidation |
-| Patch / RF workbook | **WebSockets**, **Yjs**, **FortuneSheet** |
-| Deploy | **Docker Compose**: Postgres + one **Node** container serving **REST** + **static SPA** |
-
-The API lives at **`/api/v1`**. The browser loads the SPA from the **same origin** (good for cookies and LAN use).
+|-------|------------|
+| API | Fastify, TypeScript, Drizzle ORM, PostgreSQL, Zod |
+| Web | Vite, React, TypeScript, TanStack Query, React Router |
+| Live updates | SSE (schedule) · WebSockets + Yjs (patch workbooks) |
+| Spreadsheet | FortuneSheet |
+| Deploy | Docker Compose: Postgres + Node container serving REST + static SPA |
 
 ---
 
 ## Documentation
 
-| Doc | Audience |
-|-----|----------|
-| **This file** | Overview and **how to run** the stack |
-| **[`docs/README.md`](docs/README.md)** | **Index** of all docs (humans vs agents) |
-| **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** | **Operators** — using events, patch/RF, templates, clocks |
-| **[`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md)** | **Contributors** — when and how to update docs |
-| **[`docs/PLAN.md`](docs/PLAN.md)** | Product vision and roadmap |
-| **[`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md)** | User-journey analysis, competitive research, feature requirements |
-| **[`docs/DECISIONS.md`](docs/DECISIONS.md)** | Engineering decisions |
-| **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | Docker workflow, **`patches/`**, faster rebuilds, dev tips |
-| **[`docs/REALTIME.md`](docs/REALTIME.md)** | Live updates (SSE) vs collaborative grid (Yjs) |
-| **[`docs/PATCH_TEMPLATE_JSON.md`](docs/PATCH_TEMPLATE_JSON.md)** | Patch template **JSON** upload — file shape and API |
-| **[`docs/CODEBASE_REVIEW.md`](docs/CODEBASE_REVIEW.md)** | **Contributors** — engineering audit backlog (known issues, doc drift) |
-| **[`docs/LOGGING.md`](docs/LOGGING.md)** | Structured logging (`LOG_LEVEL`, `req.log`, web `logDebug`) |
-| **[`docs/DESIGN.md`](docs/DESIGN.md)** | UI themes and tokens |
-| **[`docs/LICENSING.md`](docs/LICENSING.md)** | Licences |
-| **[`docs/HANDOVER.md`](docs/HANDOVER.md)** | **New machine or teammate** — clone, env, data move |
-| **[`CHANGELOG.md`](CHANGELOG.md)** | **What changed** — unreleased fixes/features and version history |
+| Doc | Purpose |
+|-----|---------|
+| **[User Guide](docs/USER_GUIDE.md)** | How to use the app |
+| **[Development](docs/DEVELOPMENT.md)** | Building, testing, setup on a new machine |
+| **[Roadmap](docs/ROADMAP.md)** | User personas, feature requirements, competitive analysis |
+| **[Decisions](docs/DECISIONS.md)** | Engineering and product decisions, visual design |
+| **[Realtime](docs/REALTIME.md)** | SSE vs Yjs architecture |
+| **[Changelog](CHANGELOG.md)** | Release notes and version history |
 
-**AI assistants and architecture rules:** **[`AGENTS.md`](AGENTS.md)** (not required for deploy-only readers).
+Full index: **[docs/README.md](docs/README.md)**.
 
----
-
-## Build only (CI / sanity check)
-
-Interactive testing uses **`make dev-fast`** or **`make dev`** above. To compile **`web/`** + **`api/`** without Compose (e.g. CI), from the repo root: **`npm install`** then **`npm run build`**. See **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**.
-
----
-
-## Compose vs app settings
-
-| In **Compose** / **`.env`** | In the **app UI** |
-|-----------------------------|-------------------|
-| `DATA_DIR`, host **port**, `LOG_LEVEL`, DB URL, `SESSION_SECRET` | Shared password, schedules, clocks content, … |
-
----
-
-## Data directory
-
-Persistent data defaults to **`./data`** on the host (`data/db/`, `data/uploads/`). Override with **`DATA_DIR`**. See **[`data/README.md`](data/README.md)**.
-
----
-
-## Repository layout
-
-| Path | Role |
-|------|------|
-| `docker-compose.yml` | Postgres + app (**GHCR** image; `docker compose pull` + `up`) |
-| `docker-compose.dev.yml` | Adds **`build: .`** — merged by **`make dev`** |
-| `docker-compose.fast.yml` | Postgres + dev **api** + **web** — merged by **`make dev-fast`** |
-| `Dockerfile` | Build `web/` + `api/`, run Fastify |
-| `Dockerfile.fast` | Base image for **`make dev-fast`** (Node + PDF/convert tools) |
-| `api/` | REST API, Drizzle schema, migrations |
-| `web/` | Vite React SPA |
-| `docs/` | Documentation — start at **[`docs/README.md`](docs/README.md)** |
-| `AGENTS.md` | Rules for AI assistants and core architecture work |
-| `.cursor/rules/` | Cursor automation rules |
-| `.env.example` | Example infrastructure env |
-
----
-
-## Current status
-
-**Shipped in this repo:** Full **events → stages → stage-days → performances** CRUD with **inline editing**, **swap/shift** scheduling helpers, **SSE** live updates, **global search**, **export/import** event packages, **stage clocks** (distance/fullscreen layout, changeover mode), header **My stage today**, **collaborative patch/RF** workbook (Yjs + FortuneSheet), **template library**, **PDF** attachments with **inline viewer** and **page extract**, **responsive** shell (hamburger nav, breakpoints), **connection status**, keyboard shortcuts, optional **shared password**, **Docker** deployment.
-
-**Handover to another machine:** **[`docs/HANDOVER.md`](docs/HANDOVER.md)**.
-
-**Roadmap / backlog:** **[`docs/PLAN.md`](docs/PLAN.md)** and **[`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md)** (e.g. configurable client logo, further polish).
+**AI assistants:** **[AGENTS.md](AGENTS.md)**.
 
 ---
 

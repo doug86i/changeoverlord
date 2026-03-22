@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
+import { invalidatePasswordSettingsCache } from "../../lib/password-cache.js";
 import { settings } from "../../db/schema.js";
 
 const setInitialBody = z.object({
@@ -46,6 +47,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
         .update(settings)
         .set({ passwordHash: hash, updatedAt: new Date() })
         .where(eq(settings.id, 1));
+      invalidatePasswordSettingsCache();
       broadcastInvalidate([["settings"], ["authSession"]]);
       req.log.info({ settings: "password", action: "initial_set" }, "settings");
       return reply.code(201).send({ ok: true });
@@ -62,6 +64,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
       .update(settings)
       .set({ passwordHash: hash, updatedAt: new Date() })
       .where(eq(settings.id, 1));
+    invalidatePasswordSettingsCache();
     broadcastInvalidate([["settings"], ["authSession"]]);
     req.log.info({ settings: "password", action: "change", result: "ok" }, "settings");
     return { ok: true };
@@ -89,6 +92,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
       .update(settings)
       .set({ passwordHash: null, updatedAt: new Date() })
       .where(eq(settings.id, 1));
+    invalidatePasswordSettingsCache();
     broadcastInvalidate([["settings"], ["authSession"]]);
     req.log.info({ settings: "password", action: "clear", result: "ok" }, "settings");
     return reply.code(204).send();

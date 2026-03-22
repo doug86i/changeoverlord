@@ -1,4 +1,5 @@
 import { apiGet } from "../api/client";
+import { fetchAllEvents } from "../api/paginated";
 import { logDebug } from "./debug";
 import { LAST_STAGE_DAY_STORAGE_KEY } from "./useLastVisited";
 
@@ -35,7 +36,7 @@ export async function resolveMyStageTodayPath(): Promise<string> {
     }
   }
 
-  const { events } = await apiGet<{ events: { id: string }[] }>("/api/v1/events");
+  const events = await fetchAllEvents();
   if (events.length === 0) return "/";
 
   const todayIds: string[] = [];

@@ -1,54 +1,44 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { apiGet } from "../api/client";
+import { fetchAllEvents } from "../api/paginated";
 import type { EventRow, StageRow, StageDayRow } from "../api/types";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { formatDateShort } from "../lib/dateFormat";
-
-type TimeRes = { iso: string; unixMs: number };
+import { useServerTime } from "../hooks/useServerTime";
 
 export function ClockPage() {
   const navigate = useNavigate();
-  const { data: timeData } = useQuery({
-    queryKey: ["serverTime"],
-    queryFn: () => apiGet<TimeRes>("/api/v1/time"),
-    refetchInterval: 30_000,
-  });
-
-  const [offsetMs, setOffsetMs] = useState(0);
-  useEffect(() => {
-    if (timeData) setOffsetMs(timeData.unixMs - Date.now());
-  }, [timeData]);
-
-  const [tick, setTick] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setTick(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const now = useMemo(() => new Date(tick + offsetMs), [tick, offsetMs]);
+  const { now, isLoading: timeLoading } = useServerTime({ tickIntervalMs: 250 });
   const todayStr = now.toISOString().slice(0, 10);
 
   const eventsQ = useQuery({
     queryKey: ["events"],
-    queryFn: () => apiGet<{ events: EventRow[] }>("/api/v1/events"),
+    queryFn: () => fetchAllEvents(),
   });
 
-  const events = eventsQ.data?.events ?? [];
+  const events = eventsQ.data ?? [];
   const eventIds = events.map((e) => e.id).sort().join(",");
 
   const stagesQs = useQuery({
     queryKey: ["allStagesForClock", eventIds],
     queryFn: async () => {
-      const results: { event: EventRow; stage: StageRow; days: StageDayRow[] }[] = [];
-      for (const ev of events) {
-        const stagesRes = await apiGet<{ stages: StageRow[] }>(`/api/v1/events/${ev.id}/stages`);
-        for (const st of stagesRes.stages) {
-          const daysRes = await apiGet<{ stageDays: StageDayRow[] }>(`/api/v1/stages/${st.id}/days`);
-          results.push({ event: ev, stage: st, days: daysRes.stageDays });
-        }
-      }
-      return results;
+      const nested = await Promise.all(
+        events.map(async (ev) => {
+          const stagesRes = await apiGet<{ stages: StageRow[] }>(
+            `/api/v1/events/${ev.id}/stages`,
+          );
+          return Promise.all(
+            stagesRes.stages.map(async (st) => {
+              const daysRes = await apiGet<{ stageDays: StageDayRow[] }>(
+                `/api/v1/stages/${st.id}/days`,
+              );
+              return { event: ev, stage: st, days: daysRes.stageDays };
+            }),
+          );
+        }),
+      );
+      return nested.flat();
     },
     enabled: events.length > 0,
   });
@@ -62,7 +52,6 @@ export function ClockPage() {
     );
   }, [stagesQs.data, todayStr]);
 
-  // Auto-redirect if exactly one today
   useEffect(() => {
     if (todayItems.length === 1) {
       navigate(`/clock/day/${todayItems[0].day.id}`, { replace: true });
@@ -71,10 +60,24 @@ export function ClockPage() {
 
   const allDays = useMemo(() => {
     if (!stagesQs.data) return [];
-    return stagesQs.data.flatMap((r) =>
-      r.days.map((d) => ({ event: r.event, stage: r.stage, day: d })),
-    ).sort((a, b) => a.day.dayDate.localeCompare(b.day.dayDate));
+    return stagesQs.data
+      .flatMap((r) => r.days.map((d) => ({ event: r.event, stage: r.stage, day: d })))
+      .sort((a, b) => a.day.dayDate.localeCompare(b.day.dayDate));
   }, [stagesQs.data]);
+
+  if (eventsQ.isLoading) {
+    return <p className="muted">Loading…</p>;
+  }
+  if (eventsQ.isError || !eventsQ.data) {
+    return <p role="alert">Failed to load events.</p>;
+  }
+
+  if (events.length > 0 && stagesQs.isLoading) {
+    return <p className="muted">Loading…</p>;
+  }
+  if (events.length > 0 && (stagesQs.isError || !stagesQs.data)) {
+    return <p role="alert">Failed to load stages.</p>;
+  }
 
   return (
     <div>
@@ -90,7 +93,7 @@ export function ClockPage() {
           marginBottom: "1.5rem",
         }}
       >
-        {timeData
+        {!timeLoading
           ? now.toLocaleTimeString(undefined, {
               hour: "2-digit",
               minute: "2-digit",

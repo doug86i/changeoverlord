@@ -234,14 +234,16 @@ export function StageDetailPage() {
               <Link to={`/stage-days/${d.id}`} style={{ fontWeight: 600 }}>
                 {formatDateShort(d.dayDate)}
               </Link>
-              <button
-                type="button"
-                className="icon-btn danger-text"
-                title="Delete day"
-                onClick={() => setDeleteDayId(d.id)}
-              >
-                ✕
-              </button>
+              <div style={{ flexShrink: 0 }}>
+                <button
+                  type="button"
+                  className="icon-btn danger-text"
+                  title="Delete day"
+                  onClick={() => setDeleteDayId(d.id)}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           </li>
         ))}

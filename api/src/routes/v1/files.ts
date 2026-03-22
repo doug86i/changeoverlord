@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { getUploadsDir } from "../../lib/uploads-dir.js";
+import { resolvePathUnderUploadsRoot } from "../../lib/safe-upload-path.js";
 import {
   extractPdfPageToBuffer,
   getPdfPageCount,
@@ -16,6 +17,8 @@ import {
   canConvertToPdf as fileCanConvertToPdf,
   convertFileToPdfBuffer,
 } from "../../lib/convert-to-pdf.js";
+import { riderBufferMatchesMagic } from "../../lib/file-magic.js";
+import { parseRiderExtraExtensions } from "../../lib/rider-extensions-env.js";
 import {
   isAllowedRiderAttachment,
   normalizeRiderMime,
@@ -107,6 +110,10 @@ async function resolvePerformanceStageId(
     .where(eq(stageDays.id, perf.stageDayId))
     .limit(1);
   return day?.stageId ?? null;
+}
+
+function absStoredFile(storageKey: string): string {
+  return resolvePathUnderUploadsRoot(getUploadsDir(), storageKey);
 }
 
 function invalidateFileQueries(stageId: string, performanceId: string | null) {
@@ -223,7 +230,17 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     return { files: rows.map((r) => toFileJson(r)) };
   });
 
-  app.post("/files", async (req, reply) => {
+  app.post(
+    "/files",
+    {
+      config: {
+        rateLimit: {
+          max: 120,
+          timeWindow: "1 minute",
+        },
+      },
+    },
+    async (req, reply) => {
     const q = uploadQuery.parse(req.query);
     const mp = await req.file();
     if (!mp) {
@@ -239,6 +256,15 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         error: "ValidationError",
         message:
           "Unsupported file type. Use PDF, images, common text/doc formats, or similar.",
+      });
+    }
+
+    const extraExt = parseRiderExtraExtensions();
+    const magic = riderBufferMatchesMagic(buf, mp.filename, extraExt);
+    if (!magic.ok) {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: magic.message,
       });
     }
 
@@ -280,33 +306,50 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     const ext = riderStorageExtension(mp.filename, mp.mimetype || "");
     const uploadsRoot = getUploadsDir();
     const storageKey = `files/${randomUUID()}${ext}`;
-    const abs = path.join(uploadsRoot, storageKey);
+    const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, buf);
 
-    const [row] = await db
-      .insert(fileAssets)
-      .values({
-        originalName: safeFilename(mp.filename || `upload${ext}`),
-        storageKey,
-        mimeType: storedMime,
-        byteSize: buf.length,
-        purpose: "generic",
-        stageId,
-        performanceId,
-        parentFileId: null,
-      })
-      .returning({
-        id: fileAssets.id,
-        originalName: fileAssets.originalName,
-        mimeType: fileAssets.mimeType,
-        byteSize: fileAssets.byteSize,
-        purpose: fileAssets.purpose,
-        stageId: fileAssets.stageId,
-        performanceId: fileAssets.performanceId,
-        parentFileId: fileAssets.parentFileId,
-        createdAt: fileAssets.createdAt,
-      });
+    let row: {
+      id: string;
+      originalName: string;
+      mimeType: string;
+      byteSize: number;
+      purpose: string;
+      stageId: string | null;
+      performanceId: string | null;
+      parentFileId: string | null;
+      createdAt: Date;
+    };
+    try {
+      const [inserted] = await db
+        .insert(fileAssets)
+        .values({
+          originalName: safeFilename(mp.filename || `upload${ext}`),
+          storageKey,
+          mimeType: storedMime,
+          byteSize: buf.length,
+          purpose: "generic",
+          stageId,
+          performanceId,
+          parentFileId: null,
+        })
+        .returning({
+          id: fileAssets.id,
+          originalName: fileAssets.originalName,
+          mimeType: fileAssets.mimeType,
+          byteSize: fileAssets.byteSize,
+          purpose: fileAssets.purpose,
+          stageId: fileAssets.stageId,
+          performanceId: fileAssets.performanceId,
+          parentFileId: fileAssets.parentFileId,
+          createdAt: fileAssets.createdAt,
+        });
+      row = inserted!;
+    } catch (e) {
+      await fs.unlink(abs).catch(() => {});
+      throw e;
+    }
 
     invalidateFileQueries(stageId, performanceId);
     req.log.debug(
@@ -317,7 +360,8 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     return reply.code(201).send({
       file: toFileJson(row, pageCount != null ? { pageCount } : undefined),
     });
-  });
+    },
+  );
 
   app.get("/files/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
@@ -326,7 +370,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     let pageCount: number | undefined;
     if (row.mimeType === "application/pdf") {
       try {
-        const abs = path.join(getUploadsDir(), row.storageKey);
+        const abs = absStoredFile(row.storageKey);
         const buf = await fs.readFile(abs);
         pageCount = await getPdfPageCount(buf);
       } catch {
@@ -348,7 +392,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         message: "Not a PDF",
       });
     }
-    const abs = path.join(getUploadsDir(), row.storageKey);
+    const abs = absStoredFile(row.storageKey);
     try {
       const { pageCount, thumbnails } = await renderPdfThumbnailsJpegDataUrls(abs);
       return { pageCount, thumbnails };
@@ -409,7 +453,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     const { id } = uuidParam.parse(req.params);
     const [row] = await db.select().from(fileAssets).where(eq(fileAssets.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
-    const abs = path.join(getUploadsDir(), row.storageKey);
+    const abs = absStoredFile(row.storageKey);
     let buf: Buffer;
     try {
       buf = await fs.readFile(abs);
@@ -451,7 +495,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const uploadsRoot = getUploadsDir();
-    const parentAbs = path.join(uploadsRoot, parent.storageKey);
+    const parentAbs = resolvePathUnderUploadsRoot(uploadsRoot, parent.storageKey);
     let pdfBuf: Buffer;
     try {
       pdfBuf = await convertFileToPdfBuffer({
@@ -464,7 +508,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       req.log.warn({ fileId: id, err: msg }, "convert to pdf failed");
       return reply.code(400).send({
         error: "ValidationError",
-        message: msg || "Could not convert to PDF",
+        message: "Could not convert to PDF",
       });
     }
 
@@ -480,34 +524,51 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const storageKey = `files/${randomUUID()}.pdf`;
-    const abs = path.join(uploadsRoot, storageKey);
+    const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, pdfBuf);
 
     const baseStem = parent.originalName.replace(/\.[^.]+$/u, "") || "document";
-    const [row] = await db
-      .insert(fileAssets)
-      .values({
-        originalName: `${safeFilename(baseStem)}.pdf`,
-        storageKey,
-        mimeType: "application/pdf",
-        byteSize: pdfBuf.length,
-        purpose: "generic",
-        stageId: parent.stageId,
-        performanceId: parent.performanceId,
-        parentFileId: parent.id,
-      })
-      .returning({
-        id: fileAssets.id,
-        originalName: fileAssets.originalName,
-        mimeType: fileAssets.mimeType,
-        byteSize: fileAssets.byteSize,
-        purpose: fileAssets.purpose,
-        stageId: fileAssets.stageId,
-        performanceId: fileAssets.performanceId,
-        parentFileId: fileAssets.parentFileId,
-        createdAt: fileAssets.createdAt,
-      });
+    let row: {
+      id: string;
+      originalName: string;
+      mimeType: string;
+      byteSize: number;
+      purpose: string;
+      stageId: string | null;
+      performanceId: string | null;
+      parentFileId: string | null;
+      createdAt: Date;
+    };
+    try {
+      const [inserted] = await db
+        .insert(fileAssets)
+        .values({
+          originalName: `${safeFilename(baseStem)}.pdf`,
+          storageKey,
+          mimeType: "application/pdf",
+          byteSize: pdfBuf.length,
+          purpose: "generic",
+          stageId: parent.stageId,
+          performanceId: parent.performanceId,
+          parentFileId: parent.id,
+        })
+        .returning({
+          id: fileAssets.id,
+          originalName: fileAssets.originalName,
+          mimeType: fileAssets.mimeType,
+          byteSize: fileAssets.byteSize,
+          purpose: fileAssets.purpose,
+          stageId: fileAssets.stageId,
+          performanceId: fileAssets.performanceId,
+          parentFileId: fileAssets.parentFileId,
+          createdAt: fileAssets.createdAt,
+        });
+      row = inserted!;
+    } catch (e) {
+      await fs.unlink(abs).catch(() => {});
+      throw e;
+    }
 
     if (parent.stageId) {
       invalidateFileQueries(parent.stageId, parent.performanceId);
@@ -537,7 +598,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const uploadsRoot = getUploadsDir();
-    const parentAbs = path.join(uploadsRoot, parent.storageKey);
+    const parentAbs = resolvePathUnderUploadsRoot(uploadsRoot, parent.storageKey);
     const parentBuf = await fs.readFile(parentAbs);
 
     let outBuf: Buffer;
@@ -553,33 +614,51 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const storageKey = `files/${randomUUID()}.pdf`;
-    const abs = path.join(uploadsRoot, storageKey);
+    const abs = resolvePathUnderUploadsRoot(uploadsRoot, storageKey);
+    await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, outBuf);
 
     const baseName = parent.originalName.replace(/\.pdf$/i, "") || "page";
-    const [row] = await db
-      .insert(fileAssets)
-      .values({
-        originalName: `${baseName}-p${body.pageIndex + 1}.pdf`,
-        storageKey,
-        mimeType: "application/pdf",
-        byteSize: outBuf.length,
-        purpose: "plot_pdf",
-        stageId: parent.stageId,
-        performanceId: parent.performanceId,
-        parentFileId: parent.id,
-      })
-      .returning({
-        id: fileAssets.id,
-        originalName: fileAssets.originalName,
-        mimeType: fileAssets.mimeType,
-        byteSize: fileAssets.byteSize,
-        purpose: fileAssets.purpose,
-        stageId: fileAssets.stageId,
-        performanceId: fileAssets.performanceId,
-        parentFileId: fileAssets.parentFileId,
-        createdAt: fileAssets.createdAt,
-      });
+    let row: {
+      id: string;
+      originalName: string;
+      mimeType: string;
+      byteSize: number;
+      purpose: string;
+      stageId: string | null;
+      performanceId: string | null;
+      parentFileId: string | null;
+      createdAt: Date;
+    };
+    try {
+      const [inserted] = await db
+        .insert(fileAssets)
+        .values({
+          originalName: `${baseName}-p${body.pageIndex + 1}.pdf`,
+          storageKey,
+          mimeType: "application/pdf",
+          byteSize: outBuf.length,
+          purpose: "plot_pdf",
+          stageId: parent.stageId,
+          performanceId: parent.performanceId,
+          parentFileId: parent.id,
+        })
+        .returning({
+          id: fileAssets.id,
+          originalName: fileAssets.originalName,
+          mimeType: fileAssets.mimeType,
+          byteSize: fileAssets.byteSize,
+          purpose: fileAssets.purpose,
+          stageId: fileAssets.stageId,
+          performanceId: fileAssets.performanceId,
+          parentFileId: fileAssets.parentFileId,
+          createdAt: fileAssets.createdAt,
+        });
+      row = inserted!;
+    } catch (e) {
+      await fs.unlink(abs).catch(() => {});
+      throw e;
+    }
 
     if (parent.stageId) {
       await demoteOtherPlotsInScope(
@@ -617,7 +696,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
     if (!row) return reply.code(404).send({ error: "NotFound" });
 
     try {
-      await fs.unlink(path.join(getUploadsDir(), row.storageKey));
+      await fs.unlink(absStoredFile(row.storageKey));
     } catch {
       /* ignore missing file */
     }

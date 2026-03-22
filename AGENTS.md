@@ -35,13 +35,13 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 | Doc | Purpose |
 |-----|---------|
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Locked product + stack choices |
-| [`docs/FEATURE_REQUIREMENTS.md`](docs/FEATURE_REQUIREMENTS.md) | User-journey analysis, competitive research, prioritised feature requirements |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | User-journey analysis, competitive research, feature status, what's next |
 | [`docs/REALTIME.md`](docs/REALTIME.md) | Authoritative realtime model: SSE vs Yjs, wire format, implementation checklist |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local testing — **`make dev-fast`** (hot reload) and **`make dev`** (image parity); **Git commits** — small logical units, message style |
 | [`docs/LOGGING.md`](docs/LOGGING.md) | **Structured logging:** `req.log` / `createLogger`, levels, no secrets, web `logDebug` |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | **Operator-facing** how-to (keep in sync when UX changes) |
-| [`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md) | **Doc ownership** — what to update when |
-| [`docs/CODEBASE_REVIEW.md`](docs/CODEBASE_REVIEW.md) | **Audit backlog** — known issues, doc drift, follow-ups (update when fixed) |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) § *Documentation maintenance* | **Doc ownership** — what to update when |
+| [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) | **Known issues** — technical debt, doc drift, follow-ups (update when fixed) |
 | [`CHANGELOG.md`](CHANGELOG.md) | **Release notes** — **`[Unreleased]`** entries for fixes/features that ship |
 | [`.cursor/rules/agents-process.mdc`](.cursor/rules/agents-process.mdc) | **Default:** full **commit + `make dev-fast` (or `make dev`) + health + changelog + USER_GUIDE + report URL** — do not wait for the user to say “follow the process” |
 | [`.cursor/rules/git-commits.mdc`](.cursor/rules/git-commits.mdc) | Commit **each logical unit** separately; **short, specific, imperative** messages |
@@ -84,7 +84,7 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 
 ## Obligations when you change code
 
-- **User-visible behaviour** (routes, settings, clocks, templates, labels): update [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) when practical in the same change; follow [`docs/MAINTAINING_DOCS.md`](docs/MAINTAINING_DOCS.md). Cursor rule **`user-documentation`** restates this.
+- **User-visible behaviour** (routes, settings, clocks, templates, labels): update [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) when practical in the same change. Cursor rule **`user-documentation`** restates this.
 - **Notable fixes and features** (anything that ships in the image or changes runtime): add a line under **`[Unreleased]`** in [`CHANGELOG.md`](CHANGELOG.md); Cursor rule **`changelog`** restates when to skip.
 - **Git history:** commit in **small logical steps** with **clear messages**; Cursor rule **`git-commits`** restates granularity and message style.
 - **New or changed REST mutation** that affects UI-visible data: extend `broadcastInvalidate([...])` in the API route (immediately after success) with keys that match **`queryKey` usage in `web/src/`**. See [`docs/REALTIME.md`](docs/REALTIME.md).
@@ -135,7 +135,7 @@ api/
     app.ts                # Fastify setup — plugins, routes, error handler, static SPA
     db/
       client.ts           # Drizzle client
-      schema.ts           # all tables (events, stages, stageDays, performances, patchTemplates, fileAssets, performanceYjsSnapshots)
+      schema.ts           # all tables (events, stages, stageDays, performances, patchTemplates [stageId: null=global, set=local], fileAssets, performanceYjsSnapshots)
     schemas/
       api.ts              # shared Zod schemas (params, bodies)
     routes/v1/
@@ -183,6 +183,9 @@ api/
     0003_add_fk_indexes.sql   # FK column indexes
     0004_file_assets_scope.sql  # performance_id, parent_file_id on file_assets
     0005_file_purpose_drop_plot_from_rider.sql  # migrate plot_from_rider → plot_pdf
+    0006_stage_chat_messages.sql  # stage chat
+    0007_stages_default_patch_template_index.sql  # unique index on stages.default_patch_template_id
+    0008_patch_templates_stage_id.sql  # two-tier templates: nullable stage_id (NULL=global, set=local)
     meta/_journal.json    # migration journal — update when adding migrations
 
 web/
@@ -221,7 +224,7 @@ web/
     lib/
       debug.ts            # logDebug() for browser console
       dateFormat.ts        # formatDateFriendly, formatDateShort, minutesBetween, formatDuration, formatCountdown
-      useLastVisited.ts    # last-visited stage-day id (localStorage key exported)
+      useLastVisited.ts    # `LAST_STAGE_DAY_STORAGE_KEY` (clock nav / my stage today)
       myStageToday.ts      # resolve /stage-days/:id for “today” (My stage today nav)
       patchWorkbookCollab.ts   # shared Yjs/WebSocket workbook hook + op routing
       patchWorkbookYjs.ts      # Yjs hydrate/recalc / sheet activation helpers
@@ -242,7 +245,7 @@ web/
 3. **DH starter:** Import **`examples/DH_Pick_Patch_TEMPLATE_v6.json`** via **Import workbook JSON** or **`PUT /api/v1/patch-templates/:id/sheets-import`** to refresh a library template; confirm cross-sheet formulas and **Export JSON** match live state.
 4. **Regenerate v6:** **`node scripts/build-dh-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v6.json`** — then commit if structure changes.
 5. **Open questions (if user still reports issues):** First-paint formula display vs **`calculateFormula`** (headless **`execfunction`** works); merge / **“Merge info is null”** console noise; FortuneSheet **`deleteRowCol`** adjusting formulas on other sheets (known upstream risk — prefer JSON import to reset).
-6. **Docs:** Keep **`docs/PATCH_TEMPLATE_JSON.md`** and **`docs/USER_GUIDE.md`** aligned if export/import or blank-template behaviour changes (**`docs/MAINTAINING_DOCS.md`**).
+6. **Docs:** Keep **`docs/PATCH_TEMPLATE_JSON.md`** and **`docs/USER_GUIDE.md`** aligned if export/import or blank-template behaviour changes.
 
 ---
 

@@ -36,7 +36,7 @@ Canonical choices before implementation. Update when something changes.
 ### Visual UI
 
 - **Two first-class themes**: **light** (daylight / outdoor prep) and **dark** (venue). Shared **design tokens** (spacing, type, radius, colours) — **no** one-off screens.
-- **Brand accent** from **DHSL logo** — **industrial red** for interactive / “now” emphasis; **re-sample** hex from bundled **`dhsl-logo.svg`** when added. See **[`DESIGN.md`](DESIGN.md)**.
+- **Brand accent** from **DHSL logo** — **industrial red** for interactive / “now” emphasis; **re-sample** hex from bundled **`dhsl-logo.svg`** when added. See the **Visual design** section below.
 - **Default** follows **`prefers-color-scheme`**; **manual** theme toggle in Settings (persist locally).
 
 ### Internationalisation
@@ -69,7 +69,7 @@ Canonical choices before implementation. Update when something changes.
 ### When no password is set
 
 - Treat as **trusted environment**: still follow **normal HTTP security hygiene** (CSRF for cookie-changing actions when we add forms, sane cookies) but **no** forced HTTPS requirement for LAN IP access.
-- When a password **is** set or the app is **internet-facing**, follow **stricter** defaults: `Secure` cookies where HTTPS, rate limits on login, etc.
+- When a password **is** set or the app is **internet-facing**, follow **stricter** defaults: `Secure` cookies where HTTPS, rate limits on login (**15 attempts / 5 minutes** per IP on **`POST /auth/login`**, fixed *try again* copy), **`@fastify/helmet`** without **Content-Security-Policy** for the SPA until nonces/hashes are justified (LAN-first).
 
 ---
 
@@ -165,13 +165,76 @@ If a limit is hit, message must be **short, actionable** (“File too large — 
 
 ---
 
+## Visual design
+
+Goals: **clean**, **modern**, and **consistent** — readable in **bright daylight** (office, festival compound, outdoor prep) and **dark venues** (FOH, stage wings, dim backstage).
+
+### Principles
+
+| Principle | Meaning |
+|-----------|---------|
+| **One system** | Shared spacing scale, type scale, radius, and component patterns — no one-off screens. |
+| **Clarity over decoration** | Flat surfaces, subtle borders or shadows only where hierarchy needs it; no busy gradients on core work surfaces. |
+| **Glanceable at distance** | Timeline and clock: large time labels, strong figure/ground contrast, limited simultaneous accents. |
+| **Touch-first where it matters** | Minimum 44×44 px tap targets on primary actions (prev/next band, clock, tab switches). |
+
+### DHSL logo → UI (brand cues)
+
+The **Doug Hunt** wordmark drives palette and personality; the app chrome stays calm so schedules and grids stay readable.
+
+| Cue from logo | In the product |
+|---------------|----------------|
+| **Industrial red** | Primary accent — links, focus rings, "now playing" row, primary buttons. Token `--color-brand` ≈ `#E30613` — re-sample from official `dhsl-logo.svg` when it lands. |
+| **Wide, geometric caps** | Optional wide `letter-spacing` on the app title or section headers only — not on body copy or spreadsheet cells. |
+| **Slight rounding** on letterforms | Consistent `border-radius` on controls and cards (6–8px) — crisp, not playful blobs. |
+| **High contrast** | Red reads on white (daylight) and on near-black (venue) — same accent in both themes. |
+
+**Neutrals:** cool greys for backgrounds and borders so the red stays the single loud colour.
+
+### Light and dark (two first-class themes)
+
+| Context | Theme | Why |
+|---------|-------|-----|
+| **Daylight / bright** | **Light** | Paper-like screens; dark UI washes out in sun. |
+| **Dark venue** | **Dark** | Protects night vision; matches typical stage tooling; less eye strain on long shifts. |
+
+Both themes ship in v1. Default follows `prefers-color-scheme` (OS), with a manual override in Settings.
+
+### Tokens
+
+CSS variables (`:root[data-theme]` in `web/src/global.css`):
+
+- **Background / surface / elevated** — 2–3 layers (page, card, modal).
+- **Text** — primary, secondary, muted; never rely on grey-on-grey below WCAG AA contrast.
+- **Accent** — one primary accent (DHSL brand red); one semantic set (success / warning / danger) for schedule state.
+- **Borders** — hairline separators; slightly stronger in dark mode.
+- **Radius** — one small (inputs, chips) and one medium (cards, sheets).
+
+Typography: one sans family (system stack). Hierarchy = size + weight (600 for section titles, 400–500 for body).
+
+### Surfaces by feature
+
+| Area | Notes |
+|------|-------|
+| **Running order / day** | Neutral surfaces; "now" row uses accent background or strong left border. |
+| **Spreadsheet** | FortuneSheet skinned to match tokens (grid + headers align with app chrome). |
+| **Fullscreen clock** | Maximum contrast: huge numerals, minimal chrome. |
+| **Settings / admin** | Same chrome as rest of app. |
+
+### Branding (within the system)
+
+- **Client logo** in header: contained in a predictable slot; no stretching full-bleed.
+- **DHSL footer** — wordmark + "Powered by…" uses `--color-brand`; must pass contrast checks on both themes.
+- **Canonical files** — `web/public/branding/README.md`.
+
+---
+
 ## Related docs
 
-- **[`README.md`](README.md)** — index of all `docs/` files (humans vs agents)  
-- **[`../README.md`](../README.md)** — project overview and Docker deploy  
-- **[`../AGENTS.md`](../AGENTS.md)** — AI assistants and architecture obligations  
-- **[`PLAN.md`](PLAN.md)** — product vision and roadmap  
-- **[`DESIGN.md`](DESIGN.md)** — visual design (themes, tokens)  
-- **[`DEVELOPMENT.md`](DEVELOPMENT.md)** — local Docker workflow  
-- **[`REALTIME.md`](REALTIME.md)** — SSE live invalidation vs Yjs collaboration (canonical detail)  
-- **[`LICENSING.md`](LICENSING.md)** — repo + dependency licences  
+- **[`README.md`](README.md)** — index of all `docs/` files
+- **[`../README.md`](../README.md)** — project overview and Docker deploy
+- **[`../AGENTS.md`](../AGENTS.md)** — AI assistants and architecture obligations
+- **[`ROADMAP.md`](ROADMAP.md)** — product vision and roadmap
+- **[`DEVELOPMENT.md`](DEVELOPMENT.md)** — local Docker workflow
+- **[`REALTIME.md`](REALTIME.md)** — SSE live invalidation vs Yjs collaboration
+- **[`LICENSING.md`](LICENSING.md)** — repo + dependency licences

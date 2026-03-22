@@ -1,47 +1,49 @@
 # Documentation index
 
-Everything below lives in **`docs/`**. The repo root has **[`README.md`](../README.md)** (project overview and **deploy**) and **[`AGENTS.md`](../AGENTS.md)** (rules for AI assistants and architecture-sensitive changes).
+Everything below lives in **`docs/`**. The repo root has **[`README.md`](../README.md)** (project overview, install, features) and **[`AGENTS.md`](../AGENTS.md)** (rules for AI assistants and architecture-sensitive changes).
 
 ---
 
-## Humans
+## For operators and crew
 
-| Document | What it is |
-|----------|------------|
-| **[`README.md`](../README.md)** | What Changeoverlord does, **Docker quick start**, repo layout, licence |
-| **[`USER_GUIDE.md`](USER_GUIDE.md)** | **Operator guide** — events, stages, patch/RF workbook, templates, clocks, settings |
-| **[`MAINTAINING_DOCS.md`](MAINTAINING_DOCS.md)** | **How we keep docs updated** — audiences, when to edit what, index rules |
-| **[`PLAN.md`](PLAN.md)** | Vision, architecture, roadmap |
-| **[`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md)** | Competitive research, detailed feature requirements for completion |
-| **[`DECISIONS.md`](DECISIONS.md)** | Locked product and engineering choices (stack, API, limits) |
-| **[`DESIGN.md`](DESIGN.md)** | Visual design — themes, tokens |
-| **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing — **`make dev-fast`** (hot reload) and **`make dev`** (classic image), **`patches/`** + **`patch-package`**, **faster Docker rebuilds** (layer + **apk** cache), DB resets, optional **`npm run build`** for CI |
-| **[`CODEBASE_REVIEW.md`](CODEBASE_REVIEW.md)** | **Engineering audit backlog** — known code issues, doc drift, infra/CSS/realtime follow-ups (update as items are fixed) |
+| Document | What it covers |
+|----------|----------------|
+| **[`USER_GUIDE.md`](USER_GUIDE.md)** | How to use the app — events, stages, patch/RF workbook, templates, clocks, files, chat, settings |
+
+## For developers and contributors
+
+| Document | What it covers |
+|----------|----------------|
+| **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | Local testing (`make dev-fast` / `make dev`), Docker rebuilds, patches, new machine setup, doc maintenance |
+| **[`DECISIONS.md`](DECISIONS.md)** | Locked product and engineering choices (stack, API, limits, auth, visual design tokens) |
 | **[`REALTIME.md`](REALTIME.md)** | Live schedule updates (SSE) vs patch grid collaboration (Yjs + WebSockets) |
-| **[`PATCH_TEMPLATE_JSON.md`](PATCH_TEMPLATE_JSON.md)** | **FortuneSheet JSON** patch template upload — file shape, preserved fields, API |
-| **[`LOGGING.md`](LOGGING.md)** | **Structured logging** — API Pino / `req.log`, web `logDebug`, `LOG_LEVEL`, no secrets |
+| **[`LOGGING.md`](LOGGING.md)** | Structured logging — API Pino / `req.log`, web `logDebug`, `LOG_LEVEL`, no secrets |
+| **[`KNOWN_ISSUES.md`](KNOWN_ISSUES.md)** | Known issues and technical debt — code, infra, CSS, realtime, follow-ups |
+| **[`PATCH_TEMPLATE_JSON.md`](PATCH_TEMPLATE_JSON.md)** | FortuneSheet JSON patch template upload — file shape, preserved fields, API |
 | **[`LICENSING.md`](LICENSING.md)** | Repository and dependency licences |
-| **[`HANDOVER.md`](HANDOVER.md)** | **New machine / teammate** — clone, `make dev-fast` / `make dev`, moving data |
-| **[`../CHANGELOG.md`](../CHANGELOG.md)** | **Release notes** — unreleased work and version history |
+
+## Product and roadmap
+
+| Document | What it covers |
+|----------|----------------|
+| **[`ROADMAP.md`](ROADMAP.md)** | Vision, user personas, shipped features, what's next, competitive landscape |
+
+## Other
+
+| Document | What it covers |
+|----------|----------------|
+| **[`../CHANGELOG.md`](../CHANGELOG.md)** | Release notes — unreleased work and version history |
 | **[`../data/README.md`](../data/README.md)** | Host `DATA_DIR` layout (Postgres, uploads) |
-
----
-
-## AI assistants and core contributors
-
-| Document | What it is |
-|----------|------------|
-| **[`AGENTS.md`](../AGENTS.md)** | **Start here** — **development process** (Git commits, Compose testing, deploy, changelog, logging), realtime split (SSE vs Yjs), API/query obligations |
-| **[`.cursor/rules/`](../.cursor/rules/)** | Cursor project rules (e.g. deploy after changes, realtime architecture) |
+| **[`../AGENTS.md`](../AGENTS.md)** | AI assistants — development process, realtime split, code-change obligations |
 
 ---
 
 ## Quick orientation
 
 - **Using the app (crew):** [`USER_GUIDE.md`](USER_GUIDE.md).
-- **Deploy the stack:** root [`README.md`](../README.md) → **Quick start (Docker)**. **Another computer:** [`HANDOVER.md`](HANDOVER.md).
-- **Why we built it this way:** [`DECISIONS.md`](DECISIONS.md) + [`PLAN.md`](PLAN.md).
-- **What's left to build:** [`FEATURE_REQUIREMENTS.md`](FEATURE_REQUIREMENTS.md) (user journeys, competitive research, prioritised requirements).
+- **Install / deploy:** root [`README.md`](../README.md).
+- **Build from source / contribute:** [`DEVELOPMENT.md`](DEVELOPMENT.md).
+- **Why we built it this way:** [`DECISIONS.md`](DECISIONS.md).
+- **What's left to build:** [`ROADMAP.md`](ROADMAP.md).
 - **Changing REST handlers or TanStack queries:** [`REALTIME.md`](REALTIME.md) + [`AGENTS.md`](../AGENTS.md).
-- **Logging conventions:** [`LOGGING.md`](LOGGING.md).
-- **Known engineering backlog / audit findings:** [`CODEBASE_REVIEW.md`](CODEBASE_REVIEW.md).
+- **Known engineering backlog:** [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).
