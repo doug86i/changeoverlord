@@ -19,18 +19,11 @@ import {
   formatDuration,
   formatStageClockCountdown,
 } from "../lib/dateFormat";
-
-function parseLocal(dayDate: string, hhmm: string): Date {
-  return new Date(`${dayDate}T${hhmm}:00`);
-}
-
-function sortPerformances(p: PerformanceRow[]): PerformanceRow[] {
-  return [...p].sort((a, b) => {
-    const t = a.startTime.localeCompare(b.startTime);
-    if (t !== 0) return t;
-    return a.id.localeCompare(b.id);
-  });
-}
+import {
+  computeStageDayClockMetrics,
+  emptyStageDayClockMetrics,
+  sortPerformancesByStart,
+} from "../lib/stageDayClockMetrics";
 
 function warningClass(seconds: number | null): string {
   if (seconds === null) return "";
@@ -122,7 +115,7 @@ export function ClockDayPage() {
   });
 
   const sorted = useMemo(
-    () => sortPerformances(perfQ.data?.performances ?? []),
+    () => sortPerformancesByStart(perfQ.data?.performances ?? []),
     [perfQ.data],
   );
 
@@ -163,7 +156,7 @@ export function ClockDayPage() {
   });
 
   const nextSorted = useMemo(
-    () => sortPerformances(nextDayPerfQ.data?.performances ?? []),
+    () => sortPerformancesByStart(nextDayPerfQ.data?.performances ?? []),
     [nextDayPerfQ.data],
   );
 
@@ -191,59 +184,18 @@ export function ClockDayPage() {
     navigate(`/clock/day/${nextStageDay.id}`, { replace: true });
   }, [nextStageDay, lastEndMs, sorted.length, advanceAtMs, now, navigate]);
 
-  const { currentIdx, nextIdx, secondsToNext, secondsRemaining } = useMemo(() => {
-    if (!dayDate || sorted.length === 0) {
-      return { currentIdx: -1, nextIdx: -1, secondsToNext: null as number | null, secondsRemaining: null as number | null };
-    }
-    let current = -1;
-    let remaining: number | null = null;
-    for (let i = 0; i < sorted.length; i++) {
-      const p = sorted[i];
-      const start = parseLocal(dayDate, p.startTime);
-      const nextStart = sorted[i + 1] ? parseLocal(dayDate, sorted[i + 1].startTime) : null;
-      const end = p.endTime ? parseLocal(dayDate, p.endTime) : nextStart;
-      if (now >= start && (!end || now < end)) {
-        current = i;
-        if (end) remaining = Math.floor((end.getTime() - now.getTime()) / 1000);
-        break;
-      }
-    }
-    let next = -1;
-    let sec: number | null = null;
-    for (let i = 0; i < sorted.length; i++) {
-      const start = parseLocal(dayDate, sorted[i].startTime);
-      if (start > now) {
-        next = i;
-        sec = Math.floor((start.getTime() - now.getTime()) / 1000);
-        break;
-      }
-    }
-    return { currentIdx: current, nextIdx: next, secondsToNext: sec, secondsRemaining: remaining };
+  const {
+    currentIdx,
+    nextIdx,
+    secondsToNext,
+    secondsRemaining,
+    heroSeconds,
+    heroLabel,
+    clockBanner,
+  } = useMemo(() => {
+    if (!dayDate || sorted.length === 0) return emptyStageDayClockMetrics();
+    return computeStageDayClockMetrics(dayDate, sorted, now);
   }, [dayDate, sorted, now]);
-
-  const { heroSeconds, heroLabel } = useMemo(() => {
-    if (!dayDate || sorted.length === 0) {
-      return { heroSeconds: null as number | null, heroLabel: "" };
-    }
-    if (currentIdx >= 0) {
-      if (secondsRemaining !== null) {
-        return { heroSeconds: secondsRemaining, heroLabel: "Time left" };
-      }
-      if (secondsToNext !== null) {
-        return { heroSeconds: secondsToNext, heroLabel: "Until next act" };
-      }
-      return { heroSeconds: null, heroLabel: "On stage" };
-    }
-    if (secondsToNext !== null) {
-      return { heroSeconds: secondsToNext, heroLabel: "Next act in" };
-    }
-    return { heroSeconds: null, heroLabel: "Finished" };
-  }, [dayDate, sorted.length, currentIdx, secondsRemaining, secondsToNext]);
-
-  const isChangeover = useMemo(
-    () => currentIdx < 0 && nextIdx >= 0 && secondsToNext !== null,
-    [currentIdx, nextIdx, secondsToNext],
-  );
 
   const actPresentation = useMemo(() => {
     if (sorted.length === 0) {
@@ -437,7 +389,7 @@ export function ClockDayPage() {
     sorted,
     currentIdx,
     nextIdx,
-    isChangeover,
+    clockBanner,
     actPresentation,
     heroLabel,
     heroSeconds,
@@ -576,7 +528,7 @@ export function ClockDayPage() {
                 )}
                 {secondsRemaining !== null && focusIdx === currentIdx && currentIdx >= 0 && (
                   <div style={{ marginTop: "0.25rem", fontSize: "0.9rem" }}>
-                    Remaining:{" "}
+                    {clockBanner === "on_stage_next" ? "Until next act" : "Time left"}:{" "}
                     <strong className={warningClass(secondsRemaining)}>
                       {formatStageClockCountdown(secondsRemaining)}
                     </strong>

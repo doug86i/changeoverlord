@@ -70,10 +70,19 @@ export function PatchPageSidebar({
     [perfQ.data],
   );
 
-  const { currentIdx, nextIdx, heroSeconds, heroLabel, isChangeover } = useMemo(
+  const { currentIdx, nextIdx, heroSeconds, heroLabel, clockBanner } = useMemo(
     () => computeStageDayClockMetrics(dayDate, sorted, now),
     [dayDate, sorted, now],
   );
+
+  const sidebarHandoverBadge =
+    clockBanner === "between_acts"
+      ? "Changeover"
+      : clockBanner === "pre_show"
+        ? "Before show"
+        : clockBanner === "on_stage_next"
+          ? "Next act in"
+          : null;
 
   const countdownText =
     heroSeconds !== null && heroLabel
@@ -150,9 +159,9 @@ export function PatchPageSidebar({
         </button>
       </div>
 
-      {isChangeover ? (
+      {sidebarHandoverBadge ? (
         <div className="patch-sidebar-badge" role="status">
-          Changeover
+          {sidebarHandoverBadge}
         </div>
       ) : null}
 

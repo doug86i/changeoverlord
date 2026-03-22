@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** **Stage clock** — **High-contrast banners** for **changeover** (empty stage), **before first act**, and **on-stage handover** (no slot end time: timer counts to **next** act’s start, not “your set”). **Patch** sidebar badges match; **focus** card says **Until next act** in that case. **`computeStageDayClockMetrics`** now returns **`clockBanner`** (replaces **`isChangeover`** flag).
 - **Web:** **Stage clock countdown** (arena, patch sidebar, focus card) uses **minutes:seconds** (**`45:00`**, **`0:30`**) for gaps under **24 hours**; **N days** when the next boundary is a day or more away (replacing mixed **`12m 05s`** / **`2h 15m`** strings).
 - **Web:** **Stage day clock** — arena **above** full-width **controls** (no side-by-side); urgent message flashes **inside the clock arena only** (controls stay usable); **fullscreen** shows the flash across the full arena. Footer shows **Fullscreen** or **Exit fullscreen**, not both at once.
 - **API:** **`hasPassword`** checks in **`auth-guard`** and **`GET /auth/session`** use a short-TTL **`getCachedHasPassword()`** cache; password mutations call **`invalidatePasswordSettingsCache()`**.

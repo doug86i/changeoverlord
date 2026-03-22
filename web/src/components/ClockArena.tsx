@@ -5,6 +5,7 @@ import {
   type ReactNode,
 } from "react";
 import type { PerformanceRow } from "../api/types";
+import type { ClockBannerMode } from "../lib/stageDayClockMetrics";
 import { useFitCountdownInBox } from "../hooks/useFitCountdownInBox";
 import {
   formatClockHeroCountdown,
@@ -29,7 +30,8 @@ export type ClockArenaProps = {
   sorted: PerformanceRow[];
   currentIdx: number;
   nextIdx: number;
-  isChangeover: boolean;
+  /** TV / distance: when not `none`, shows a high-contrast banner so handover timers are not read as “set length”. */
+  clockBanner: ClockBannerMode;
   actPresentation: ClockArenaActPresentation;
   heroLabel: string;
   heroSeconds: number | null;
@@ -54,7 +56,7 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
       sorted,
       currentIdx,
       nextIdx,
-      isChangeover,
+      clockBanner,
       actPresentation,
       heroLabel,
       heroSeconds,
@@ -90,6 +92,10 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
 
     const urgent = urgentMessage?.trim() ? urgentMessage.trim() : null;
 
+    const waitingForNextAct =
+      clockBanner === "between_acts" || clockBanner === "pre_show";
+    const onStageNextBoundary = clockBanner === "on_stage_next";
+
     return (
       <div
         ref={ref}
@@ -104,10 +110,41 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
         ) : null}
         <div className="clock-arena-inner">
           <div className="clock-arena-top-meta">
-            {isChangeover && (
-              <div className="clock-arena-changeover-strip">Changeover</div>
-            )}
-            {isChangeover ? (
+            {clockBanner === "between_acts" ? (
+              <div
+                className="clock-arena-handover-banner clock-arena-handover-banner--gap"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="clock-arena-handover-banner__title">Changeover</span>
+                <span className="clock-arena-handover-banner__sub">
+                  Stage empty — timer is for the next act, not a running set
+                </span>
+              </div>
+            ) : null}
+            {clockBanner === "pre_show" ? (
+              <div
+                className="clock-arena-handover-banner clock-arena-handover-banner--preshow"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="clock-arena-handover-banner__title">Next act</span>
+                <span className="clock-arena-handover-banner__sub">Show starts in</span>
+              </div>
+            ) : null}
+            {onStageNextBoundary ? (
+              <div
+                className="clock-arena-handover-banner clock-arena-handover-banner--on-stage-next"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="clock-arena-handover-banner__title">Next act in</span>
+                <span className="clock-arena-handover-banner__sub">
+                  Not time left in your slot — clear when this hits zero
+                </span>
+              </div>
+            ) : null}
+            {waitingForNextAct ? (
               <div className="clock-arena-top-band">
                 Next: <strong>{actPresentation.title}</strong>
               </div>
@@ -117,7 +154,9 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
                   {actPresentation.title}
                 </div>
                 <div style={{ marginTop: "0.35rem" }}>
-                  <span className="clock-arena-badge clock-arena-badge--on">On stage</span>
+                  <span className="clock-arena-badge clock-arena-badge--on">
+                    {onStageNextBoundary ? "On stage now" : "On stage"}
+                  </span>
                 </div>
                 {actPresentation.sub ? (
                   <div className="clock-arena-label clock-arena-label--slot">{actPresentation.sub}</div>
@@ -180,10 +219,10 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
               </div>
               <div className="clock-arena-footer-cell">
                 <div className="clock-arena-footer-label">
-                  {isChangeover ? "Next start" : currentIdx >= 0 ? "Slot" : "Status"}
+                  {waitingForNextAct ? "Next start" : currentIdx >= 0 ? "Slot" : "Status"}
                 </div>
                 <div className="clock-arena-footer-value">
-                  {isChangeover && nextIdx >= 0
+                  {waitingForNextAct && nextIdx >= 0
                     ? sorted[nextIdx]?.startTime ?? "—"
                     : currentIdx >= 0 && sorted[currentIdx]
                       ? sorted[currentIdx].endTime
