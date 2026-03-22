@@ -44,8 +44,9 @@ function flushWorkbookFormulaRecalc(
       const sheetId = sheet.id;
       if (sheetId == null || sheetId === "") continue;
       const range = [fullDataRange(sheet)];
+      // FortuneSheet `getSheet` / `activateSheet` use `options.id`, not `sheetId`.
       const calls: FortuneBatchCall[] = [
-        { name: "activateSheet", args: [{ sheetId }] },
+        { name: "activateSheet", args: [{ id: sheetId }] },
         { name: "jfrefreshgrid", args: [null, range] },
       ];
       flushSync(() => {

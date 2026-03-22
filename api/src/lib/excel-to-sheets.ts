@@ -102,24 +102,34 @@ type CalcChainEntry = { r: number; c: number; id: string; index: string };
 function buildCalcChain(
   raw: RawFortuneSheet,
   data: CellMatrix,
+  resolvedSheetId: string,
 ): CalcChainEntry[] {
-  const sheetId = String(raw.id ?? "");
   const existing =
     Array.isArray(raw.calcChain) && raw.calcChain.length
       ? (raw.calcChain as CalcChainEntry[])
       : [];
 
   const seen = new Set<string>();
-  for (const e of existing) seen.add(`${e.r},${e.c}`);
-
-  const chain = [...existing];
+  const chain: CalcChainEntry[] = [];
+  for (const e of existing) {
+    seen.add(`${e.r},${e.c}`);
+    const id =
+      e.id != null && String(e.id).trim() !== ""
+        ? String(e.id)
+        : resolvedSheetId;
+    const index =
+      e.index != null && String(e.index).trim() !== ""
+        ? String(e.index)
+        : resolvedSheetId;
+    chain.push({ ...e, r: e.r, c: e.c, id, index });
+  }
   for (let r = 0; r < data.length; r++) {
     const row = data[r];
     if (!row) continue;
     for (let c = 0; c < row.length; c++) {
       const cell = row[c];
       if (cell?.f && !seen.has(`${r},${c}`)) {
-        chain.push({ r, c, id: sheetId, index: sheetId });
+        chain.push({ r, c, id: resolvedSheetId, index: resolvedSheetId });
       }
     }
   }
@@ -161,6 +171,13 @@ export function normalizeSheetFromRaw(
 
   const cfg = raw.config ?? {};
 
+  const trimmedRawId =
+    raw.id != null && String(raw.id).trim() !== ""
+      ? String(raw.id).trim()
+      : "";
+  /** `??` does not treat `""` as missing; Excel sometimes yields empty ids. */
+  const resolvedId = trimmedRawId || crypto.randomUUID();
+
   const baseConfig = {
     ...(cfg.merge ? { merge: cfg.merge } : {}),
     ...(Array.isArray(cfg.borderInfo) && cfg.borderInfo.length
@@ -184,7 +201,7 @@ export function normalizeSheetFromRaw(
   };
 
   const sheet: Sheet = {
-    id: raw.id ?? crypto.randomUUID(),
+    id: resolvedId,
     name: decodeHtmlEntities(String(raw.name ?? `Sheet${order + 1}`)),
     status: order === 0 ? 1 : 0,
     order,
@@ -198,7 +215,7 @@ export function normalizeSheetFromRaw(
     ...(typeof raw.defaultRowHeight === "number"
       ? { defaultRowHeight: raw.defaultRowHeight }
       : {}),
-    calcChain: buildCalcChain(raw, data),
+    calcChain: buildCalcChain(raw, data, resolvedId),
     ...(raw.hide === 1 ? { hide: 1 } : {}),
   };
 

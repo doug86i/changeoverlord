@@ -193,6 +193,8 @@ FortuneSheet throws this (lowercase message) from **`getSheet()`** in **`@fortun
 
 **Blank performance (band) names** were correlated with patch-page instability in the field. The API now normalizes empty / whitespace-only names to **Untitled act**, and the web client skips **empty sheet `id`s** during post-sync **`jfrefreshgrid`** so **`activateSheet`** is never called with `""`.
 
+**Implementation note:** FortuneSheet **`batchCallApis`** → **`activateSheet`** must receive **`{ id: "<sheet id>" }`** (not **`sheetId`**); otherwise **`getSheet`** ignores the argument and can keep a stale **`currentSheetId`** after **`luckysheetfile`** replace — see **`web/src/lib/patchWorkbookYjs.ts`**.
+
 **What to do**
 
 - Prefer **single-sheet** templates and **same-sheet** formulas only (see **`examples/OPERATOR_PATCH_REFERENCE_v1.json`**).
