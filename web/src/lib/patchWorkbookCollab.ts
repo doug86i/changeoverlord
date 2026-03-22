@@ -70,10 +70,20 @@ export function usePatchWorkbookCollab(opts: {
   const wbRef = useRef<WorkbookInstance>(null);
   const providerRef = useRef<InstanceType<typeof WebsocketProvider> | null>(null);
   const pageVisible = usePageVisible();
-  /** True while applying remote ops or running formula recalc — prevents onOp from echoing back to Yjs. */
+  /** True while running formula recalc — prevents onOp from pushing huge recalc batches to Yjs. */
   const suppressYjsOpsForFormulaRecalcRef = useRef(false);
   /** Synchronous gate so `onOp` ignores input before hydration even if React state lags. */
   const localOpsAllowedRef = useRef(false);
+  /**
+   * React 18 Strict Mode calls `useState` updater functions **twice** (to surface impure side
+   * effects). FortuneSheet's `setContextWithProduce` calls `emitOp` → `onOp` **inside** the
+   * updater, so every local edit fires `onOp` twice with identical ops. For idempotent `replace`
+   * patches this is invisible, but non-idempotent ops (`addSheet`, `deleteSheet`, `insertRowCol`,
+   * `deleteRowCol`) create duplicates on remotes. We deduplicate by comparing the serialised ops
+   * against the last pushed value; the ref resets after the current microtask so legitimate
+   * future identical ops still go through.
+   */
+  const lastPushedOpsRef = useRef<string | null>(null);
   const [conn, setConn] = useState<"connecting" | "connected" | "error">(
     "connecting",
   );
@@ -97,9 +107,15 @@ export function usePatchWorkbookCollab(opts: {
       if (readOnly) return;
       if (suppressYjsOpsForFormulaRecalcRef.current) return;
       if (!localOpsAllowedRef.current) return;
+      const serialized = JSON.stringify(ops);
+      if (serialized === lastPushedOpsRef.current) return;
+      lastPushedOpsRef.current = serialized;
+      queueMicrotask(() => {
+        lastPushedOpsRef.current = null;
+      });
       onLocalOp?.();
       ydoc.transact(() => {
-        yops.push([JSON.stringify(ops)]);
+        yops.push([serialized]);
       }, PATCH_WORKBOOK_Y_ORIGIN);
     },
     [ydoc, yops, onLocalOp, readOnly],
