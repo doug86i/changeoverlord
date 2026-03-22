@@ -158,46 +158,57 @@ export function createYjsPersistence() {
       const target = parseDocName(docname);
       if (!target) return;
 
+      /**
+       * IMPORTANT: register `update` → schedulePersist **only after** the DB snapshot
+       * is applied. Otherwise a debounced persist can run while the doc is still empty
+       * (WebSocket sync step 1 already ran) and **overwrite Postgres** with a partial
+       * state — common when DB latency is higher (e.g. prod / remote disk).
+       */
       void (async () => {
-        if (target.kind === "performance") {
+        try {
+          if (target.kind === "performance") {
+            const [row] = await db
+              .select({ snapshot: performanceYjsSnapshots.snapshot })
+              .from(performanceYjsSnapshots)
+              .where(eq(performanceYjsSnapshots.performanceId, target.id))
+              .limit(1);
+            if (row?.snapshot?.length) {
+              Y.applyUpdate(doc, new Uint8Array(row.snapshot));
+              ylog.debug(
+                { performanceId: target.id, bytes: row.snapshot.length },
+                "loaded snapshot from db",
+              );
+            } else {
+              ylog.debug({ performanceId: target.id }, "no snapshot in db; empty doc");
+            }
+            return;
+          }
+
           const [row] = await db
-            .select({ snapshot: performanceYjsSnapshots.snapshot })
-            .from(performanceYjsSnapshots)
-            .where(eq(performanceYjsSnapshots.performanceId, target.id))
+            .select({ snapshot: patchTemplates.snapshot })
+            .from(patchTemplates)
+            .where(eq(patchTemplates.id, target.id))
             .limit(1);
           if (row?.snapshot?.length) {
             Y.applyUpdate(doc, new Uint8Array(row.snapshot));
             ylog.debug(
-              { performanceId: target.id, bytes: row.snapshot.length },
-              "loaded snapshot from db",
+              { templateId: target.id, bytes: row.snapshot.length },
+              "loaded template snapshot from db",
             );
           } else {
-            ylog.debug({ performanceId: target.id }, "no snapshot in db; empty doc");
+            ylog.debug({ templateId: target.id }, "no template snapshot; empty doc");
           }
-          return;
+        } catch (err) {
+          ylog.error({ err, docname }, "load snapshot failed");
+        } finally {
+          const onUpdate = () => {
+            schedulePersist(docname, doc);
+          };
+          doc.on("update", onUpdate);
+          // Catch-up persist if WebSocket merged updates before the listener existed.
+          schedulePersist(docname, doc);
         }
-
-        const [row] = await db
-          .select({ snapshot: patchTemplates.snapshot })
-          .from(patchTemplates)
-          .where(eq(patchTemplates.id, target.id))
-          .limit(1);
-        if (row?.snapshot?.length) {
-          Y.applyUpdate(doc, new Uint8Array(row.snapshot));
-          ylog.debug(
-            { templateId: target.id, bytes: row.snapshot.length },
-            "loaded template snapshot from db",
-          );
-        } else {
-          ylog.debug({ templateId: target.id }, "no template snapshot; empty doc");
-        }
-      })().catch((err) => {
-        ylog.error({ err, docname }, "load snapshot failed");
-      });
-
-      doc.on("update", () => {
-        schedulePersist(docname, doc);
-      });
+      })();
     },
     async writeState(docname: string, doc: WSSharedDoc): Promise<void> {
       const prev = docTimers.get(docname);

@@ -105,6 +105,12 @@ docker compose down
 
 Data under **`DATA_DIR`** is kept. To remove containers **and** named volumes (if you ever add any), see Docker docs; default Postgres data is in the **`DATA_DIR/db`** bind mount, not an anonymous volume.
 
+### Patch / RF workbook not persisting
+
+- **Postgres must stay on disk:** patch workbooks are stored in **`${DATA_DIR}/db`** (table **`performance_yjs_snapshots`**). If **`DATA_DIR`** is not a stable host path/volume, or the DB directory is wiped on every deploy, edits will disappear after restart.
+- **WebSockets:** the browser uses **`ws:`** / **`wss:`** to **`/ws/v1/collab/…`**. A reverse proxy must allow **WebSocket upgrade** (HTTP/1.1 **`Upgrade`** / **`Connection`**). Without it, the sheet may not stay connected long enough to sync.
+- **App version:** releases **after** the fix in **`api/src/lib/yjs-persistence.ts`** avoid a race where a slow DB load could overwrite a good snapshot; **`docker compose pull`** to update.
+
 ---
 
 ## Development (build from source)

@@ -70,6 +70,7 @@ Persistence: **`performance_yjs_snapshots`** and **`patch_templates.snapshot`**;
 
 **Yjs persistence details** (`api/src/lib/yjs-persistence.ts`):
 
+- **Load-before-persist:** the DB snapshot is loaded and applied **before** subscribing to `doc.on("update")` for debounced writes. Otherwise the WebSocket sync handshake can trigger a persist while the doc is still empty and **clobber** a good row in Postgres (more likely when DB I/O is slow).
 - **Debounce:** changes are persisted to Postgres **1 second** after the last edit (debounced). Previously 3 seconds.
 - **Graceful shutdown:** on **SIGTERM / SIGINT**, all active Yjs docs are flushed to Postgres before the process exits. Without this, edits in the debounce window are lost on container restart.
 - **OpLog compaction:** when the append-only `opLog` exceeds **200 entries**, the persist layer replays it to the current sheet state and replaces it with a single `replace luckysheetfile` op. This keeps snapshots small and page-load replay fast.
