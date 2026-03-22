@@ -27,6 +27,8 @@
   --stage-chat-dock-bottom: 3.35rem;
   --stage-chat-dock-max-width: 56rem;
   --stage-chat-dock-vw-cap: 92vw;
+  /** Above sticky header (100) and page scroll layers; below `.confirm-overlay` (1000). */
+  --z-stage-chat-dock: 999;
 }
 
 :root[data-theme="dark"] {
@@ -54,6 +56,7 @@
   --stage-chat-dock-bottom: 3.35rem;
   --stage-chat-dock-max-width: 56rem;
   --stage-chat-dock-vw-cap: 92vw;
+  --z-stage-chat-dock: 999;
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
@@ -1559,7 +1562,7 @@ a.patch-sidebar-perf-link:hover {
   position: fixed;
   right: 1rem;
   bottom: calc(var(--stage-chat-dock-bottom) + env(safe-area-inset-bottom, 0px));
-  z-index: 90;
+  z-index: var(--z-stage-chat-dock);
   display: flex;
   flex-direction: column;
   align-items: stretch;

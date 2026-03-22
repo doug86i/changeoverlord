@@ -78,7 +78,7 @@ Typical URL shape as you drill in: `/events/:eventId` → `/stages/:stageId` →
 
 ### Stage and event chat
 
-While you are inside an **event** (event detail, a **stage**, a **stage day**, **patch / RF** for a band, or **performance files**), **Chat** appears at the **bottom-right**: either a small **Chat** button (closed) or the full panel (open). It does **not** appear on **Clock** pages (including clock day URLs), so fullscreen displays stay clear.
+While you are inside an **event** (event detail, a **stage**, a **stage day**, **patch / RF** for a band, or **performance files**), **Chat** appears at the **bottom-right**: either a small **Chat** button (closed) or the full panel (open). It stays **above** the normal scrolling page (and the sticky header) so it is not hidden behind scrollbars. It does **not** appear on **Clock** pages (including clock day URLs), so fullscreen displays stay clear.
 
 - **Stage context** — You see messages for **that stage** plus anything sent to the **whole event**. On the **event** detail page, open **Options** and use **Stage** there to pick which thread you are viewing.
 - **Sending** — **Enter** sends; **Shift+Enter** adds a new line (also noted in the message box placeholder). **Options** holds **Name**, **Stage** (when you opened the event from its detail page), and **This stage** vs **Whole event**.

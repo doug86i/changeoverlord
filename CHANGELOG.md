@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web — stage chat:** Chat dock **`z-index`** raised (**`999`**, token **`--z-stage-chat-dock`**) so it stacks above the sticky header and page scroll layers; modals (**`.confirm-overlay`** at **1000**) and toasts stay on top.
+
 - **Web — patch sidebar:** **Rider PDF** quick link no longer falls back to a **stage-wide** rider; only a file marked **Rider** on **this act’s** Files page is linked (matches stage-plot behaviour and avoids showing another band’s rider).
 
 - **Web — patch template editor + docs:** In-app copy matches behaviour (automatic persistence, no “close tab to save”; **copy-at-creation** vs unchanged existing band workbooks). **`docs/USER_GUIDE.md`** **Edit spreadsheet** bullet aligned.
