@@ -24,7 +24,7 @@ Canonical consumer: **`vendor/*.tgz`**, branch **`dhsl/v1.0.4`**, details in **`
 1. **`git fetch upstream`**
 2. Merge or rebase **`upstream/main`** (or the relevant release branch/tag) onto **`dhsl/v1.0.4`**, or create **`dhsl/v1.0.5`** from new upstream tag and **cherry-pick** DHSL commits.
 3. Resolve conflicts **in TypeScript source**, rebuild, run a quick smoke (build succeeds).
-4. In **this** repo: copy new **`.tgz`** to **`vendor/`**, refresh **`package-lock.json`** integrity (`npm install` with the **`file:./vendor/...`** pattern per **DECISIONS**).
+4. In **this** repo: copy new **`.tgz`** to **`vendor/`**, refresh **`package-lock.json`** integrity (`npm install` with the **`file:./vendor/...`** pattern — see **`AGENTS.md`** § *FortuneSheet fork — updating tarballs*).
 5. Update **`docs/DECISIONS.md`**: drop bullets for commits that landed upstream; note new fork-only commits.
 
 ## Upstream-first

@@ -24,9 +24,18 @@ This is the **canonical workflow** for implementation tasks: **commit** (small l
 
 ### Docker image: FortuneSheet fork and dependencies
 
-- **`vendor/`** — **`@fortune-sheet/core`** and **`@fortune-sheet/react`** are consumed as **local tarballs** (`.tgz`) built from a **source-level fork** (`doug86i/fortune-sheet`, branch `dhsl/v1.0.4`). The **builder** stage **`COPY vendor`** before **`npm install`** so Docker builds pick up the fork. See **[`docs/DECISIONS.md`](docs/DECISIONS.md)** § *FortuneSheet — fork* for the full update procedure.
+- **`vendor/`** — **`@fortune-sheet/core`** and **`@fortune-sheet/react`** are consumed as **local tarballs** (`.tgz`) built from a **source-level fork** (`doug86i/fortune-sheet`, branch `dhsl/v1.0.4`). The **builder** stage **`COPY vendor`** before **`npm install`** so Docker builds pick up the fork. **Why fork, pinned commit list, and collab/stack notes:** **[`docs/DECISIONS.md`](docs/DECISIONS.md)** § *FortuneSheet — fork*. **Step-by-step tarball rebuild and lockfile refresh:** the subsection *FortuneSheet fork — updating tarballs* below.
 - **Runner stage** uses **`npm install --omit=dev --ignore-scripts`** for the API workspace only; the SPA is already compiled into **`web/dist`**.
 - **Heavy OS packages** (Poppler, ImageMagick, **LibreOffice**) install in the **runner** image in **separate layers** with **BuildKit** **`apk`** cache mounts — first builds or cache misses are slow; see **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** → *Faster Docker rebuilds* and *Heavy runtime packages*.
+
+#### FortuneSheet fork — updating tarballs
+
+1. Clone **`doug86i/fortune-sheet`**, checkout **`dhsl/v1.0.4`**, edit TypeScript in the fork (see **[`.cursor/rules/fortune-sheet-fork-upstream.mdc`](.cursor/rules/fortune-sheet-fork-upstream.mdc)** for git/upstream hygiene).
+2. In the fork repo: **`yarn install`** (if needed), **`npm run build`** at the repo root, then **`npm pack`** in **`packages/core/`** and **`packages/react/`**.
+3. Copy the resulting **`.tgz`** files into this repo’s **`vendor/`** (replace the existing **`fortune-sheet-*-1.0.4.tgz`** names unless you deliberately bump the version everywhere).
+4. In **this** repo, refresh **`package-lock.json`** so npm extracts the new bytes — for example **`npm install -w @changeoverlord/web @fortune-sheet/react@file:./vendor/fortune-sheet-react-1.0.4.tgz`** and the same pattern for **`@fortune-sheet/core`** on **`api`**, or delete **`node_modules/@fortune-sheet`** and reinstall after replacing tarballs.
+
+Prefer **upstream PRs** to **`ruilisi/fortune-sheet`** when practical; drop fork-only commits when they land upstream (track in **DECISIONS**).
 
 ---
 

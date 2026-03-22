@@ -114,7 +114,9 @@ If a limit is hit, message must be **short, actionable** ("File too large — ma
 
 ### FortuneSheet — fork (`doug86i/fortune-sheet`, branch `dhsl/v1.0.4`)
 
-The project consumes **`@fortune-sheet/core`** and **`@fortune-sheet/react`** from **local tarballs** (`vendor/fortune-sheet-core-1.0.4.tgz`, `vendor/fortune-sheet-react-1.0.4.tgz`) built from a **source-level fork** of `ruilisi/fortune-sheet` v1.0.4.
+**Where tarballs live, Docker `COPY vendor`, and the contributor/agent steps to rebuild and refresh the lockfile:** **[`AGENTS.md`](../AGENTS.md)** § *Docker image: FortuneSheet fork and dependencies* (subsection *FortuneSheet fork — updating tarballs*). **Git/upstream workflow** (one commit per fix, merging upstream): **[`../.cursor/rules/fortune-sheet-fork-upstream.mdc`](../.cursor/rules/fortune-sheet-fork-upstream.mdc)**.
+
+This section records **rationale**, the **pinned fork commits**, and **how the editor interacts with this app** (Immer, collab, relay) — not the tarball update checklist.
 
 **Why fork instead of `patch-package`:** `patch-package` edited compiled 80k-line dist bundles — fragile, unreadable, no type checking, breaks on upstream version bumps. The fork applies fixes as **TypeScript source commits** (`packages/core/src/`) with the upstream build tooling (`father-build`), then `npm pack` produces tarballs committed to `vendor/`.
 
@@ -138,8 +140,6 @@ The project consumes **`@fortune-sheet/core`** and **`@fortune-sheet/react`** fr
 **Patch workbook collaboration (relay):** Aligns with FortuneSheet’s documented collab flow ([**op.md**](https://github.com/ruilisi/fortune-sheet/blob/master/docs/guide/op.md), [**applyOp**](https://github.com/ruilisi/fortune-sheet/blob/master/docs/guide/api.md), [**Collaboration.stories.tsx**](https://github.com/ruilisi/fortune-sheet/blob/master/stories/Collabration.stories.tsx), [**backend-demo**](https://github.com/ruilisi/fortune-sheet/tree/master/backend-demo)): **`onOp` → WebSocket `{ type: "op", data: Op[] }` → server `applyOpBatchToSheets` on in-memory `Sheet[]` → **other** clients receive either **`{ type: "op", data }`** (typical cell edits) or **`{ type: "fullState", sheets }`** (structural batches: **`addSheet`**, **`deleteSheet`**, full **`luckysheetfile`** replace) so peers match server **`room.sheets` without replaying duplicate structural ops**. Postgres stores **`sheets_json`**; the relay debounces writes (~1.5s) and flushes on room empty / process shutdown. **Yjs was removed** (2026): it duplicated upstream’s design and interacted badly with React 18 Strict Mode duplicate **`onOp`** pushes for non-idempotent ops.
 
 **Duplicate sheet tabs (mitigated; root = fork):** Server **`addSheet`** idempotency (same **`id`**) plus structural **`fullState`** to peers; **duplicate `onOp` with new UUIDs per batch** needs **`emitOp` deferred in the fork** (commit **#8** above). See **[`docs/KNOWN_ISSUES.md`](KNOWN_ISSUES.md) §83**. Persisted duplicates from older builds still need **Export → edit JSON → Import**.
-
-**To update the fork:** clone `doug86i/fortune-sheet`, checkout `dhsl/v1.0.4`, edit TypeScript source, run `yarn install && npm run build`, then `npm pack` in `packages/core/` and `packages/react/`, copy `.tgz` to **`vendor/`**. In this repo, refresh **`package-lock.json`** integrity so npm extracts the new bytes: e.g. **`npm install -w @changeoverlord/web @fortune-sheet/react@file:./vendor/fortune-sheet-react-1.0.4.tgz`** and the same for **`@fortune-sheet/core`** on **`api`**, or delete **`node_modules/@fortune-sheet`** and reinstall after replacing tarballs. Prefer **upstream PRs** when practical; drop fork commits when merged.
 
 ---
 
