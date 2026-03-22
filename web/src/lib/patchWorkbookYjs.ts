@@ -33,12 +33,29 @@ function fullDataRange(sheet: Sheet): { row: [number, number]; column: [number, 
  * Suppresses `onOp` so recalc does not append huge op batches to Yjs. Clears suppression after two
  * animation frames so nested FortuneSheet updates finish before local ops resume.
  */
+/** After `luckysheetfile` replace, `currentSheetId` can still point at the mount placeholder until a tab activates. */
+function activateFirstCoherentSheet(wb: WorkbookInstance): void {
+  const sheets = wb.getAllSheets() as Sheet[];
+  const valid = sheets.filter(
+    (s) => s.id != null && String(s.id).trim() !== "",
+  );
+  if (valid.length === 0) return;
+  const pick =
+    valid.find((s) => s.status === 1) ??
+    [...valid].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
+  if (!pick?.id) return;
+  flushSync(() => {
+    wb.batchCallApis([{ name: "activateSheet", args: [{ id: pick.id }] }]);
+  });
+}
+
 function flushWorkbookFormulaRecalc(
   wb: WorkbookInstance,
   suppressYjsOpsRef?: MutableRefObject<boolean>,
 ): void {
   if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
   try {
+    activateFirstCoherentSheet(wb);
     const sheets = wb.getAllSheets() as Sheet[];
     for (const sheet of sheets) {
       const sheetId = sheet.id;
@@ -88,6 +105,8 @@ export function usePatchWorkbookOpLogEffects(
   suppressYjsOpsRef?: MutableRefObject<boolean>,
 ): void {
   const hydratedRef = useRef(false);
+  /** Bumps on each hydration layout effect so stale async `run()` cannot set `hydratedRef`. */
+  const hydrationRunIdRef = useRef(0);
   /** Coalesce multiple remote Yjs inserts in one frame into a single recalc. */
   const remoteRecalcNeededRef = useRef(false);
   const remoteRecalcRafRef = useRef<number | null>(null);
@@ -165,42 +184,52 @@ export function usePatchWorkbookOpLogEffects(
     // Avoid re-applying the full opLog after reconnect (synced toggles) — workbook still holds state.
     if (hydratedRef.current) return;
 
+    const runId = ++hydrationRunIdRef.current;
     let cancelled = false;
     let attempts = 0;
     const maxAttempts = 120;
 
     const run = async () => {
-      if (cancelled) return;
+      if (cancelled || runId !== hydrationRunIdRef.current) return;
       const wb = wbRef.current;
       if (!wb) {
         if (attempts++ < maxAttempts) requestAnimationFrame(() => void run());
         return;
       }
-      const entries = yops.toArray();
-      for (let i = 0; i < entries.length; i++) {
-        if (cancelled) return;
-        const item = entries[i];
+      // Drain by index so batches appended while we replay (e.g. remote edits) are not skipped.
+      // A one-shot `toArray()` misses tail inserts that occurred mid-replay while `hydratedRef` is false.
+      let i = 0;
+      while (i < yops.length) {
+        if (cancelled || runId !== hydrationRunIdRef.current) return;
+        const item = yops.get(i);
+        i += 1;
         try {
           const ops = JSON.parse(item) as Op[];
           wb.applyOp(ops);
         } catch (e) {
-          logDebug("patch-workbook-yjs", `opLog replay batch ${i} failed`, e);
+          logDebug("patch-workbook-yjs", `opLog replay batch ${i - 1} failed`, e);
         }
         // One animation frame per Yjs batch so Immer / FortuneSheet can commit before the next applyOp.
         await new Promise<void>((resolve) => {
           requestAnimationFrame(() => resolve());
         });
       }
-      if (!cancelled) {
+      if (cancelled || runId !== hydrationRunIdRef.current) return;
+      // Let one frame elapse so `applyOp` commits before recalc touches formula maps / current sheet.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+      if (cancelled || runId !== hydrationRunIdRef.current) return;
+      const wbRecalc = wbRef.current;
+      if (!wbRecalc) return;
+      try {
+        flushWorkbookFormulaRecalc(wbRecalc, suppressYjsOpsRef);
+      } catch (e) {
+        logDebug("patch-workbook-yjs", "post-hydrate formula recalc failed", e);
+      }
+      // Only mark hydrated after recalc so `yops.observe` and user input do not interleave with a stale `currentSheetId`.
+      if (!cancelled && runId === hydrationRunIdRef.current) {
         hydratedRef.current = true;
-        // Cross-sheet formulas often stay stale until the engine runs; replay only applies ops.
-        // FortuneSheet emits `onOp` for formula value patches — suppress Yjs so we do not append recalc ops.
-        requestAnimationFrame(() => {
-          if (cancelled) return;
-          const wb = wbRef.current;
-          if (!wb) return;
-          flushWorkbookFormulaRecalc(wb, suppressYjsOpsRef);
-        });
       }
     };
 
@@ -208,5 +237,5 @@ export function usePatchWorkbookOpLogEffects(
     return () => {
       cancelled = true;
     };
-  }, [synced, roomId, yops, canShowWorkbook, wbRef]);
+  }, [synced, roomId, yops, canShowWorkbook, wbRef, suppressYjsOpsRef]);
 }

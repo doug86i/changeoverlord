@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web — patch / template workbook (hydration races):** **`hydratedRef`** was set **before** post-replay **`calculateFormula`**, so remote **`yops`** updates and user edits could run with a stale **`currentSheetId`** (intermittent **sheet not found**). Hydration now marks ready **only after** recalc, replays the opLog with a **dynamic-length** drain (so tail inserts during replay are not skipped), uses a **run-id** guard so stale async hydration cannot finish after reconnect / effect churn, adds an **extra animation frame** before recalc, and **activates a coherent first tab** before **`jfrefreshgrid`**.
+
 - **Web — patch / template workbook:** Post–Yjs-hydration recalc called **`activateSheet`** with **`{ sheetId }`**, but FortuneSheet’s **`getSheet`** only reads **`options.id`**, so it fell back to the stale **`placeholder`** tab id after **`luckysheetfile`** replace. That broke **`jfrefreshgrid` / `calculateFormula`** (e.g. **#REF!** in **A1**, **sheet not found** on edit until reload). Recalc now passes **`{ id: sheetId }`**. **API:** Excel → sheets normalisation assigns a **UUID** when a sheet’s **`id` is `""`** (library quirk) and aligns **`calcChain`** ids so incremental recalc stays consistent.
 
 ### Changed
