@@ -157,6 +157,7 @@ All tier-1 features from the original requirements are implemented:
 | Contingency slots | TBD acts without breaking the clock |
 | Stage notes | Weather / intercom / SM notes per day (not the spreadsheet) |
 | Mic line / walk checklist | Optional separate from patch grid |
+| QR codes on running order | Display a QR code next to each performance in the running order (stage-day view / print sheet) linking directly to that band's patch workbook — patch crew can scan with their phone camera to jump straight to the right patch without navigating the app |
 | Cloud folder sync | Push/pull event packages via SeaDrive, Dropbox, Google Drive |
 | Live Google Sheets sync | Optional integration when internet + OAuth are acceptable |
 | In-app backup/restore | Currently relies on external backup of `DATA_DIR` |
