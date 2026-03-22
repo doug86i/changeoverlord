@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web — patch workbook formulas:** After **`applyOp`** / Yjs replay, FortuneSheet could keep a **stale `formulaCellInfoMap`** built from the pre-replay grid, so **`execFunctionGroup`** did not walk the right dependency edges and **dependent formulas did not refresh** on cell edits. Post-replay and post-remote-batch recalc now runs **`jfrefreshgrid`** over each sheet’s **`data`** bounds (rebuilds **`setFormulaCellInfo`**) before **`calculateFormula`**, and clears **`onOp` suppression** after **two `requestAnimationFrame`** ticks so nested updates finish before local ops resume.
+
 - **Web — collaborative patch workbook:** Remote **`applyOp`** updates applied only **Immer patches** to the grid; FortuneSheet’s **`execFunctionGroup`** (dependent formula refresh) does not run for those mutations. After **hydration** we already called **`calculateFormula`**; we now **queue the same full recalc** (with **`onOp` suppressed**) when **remote** Yjs ops arrive so summaries and lookups stay in sync with other editors.
 
 - **API — Yjs persistence:** Edits could be silently lost on container restart. The 3-second debounce timer was killed by SIGTERM with no shutdown handler to flush pending writes. Added **graceful shutdown** (SIGTERM / SIGINT) that persists every active Yjs doc to Postgres before exit. Debounce reduced from **3 s → 1 s**. Compose now uses `init: true` and `stop_grace_period: 15s` for reliable signal delivery.
@@ -21,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **API — patch templates:** **`POST …/patch-templates/blank`** now seeds each sheet with a dense **`data`** matrix (null cells) and an empty **`calcChain`**. Previously blank workbooks had **no** `data` array, so FortuneSheet/Yjs cell ops could not persist reliably.
 
 - **Web — patch workbook placeholder:** **`WORKBOOK_PLACEHOLDER`** includes **`data`** and **`calcChain`** so the pre-sync mount matches what FortuneSheet expects.
+
+### Changed
+
+- **Dependencies:** Removed **`patch-package`** overrides for **`@fortune-sheet/core`** and **`@fortune-sheet/react`** (default font order + context-menu “add column” input lookup). Upstream **1.0.4** ships those files unpatched; `patches/` may be empty aside from **`.gitkeep`**.
 
 ### Added
 

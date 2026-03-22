@@ -75,7 +75,7 @@ make dev-down
 
 ## Patches (`patches/`)
 
-Some **npm** dependencies ship with **patch-package** fixes under **`patches/*.patch`** (e.g. **FortuneSheet**). The **builder** stage **`COPY patches`** before **`npm install`** so **`postinstall` → `patch-package`** runs inside the image — **Docker builds must include the `patches/` directory** in the build context (it is **not** in **`.dockerignore`**).
+Some **npm** dependencies may use **patch-package** fixes under **`patches/*.patch`**. When there are no **`*.patch`** files, **`patch-package`** is a no-op but **`postinstall`** still runs. The **builder** stage **`COPY patches`** before **`npm install`** so patches apply during **`npm install`** — **Docker builds must include the `patches/` directory** in the build context (it is **not** in **`.dockerignore`**; an empty dir or **`.gitkeep`** only is fine).
 
 - **Local:** Root **`npm install`** runs **`patch-package`** after install.
 - **Runner image:** Uses **`npm install --omit=dev --ignore-scripts`** for **`@changeoverlord/api`** only — **`patch-package`** is not installed in production; the **SPA** is already built in the **builder** with patched **`node_modules`**.

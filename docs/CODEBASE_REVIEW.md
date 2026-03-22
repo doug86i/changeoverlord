@@ -184,9 +184,7 @@ Possible race: doc destroyed after async `writeState` while a new client attache
 
 ### 36. Remove FortuneSheet `patch-package` patches
 
-**Decision:** patches under `patches/@fortune-sheet+*.patch` are **not required** — remove them.
-
-**Checklist when doing so:** delete patch files; if `patches/` is empty, remove root `postinstall` / `patch-package` / Dockerfile `COPY patches` as appropriate; update [`CHANGELOG.md`](../CHANGELOG.md); align [`AGENTS.md`](../AGENTS.md), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`MAINTAINING_DOCS.md`](MAINTAINING_DOCS.md), root [`README.md`](../README.md); run `make dev` and smoke-test patch + template editor.
+**Status:** **Done** — the previous `@fortune-sheet/*` patches (default font order, context-menu column count) were removed; `patches/` may contain only **`.gitkeep`**. **`patch-package`** remains for future patches; see [`DEVELOPMENT.md`](DEVELOPMENT.md) § *Patches*.
 
 ---
 

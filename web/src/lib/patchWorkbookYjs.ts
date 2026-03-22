@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type { MutableRefObject, RefObject } from "react";
 import { flushSync } from "react-dom";
-import type { Op } from "@fortune-sheet/core";
+import type { Op, Sheet } from "@fortune-sheet/core";
 import type { WorkbookInstance } from "@fortune-sheet/react";
 import type { Transaction, YArrayEvent } from "yjs";
 import type * as Y from "yjs";
@@ -10,9 +10,28 @@ import { logDebug } from "./debug";
 /** Must match `ydoc.transact(..., origin)` in onOp handlers for patch/template workbooks. */
 export const PATCH_WORKBOOK_Y_ORIGIN = "fortune-local";
 
+type FortuneBatchCall = { name: string; args: unknown[] };
+
 /**
- * Full-sheet formula pass (twice for dependency order). Must match post–opLog-replay behaviour.
- * Suppresses `onOp` so recalc does not append large patches to Yjs (see FortuneSheet `setCellValue` paths).
+ * `applyOp` / Immer patches do not clear FortuneSheet’s `formulaCellInfoMap`. If that map was built
+ * from the placeholder sheet (or is otherwise stale), `execFunctionGroup` uses wrong edges and
+ * dependent formulas do not refresh when you edit inputs. `jfrefreshgrid` runs `runExecFunction`,
+ * which rebuilds `setFormulaCellInfo` for the range and re-runs `execFunctionGroup` (see upstream
+ * `@fortune-sheet/core` `jfrefreshgrid` / `runExecFunction`).
+ */
+function fullDataRange(sheet: Sheet): { row: [number, number]; column: [number, number] } {
+  const data = sheet.data;
+  const rowMax = Math.max(0, (data?.length ?? 1) - 1);
+  const colMax = Math.max(0, ((data?.[0] as unknown[] | null | undefined)?.length ?? 1) - 1);
+  return { row: [0, rowMax], column: [0, colMax] };
+}
+
+/**
+ * After Yjs `applyOp` batches: rebuild per-sheet formula dependency info, then full `calculateFormula`
+ * passes (twice for cross-sheet ordering, matching prior behaviour).
+ *
+ * Suppresses `onOp` so recalc does not append huge op batches to Yjs. Clears suppression after two
+ * animation frames so nested FortuneSheet updates finish before local ops resume.
  */
 function flushWorkbookFormulaRecalc(
   wb: WorkbookInstance,
@@ -20,6 +39,19 @@ function flushWorkbookFormulaRecalc(
 ): void {
   if (suppressYjsOpsRef) suppressYjsOpsRef.current = true;
   try {
+    const sheets = wb.getAllSheets() as Sheet[];
+    for (const sheet of sheets) {
+      const sheetId = sheet.id;
+      if (sheetId == null) continue;
+      const range = [fullDataRange(sheet)];
+      const calls: FortuneBatchCall[] = [
+        { name: "activateSheet", args: [{ sheetId }] },
+        { name: "jfrefreshgrid", args: [null, range] },
+      ];
+      flushSync(() => {
+        wb.batchCallApis(calls);
+      });
+    }
     flushSync(() => {
       wb.calculateFormula();
     });
@@ -28,9 +60,11 @@ function flushWorkbookFormulaRecalc(
     });
   } finally {
     if (suppressYjsOpsRef) {
-      setTimeout(() => {
-        suppressYjsOpsRef.current = false;
-      }, 0);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          suppressYjsOpsRef.current = false;
+        });
+      });
     }
   }
 }

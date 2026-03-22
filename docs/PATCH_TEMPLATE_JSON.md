@@ -88,6 +88,10 @@ Cell **`f`** is stored as-is on import, but the **browser** evaluates formulas w
 1. **Keep formulas** that are known to behave well in this stack (e.g. **`VLOOKUP(…, range, col, 0)`** for exact string keys; avoid relying on **`MATCH` type 0** for short codes that are prefixes of others, like **`B1`** vs **`B10`**).
 2. **Value-only cells** for static snapshots: set **`v`** / **`m`** to what operators should see and **remove** **`f`**. Import stays valid; those cells no longer recalculate until someone types a new formula.
 
+#### `IFERROR` (not a recalc blocker)
+
+Excel’s **`IFERROR(inner, fallback)`** returns **`fallback`** when **`inner`** evaluates to an error (e.g. **`#N/A`** from **`VLOOKUP`**). It is only a **display / branching** wrapper: when inputs change, **`inner`** is still re-evaluated and formula dependents should refresh. If counts or lookups look “stuck”, look for missing **`calcChain`** on import, unsupported functions, or collaboration/replay issues — not **`IFERROR`** by itself.
+
 #### Engine quirks (formulajs) that break common Excel templates
 
 These matter for **DH Pick & Patch**-style workbooks and any template that relied on Excel-specific behaviour.
