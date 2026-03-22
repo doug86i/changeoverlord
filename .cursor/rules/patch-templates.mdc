@@ -17,10 +17,10 @@ alwaysApply: true
 - Users upload their **own** Excel or JSON templates. The sheet names, column layout, row count, and formula structure **will vary** between operators.
 - **Do NOT hard-code** sheet names, column indexes, or cell addresses in application code. The app treats template content as opaque FortuneSheet data.
 - The **`examples/`** folder contains a reference DH template for testing and demonstration. It is **not** the only valid template shape.
-- Helper columns, conditional formatting rules, and cross-sheet formulas are part of the **template design**, not the application. Fix template issues in the **build script** (`scripts/build-v7-template.mjs`), not in API or web source code.
+- Conditional formatting, helper columns, and formulas are part of the **template design**, not the application. Fix template issues in the **build script** (`scripts/build-v7-template.mjs`) or the operator's Excel/JSON, not in API or web source code.
 
-## Cross-sheet formula limitations
+## Formula layout (FortuneSheet)
 
-- FortuneSheet's `calculateFormula` does not reliably propagate edits across sheets in real time. Formulas on the **same sheet** as edited cells update via `calcChain`; **cross-sheet** formulas may require a sheet tab switch or page reload to refresh.
-- **Prefer same-sheet formulas** for values that must update immediately (e.g. stand counts, summary rows).
-- **Do NOT attempt** to fix cross-sheet recalculation by injecting synthetic ops or calling FortuneSheet internals outside the documented `onOp` / `applyOp` flow.
+- **Prefer same-sheet formulas** for summaries and lookups that must stay in sync while editing (e.g. `COUNTIF` / `INDEX`/`MATCH` on one sheet). The reference **DH v7** JSON is a **single-sheet** workbook for that reason.
+- **Cross-sheet** formulas (references like `'Other Sheet'!A1`) are weaker in FortuneSheet: incremental recalc and `calculateFormula` may not refresh dependents reliably. User-uploaded multi-sheet templates may still use them; do not hard-code those sheet names in app code.
+- **Do NOT attempt** to fix recalculation by injecting synthetic ops or calling FortuneSheet internals outside the documented `onOp` / `applyOp` flow.

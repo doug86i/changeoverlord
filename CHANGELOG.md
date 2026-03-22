@@ -24,9 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **API — Excel CF extraction:** Direct `.xlsx` template uploads now extract conditional formatting rules from the raw OOXML XML (`api/src/lib/excel-cf-extract.ts`). The `@zenmrp/fortune-sheet-excel` library does not support CF; the new module parses `conditionalFormatting` blocks, resolves dxf styles and theme colours, and maps `beginsWith`/`cellIs`/`expression` rules to FortuneSheet's `luckysheet_conditionformat_save` format.
 
-- **`examples/DH_Pick_Patch_TEMPLATE_v7.json`** — four-sheet DH Pick & Patch v7.0 starter built from the human-made Excel, with conditional formatting (SatBox colour coding for both upper/lowercase, zero grey-out), cross-sheet formulas, same-sheet stand count summary on Channel List (rows 103–106), and UPPER() helper columns for case-insensitive lookups (`changeoverlordWorkbook: 1` envelope).
+- **`examples/DH_Pick_Patch_TEMPLATE_v7.json`** — single-sheet **Channel List** reference workbook: patch data **A–J**, stand/mic summaries **M–N**, compact SatBox label grid **M–R** with same-sheet **`VLOOKUP`** lookups (no cross-sheet formulas, no AA–AD helpers). Conditional formatting: SatBox prefix colours (upper + lower) and grey empty label cells (`changeoverlordWorkbook: 1` envelope).
 
-- **`scripts/build-v7-template.mjs`** — regenerates v7 JSON from the Excel source (`node scripts/build-v7-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v7.json`).
+- **`scripts/build-v7-template.mjs`** — builds that JSON from the human-made Excel (first sheet only + right-side layout); run `node scripts/build-v7-template.mjs > examples/DH_Pick_Patch_TEMPLATE_v7.json`.
 
 - **Root `package.json` scripts:** **`build:test`** (api then web) and **`docker:build:app`** (`docker compose build app`).
 
@@ -41,6 +41,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **API — patch templates:** Normalizing imported sheets now **fills `mc.r` / `mc.c`** on merge-master cells when only **`rs`/`cs`** were present (common in JSON exports), and **coerces numeric `tb` to string** so FortuneSheet’s text-wrap checks match. Fixes template **Edit spreadsheet** crashes / errors for those workbooks; **re-upload or Replace** an affected template to refresh the stored snapshot.
 
 ### Changed
+
+- **Examples — DH v7 template:** `DH_Pick_Patch_TEMPLATE_v7.json` is now a **single-sheet** workbook (patch **A–J**, summaries and SatBox label grid **M–R** on **Channel List**). Removes Mic & DI List, SatBox Lables, Equipment Pick List, helper columns AA–AD, and cross-sheet formulas so FortuneSheet recalc stays reliable. Build script **drops Excel `colhidden`** on M–R (and stale AA–AD keys) so the grid is visible; label cells use **`VLOOKUP`** + **`IFERROR`** instead of `INDEX`/`MATCH` (avoids `#ERROR!` in the browser).
 
 - **Web — FortuneSheet (patch + template editors):** **`.patch-workbook-host`** pins **light-theme** CSS variables (`--color-bg`, `--color-surface`, `--color-text`, …) so toolbar icons and sheet chrome stay readable when the app is in **dark** mode.
 

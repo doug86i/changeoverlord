@@ -6,45 +6,39 @@ The app does **not** read this folder at runtime. **Blank** patch sheets are **n
 
 ## DH Pick & Patch v7.0
 
-**Source Excel:** `DH Pick & Patch TEMPLATE v7.0 - human made.xlsx` — the human-authored master.
+**Source Excel:** `DH Pick & Patch TEMPLATE v7.0 - human made.xlsx` — the human-authored master (still has multiple sheets on disk; the **generated JSON** is a single-sheet workbook).
 
-**Generated JSON:** `DH_Pick_Patch_TEMPLATE_v7.json` — built from the Excel by `scripts/build-v7-template.mjs`. This JSON includes `luckysheet_conditionformat_save` rules for SatBox colour coding and zero-value grey-out that the Excel library cannot extract automatically.
+**Generated JSON:** `DH_Pick_Patch_TEMPLATE_v7.json` — built from the Excel by `scripts/build-v7-template.mjs`. One sheet (**Channel List**) with patch data in **A–J**, stand/mic summaries in **M–N**, and a compact **SatBox label grid** in **M–R** (same-sheet `INDEX`/`MATCH` only — no cross-sheet formulas).
 
 ### Importing
 
-- **JSON import** (recommended): Settings → *Import workbook JSON* or `PUT /api/v1/patch-templates/:id/sheets-import`. The JSON carries conditional formatting and cross-sheet formulas.
-- **Excel upload**: Settings → *Upload*. The API now extracts conditional formatting from OOXML XML during import (`api/src/lib/excel-cf-extract.ts`), so direct `.xlsx` uploads also preserve CF rules.
+- **JSON import** (recommended): Settings → *Import workbook JSON* or `PUT /api/v1/patch-templates/:id/sheets-import`.
+- **Excel upload**: Settings → *Upload*. The API extracts conditional formatting from OOXML (`api/src/lib/excel-cf-extract.ts`). Uploading the **human Excel** still yields a multi-sheet workbook; use the **generated JSON** for the single-sheet reference layout.
 
-### Structure (4 sheets)
+### Structure (1 sheet)
 
-| Sheet | Purpose |
-|-------|---------|
-| **Channel List** | Main patch list — one row per input. Columns: Stage Box Input, SatBox#, Desk Ch#, Item, Mic/DI, Stand, Position, Notes. Hidden helper columns (AA–AD) drive the Mic & DI and SatBox lookups. |
-| **Mic & DI List** | Auto-populated from Channel List — unique mic/DI items with quantities, plus stand total counts (Tall, Short, Round). |
-| **SatBox Lables** | Auto-populated from Channel List — label lookup by SatBox# (Red, Green, Blue, Yellow, Orange, Purple sections). |
-| **Equipment Pick List** | Manual checklist for packing — Type, Item, Quantity, Pack Where?, Notes. |
+| Area | Columns | Purpose |
+|------|---------|---------|
+| **Patch list** | **A–J** | Stage Box Input, SatBox#, Desk Ch#, Item, Mic/DI, Stand, Position, Notes (same as Excel Channel List). Rows 2–101. |
+| **Summary** | **M–N**, rows 1–6 | Tall / Short / Round stand counts (`COUNTIF` on column G), total channels / mics (`COUNTA` on D and E). Updates live with edits. |
+| **SatBox labels** | **M–R**, rows 8–20 and 22–33 | Six colour groups (R/G/B then Y/O/P): static SatBox IDs plus **Lable** columns with `=IFERROR(VLOOKUP(id,$B$2:$D$101,3,0),"")` (Item in column D) for printing. |
+
+Legacy Excel rows 98–101 (“Additional Stands”) are **cleared** in the JSON so counts come only from the summary formulas.
 
 ### Conditional formatting
 
-- **Channel List** (B2:C98): SatBox prefix colour coding — **R** red, **G** green, **B** blue, **Y** yellow, **O** orange, **P** purple. Both upper and lowercase prefixes are matched (FortuneSheet's `textContains` is case-sensitive, so rules exist for both).
-- **SatBox Lables** (rows 4–46): Cells equal to `0` shown in grey text to hide empty lookup results.
+- **B–C** (data rows): SatBox prefix colours — **R** red, **G** green, **B** blue, **Y** yellow, **O** orange, **P** purple. Upper **and** lowercase prefixes (FortuneSheet `textContains` is case-sensitive).
+- **N, P, R** (label columns): empty string → grey text so unused slots are easy to read.
 
-### Cross-sheet formulas
+### Formulas (same sheet only)
 
-Mic & DI List, SatBox Lables, and Equipment Pick List contain formulas referencing Channel List. FortuneSheet evaluates these via `@formulajs/formulajs` with `calcChain`.
+All formulas reference **this sheet**. FortuneSheet recalculates them as you edit; no helper columns and no dependency on other tabs.
 
-**Limitation:** FortuneSheet's incremental recalculation only updates same-sheet formulas in real time. Cross-sheet formulas (e.g. Mic & DI List totals) may not refresh until the page is reloaded or a different sheet tab is visited. For this reason, the **stand count summary** (Tall/Short/Round) is duplicated on the Channel List sheet itself (rows 103–106) so it updates immediately during editing.
-
-### Case handling
-
-FortuneSheet does not support auto-uppercase on input. The template handles mixed case:
-- **Helper columns** (AA–AC) use `UPPER()` so cross-sheet lookups are case-insensitive
-- **CF rules** exist for both upper and lowercase SatBox prefixes
-- **COUNTIF / MATCH** in `@formulajs/formulajs` are case-insensitive by default
+**Note:** `VLOOKUP` exact match (`0`) is **case-sensitive** in `@formulajs/formulajs`. SatBox IDs in column **B** should match the grid text (e.g. **G7** not **g7**), or use uppercase consistently. Conditional formatting still highlights lowercase prefixes in **B** for visibility.
 
 ### Template variability
 
-Users upload their **own** templates — sheet names, column layout, row count, and formula structure **will vary**. The DH v7 template is a reference for testing. The application treats template content as opaque FortuneSheet data; no application code depends on specific sheet names or column positions.
+Users upload their **own** templates — sheet count, names, layout, and formulas **will vary**. The DH v7 JSON is a **reference** for testing. Application code does **not** assume this sheet name or column layout.
 
 ### Regenerating
 
