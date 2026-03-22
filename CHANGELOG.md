@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [1.0.0] — 2026-03-22
+
 ### Fixed
 
 - **API — Yjs persist (lost patch workbook):** **(1)** If loading the DB snapshot in **`bindState`** fails, the server no longer runs the immediate debounced catch-up persist (only real **`update`** events schedule saves), avoiding an **empty doc** overwriting a good row after a transient DB error. **(2)** Before replacing an existing performance or template snapshot **≥ 256 bytes**, the new encoded state is **headless-replayed**; if the result is not **structurally usable** (same bar as opLog compaction), the write is **skipped** with a **warn** log and the previous snapshot is kept.
