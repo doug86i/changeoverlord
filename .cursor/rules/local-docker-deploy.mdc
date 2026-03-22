@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Local Docker deployment (mandatory after implementation)
 
+**Always deploy** when the task touches anything that affects build or runtime (`api/`, `web/`, Docker, Compose, migrations, root lockfile). Run **`make dev-fast`** or **`make dev`** yourself before you consider the task done — no “you can run compose if you want.”
+
 When you **finish implementing or fixing** something that affects the running app, **deploy it to the local test environment yourself** — do not ask the user to run commands unless Docker is unavailable or the command fails after a retry.
 
 ## Two supported local paths
