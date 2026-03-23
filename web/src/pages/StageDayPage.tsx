@@ -393,6 +393,13 @@ export function StageDayPage() {
     [swapSourceId, swapPerf],
   );
 
+  const otherStageDays = useMemo(() => {
+    const rows = daysListQ.data?.stageDays ?? [];
+    return [...rows]
+      .filter((d) => d.id !== stageDayId)
+      .sort((a, b) => a.dayDate.localeCompare(b.dayDate));
+  }, [daysListQ.data, stageDayId]);
+
   const toggleNotes = (id: string) =>
     setNotesOpen((s) => {
       const n = new Set(s);
@@ -410,13 +417,6 @@ export function StageDayPage() {
     : formatDateShort(day!.dayDate);
 
   const inSwapMode = swapSourceId !== null;
-
-  const otherStageDays = useMemo(() => {
-    const rows = daysListQ.data?.stageDays ?? [];
-    return [...rows]
-      .filter((d) => d.id !== stageDayId)
-      .sort((a, b) => a.dayDate.localeCompare(b.dayDate));
-  }, [daysListQ.data, stageDayId]);
 
   return (
     <div>

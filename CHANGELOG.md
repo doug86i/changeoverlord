@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Stage day** page — **`otherStageDays`** `useMemo` was placed after loading/error **early returns**, so the hook ran only after data loaded and React threw **“Rendered more hooks than during the previous render.”** The memo is now declared with the other hooks before any return.
 - **Web:** **Clock** and **Dashboard** — “today” matched **`stage_days.day_date`** using **`toISOString()`** (UTC), so the wrong day could appear near midnight or in non-UTC time zones. Filters now use the **local calendar** date, aligned with **My stage today** (`formatLocalCalendarDate`).
 - **API / Web:** Collab structural-op detection now treats only whole-workbook `replace ["luckysheetfile"]` as structural. Routine cell edits often use nested `replace` paths under `luckysheetfile/...`; those now stay on op relay instead of forcing `fullState` remounts that reloaded the grid and could jump users to the first tab.
 - **Web:** Remote-op formula recalc no longer cycles `activateSheet` across every tab before calculating. Recalc now runs by sheet id without changing tab focus, avoiding visible tab refresh/jump during normal remote edits.
