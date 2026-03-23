@@ -139,7 +139,7 @@ export function StageDetailPage() {
         <div className="card" style={{ marginBottom: "1.5rem" }}>
           <div className="title-bar" style={{ marginBottom: "0.75rem" }}>Edit stage</div>
           <div className="form-row">
-            <input value={stageName} onChange={(e) => setStageName(e.target.value)} style={{ flex: "1 1 200px" }} />
+            <input value={stageName} onChange={(e) => setStageName(e.target.value)} />
             <button type="button" className="primary" onClick={() => patchStage.mutate({ name: stageName })}>Save</button>
             <button type="button" onClick={() => setEditingStage(false)}>Cancel</button>
           </div>

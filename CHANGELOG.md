@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** On narrow screens, **Edit stage** / **New stage** text fields no longer stretch tall: `flex: 1 1 200px` was meant for row layout (min width) but in a stacked `.form-row` it became a large min height.
 - **API / Web:** Collab structural-op detection now treats only whole-workbook `replace ["luckysheetfile"]` as structural. Routine cell edits often use nested `replace` paths under `luckysheetfile/...`; those now stay on op relay instead of forcing `fullState` remounts that reloaded the grid and could jump users to the first tab.
 - **Web:** Remote-op formula recalc no longer cycles `activateSheet` across every tab before calculating. Recalc now runs by sheet id without changing tab focus, avoiding visible tab refresh/jump during normal remote edits.
 - **Web:** Patch workbook now preserves the currently active sheet when a mid-session collab **`fullState`** remount arrives, so remote structural sync no longer jumps users back to the first tab.

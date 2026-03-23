@@ -173,7 +173,6 @@ export function EventDetailPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Stage name"
-            style={{ flex: "1 1 200px" }}
           />
           <button
             type="button"
@@ -195,7 +194,6 @@ export function EventDetailPage() {
                 <input
                   value={editStageName}
                   onChange={(e) => setEditStageName(e.target.value)}
-                  style={{ flex: "1 1 200px" }}
                 />
                 <button
                   type="button"

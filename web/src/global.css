@@ -549,6 +549,12 @@ a.search-dialog-result:focus-visible {
   flex: 0 0 auto;
 }
 
+/* Grow text inputs on wide rows; see mobile override — inline flex breaks column layout. */
+.form-row > input:not([type="checkbox"]):not([type="radio"]) {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
 .form-label {
   display: block;
   margin-bottom: 4px;
@@ -1511,6 +1517,14 @@ a.search-dialog-result:focus-visible {
   .form-row > .form-field,
   .form-row > button {
     flex: 1 1 auto;
+    width: 100%;
+  }
+
+  /* Row layout uses flex-basis as min width; in column layout that becomes height — avoid
+     tall inputs from inline `flex: 1 1 200px` (stage edit, new stage, etc.). */
+  .form-row > input:not([type="checkbox"]):not([type="radio"]),
+  .form-row > select {
+    flex: 0 0 auto;
     width: 100%;
   }
 }

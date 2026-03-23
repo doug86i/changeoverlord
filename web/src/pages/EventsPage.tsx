@@ -134,7 +134,6 @@ export function EventsPage() {
                 <input
                   value={editName}
                   onChange={(ev) => setEditName(ev.target.value)}
-                  style={{ flex: "1 1 200px" }}
                 />
                 <input type="date" value={editStart} onChange={(ev) => setEditStart(ev.target.value)} />
                 <input type="date" value={editEnd} onChange={(ev) => setEditEnd(ev.target.value)} />
