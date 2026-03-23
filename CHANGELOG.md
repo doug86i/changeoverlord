@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **Web:** On narrow screens, **Edit stage** / **New stage** text fields no longer stretch tall: `flex: 1 1 200px` was meant for row layout (min width) but in a stacked `.form-row` it became a large min height.
 - **API / Web:** Collab structural-op detection now treats only whole-workbook `replace ["luckysheetfile"]` as structural. Routine cell edits often use nested `replace` paths under `luckysheetfile/...`; those now stay on op relay instead of forcing `fullState` remounts that reloaded the grid and could jump users to the first tab.
 - **Web:** Remote-op formula recalc no longer cycles `activateSheet` across every tab before calculating. Recalc now runs by sheet id without changing tab focus, avoiding visible tab refresh/jump during normal remote edits.
 - **Web:** Patch workbook now preserves the currently active sheet when a mid-session collab **`fullState`** remount arrives, so remote structural sync no longer jumps users back to the first tab.
@@ -28,8 +27,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Web:** Stage page **Default patch / RF template** collapses after a default is chosen (summary shows the selection); expand to change template, add stage templates, or use template actions. **`docs/USER_GUIDE.md`** (templates).
-- **Web:** Stage detail page shows the **Days** list first; **Add day** and **bulk date range** live in one collapsible **Add days** section with clearer labels and layout. **`docs/USER_GUIDE.md`** (schedule workflow).
 - **Deployment / security:** Added internet beta hardening guidance for HAProxy deployments (`docs/SECURITY_BETA_DEPLOY.md`), including required production env (`FORCE_SECURE_COOKIES`, `CORS_ALLOWED_ORIGINS`, `REQUIRE_PASSWORD`), preflight checks, and backup/restore runbooks.
 - **Ops:** Added `scripts/backup-data.sh`, `scripts/restore-data.sh`, and `scripts/preflight-beta.sh` plus `make backup-data`, `make restore-data BACKUP_DIR=...`, and `make preflight-beta BASE_URL=...`.
 - **Docker / env:** `docker-compose.yml` now passes through `CORS_ALLOWED_ORIGINS`, `FORCE_SECURE_COOKIES`, and `REQUIRE_PASSWORD`, and supports `HOST_BIND` so app traffic can be bound to localhost behind HAProxy.
@@ -50,6 +47,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 
 ---
+
+## [1.2.0] — 2026-03-23
+
+### Fixed
+
+- **Web:** On narrow screens, **Edit stage** / **New stage** text fields no longer stretch tall: `flex: 1 1 200px` was meant for row layout (min width) but in a stacked `.form-row` it became a large min height.
+
+### Changed
+
+- **Web:** Stage detail page shows the **Days** list first; **Add day** and **bulk date range** live in one collapsible **Add days** section with clearer labels and layout. **`docs/USER_GUIDE.md`** (schedule workflow).
+- **Web:** Stage page **Default patch / RF template** collapses after a default is chosen (summary shows the selection); expand to change template, add stage templates, or use template actions. **`docs/USER_GUIDE.md`** (templates).
 
 ## [1.0.0] — 2026-03-22
 
