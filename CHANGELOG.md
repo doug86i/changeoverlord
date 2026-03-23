@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** **Event dashboard** — mini clock previews are **slightly taller** (`min(48vh, 26rem)` / **`min-height` 13rem**) for more arena room.
 - **Web:** **Clock arena** — **Changeover / handover** banners use **larger type** (higher `cqmin` caps, more padding); top block **`max-height`** raised so they are not clipped. **Fullscreen** controls are **compact** and sit on the **same row** as the footer metadata grid. **`docs/USER_GUIDE.md`**.
 - **Web:** **Clock hub** (`/clock` listing) removed in favour of **Event dashboard**; nav **Stage clock** / **`g c`** / **My stage today** fall back to **`/dashboard`** when no last-viewed stage day is remembered. **`docs/USER_GUIDE.md`**, **`docs/REALTIME.md`**, **`docs/KNOWN_ISSUES.md`**.
 - **Deployment / security:** Added internet beta hardening guidance for HAProxy deployments (`docs/SECURITY_BETA_DEPLOY.md`), including required production env (`FORCE_SECURE_COOKIES`, `CORS_ALLOWED_ORIGINS`, `REQUIRE_PASSWORD`), preflight checks, and backup/restore runbooks.

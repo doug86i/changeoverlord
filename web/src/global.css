@@ -755,8 +755,8 @@ a.search-dialog-result:focus-visible {
   overflow: auto;
   display: flex;
   flex-direction: column;
-  max-height: min(42vh, 22rem);
-  min-height: 11rem;
+  max-height: min(48vh, 26rem);
+  min-height: 13rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
