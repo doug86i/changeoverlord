@@ -523,6 +523,116 @@ export function StageChatDock() {
             <div ref={listEndRef} />
           </div>
           <div className="stage-chat-dock__composer">
+            {presenceOpen ? (
+              <div
+                className="stage-chat-dock__composer-drawer"
+                role="region"
+                aria-labelledby="stage-chat-dock-presence-heading"
+              >
+                <div
+                  className="stage-chat-dock__composer-drawer-title title-bar"
+                  id="stage-chat-dock-presence-heading"
+                >
+                  Who&apos;s online
+                </div>
+                <div className="stage-chat-dock__presence-panel">
+                  {presenceQ.isLoading ? (
+                    <p className="muted">Loading…</p>
+                  ) : presenceQ.isError ? (
+                    <p role="alert" className="stage-chat-dock__err">
+                      Could not load presence.
+                    </p>
+                  ) : (presenceQ.data?.online.length ?? 0) === 0 ? (
+                    <p className="muted" style={{ margin: 0 }}>
+                      No other clients visible right now (or still connecting).
+                    </p>
+                  ) : (
+                    <ul className="stage-chat-dock__presence-list">
+                      {presenceQ.data!.online.map((p) => (
+                        <li key={p.clientId}>
+                          <span className="stage-chat-dock__presence-name">
+                            {p.displayName}
+                          </span>
+                          <span className="muted stage-chat-dock__presence-age">
+                            {formatPresenceAge(p.lastSeen)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="muted stage-chat-dock__presence-note">
+                    Each open tab is listed separately. Entries expire ~90s after
+                    the last heartbeat. Single server process only.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            {settingsOpen ? (
+              <div
+                id="stage-chat-dock-settings"
+                className="stage-chat-dock__composer-drawer"
+                role="region"
+                aria-labelledby="stage-chat-dock-options-heading"
+              >
+                <div
+                  className="stage-chat-dock__composer-drawer-title title-bar"
+                  id="stage-chat-dock-options-heading"
+                >
+                  Options
+                </div>
+                <div className="stage-chat-dock__settings-block">
+                  <label className="muted stage-chat-dock__settings-label">
+                    Name
+                    <input
+                      type="text"
+                      className="stage-chat-dock__input"
+                      value={authorDraft}
+                      onChange={(e) => setAuthorDraft(e.target.value)}
+                      maxLength={80}
+                      placeholder="e.g. FOH"
+                      aria-label="Chat display name"
+                    />
+                  </label>
+                  {showStagePicker ? (
+                    <label className="muted stage-chat-dock__settings-label">
+                      Stage
+                      <select
+                        className="stage-chat-dock__select stage-chat-dock__select--full"
+                        value={contextStageId}
+                        onChange={(e) => setPickedStageId(e.target.value)}
+                        aria-label="Chat stage"
+                      >
+                        {stagesQ.data!.stages.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  <div className="stage-chat-dock__scope">
+                    <label>
+                      <input
+                        type="radio"
+                        name="chat-scope"
+                        checked={sendScope === "stage"}
+                        onChange={() => setSendScope("stage")}
+                      />{" "}
+                      This stage
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        name="chat-scope"
+                        checked={sendScope === "event"}
+                        onChange={() => setSendScope("event")}
+                      />{" "}
+                      Whole event
+                    </label>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <div className="stage-chat-dock__composer-tools">
               <button
                 type="button"
@@ -550,100 +660,6 @@ export function StageChatDock() {
                 Who&apos;s online
               </button>
             </div>
-            {presenceOpen ? (
-              <div
-                className="stage-chat-dock__presence-panel"
-                role="region"
-                aria-labelledby="stage-chat-dock-presence-btn"
-              >
-                {presenceQ.isLoading ? (
-                  <p className="muted">Loading…</p>
-                ) : presenceQ.isError ? (
-                  <p role="alert" className="stage-chat-dock__err">
-                    Could not load presence.
-                  </p>
-                ) : (presenceQ.data?.online.length ?? 0) === 0 ? (
-                  <p className="muted" style={{ margin: 0 }}>
-                    No other clients visible right now (or still connecting).
-                  </p>
-                ) : (
-                  <ul className="stage-chat-dock__presence-list">
-                    {presenceQ.data!.online.map((p) => (
-                      <li key={p.clientId}>
-                        <span className="stage-chat-dock__presence-name">
-                          {p.displayName}
-                        </span>
-                        <span className="muted stage-chat-dock__presence-age">
-                          {formatPresenceAge(p.lastSeen)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <p className="muted stage-chat-dock__presence-note">
-                  Each open tab is listed separately. Entries expire ~90s after the
-                  last heartbeat. Single server process only.
-                </p>
-              </div>
-            ) : null}
-            {settingsOpen ? (
-              <div
-                id="stage-chat-dock-settings"
-                className="stage-chat-dock__settings-block"
-                role="region"
-                aria-labelledby="stage-chat-dock-options-btn"
-              >
-                <label className="muted stage-chat-dock__settings-label">
-                  Name
-                  <input
-                    type="text"
-                    className="stage-chat-dock__input"
-                    value={authorDraft}
-                    onChange={(e) => setAuthorDraft(e.target.value)}
-                    maxLength={80}
-                    placeholder="e.g. FOH"
-                    aria-label="Chat display name"
-                  />
-                </label>
-                {showStagePicker ? (
-                  <label className="muted stage-chat-dock__settings-label">
-                    Stage
-                    <select
-                      className="stage-chat-dock__select stage-chat-dock__select--full"
-                      value={contextStageId}
-                      onChange={(e) => setPickedStageId(e.target.value)}
-                      aria-label="Chat stage"
-                    >
-                      {stagesQ.data!.stages.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                <div className="stage-chat-dock__scope">
-                  <label>
-                    <input
-                      type="radio"
-                      name="chat-scope"
-                      checked={sendScope === "stage"}
-                      onChange={() => setSendScope("stage")}
-                    />{" "}
-                    This stage
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      name="chat-scope"
-                      checked={sendScope === "event"}
-                      onChange={() => setSendScope("event")}
-                    />{" "}
-                    Whole event
-                  </label>
-                </div>
-              </div>
-            ) : null}
             <textarea
               className="stage-chat-dock__textarea"
               rows={3}

@@ -2329,8 +2329,12 @@ a.patch-sidebar-perf-link:hover {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding-right: 0.2rem;
+  padding: 0.35rem 0.45rem 0.5rem 0.2rem;
+  margin: 0 -0.15rem;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
+  background: color-mix(in srgb, var(--color-bg) 55%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-border))
     color-mix(in srgb, var(--color-border) 14%, var(--color-surface));
@@ -2405,11 +2409,27 @@ a.patch-sidebar-perf-link:hover {
   gap: 0.45rem;
 }
 
+.stage-chat-dock__composer-drawer {
+  padding: 0.55rem 0.65rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg) 78%, var(--color-surface));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.stage-chat-dock__composer-drawer-title {
+  margin: 0 0 0.45rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  letter-spacing: 0.1em;
+}
+
 .stage-chat-dock__composer-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .stage-chat-dock__intro {
@@ -2420,9 +2440,7 @@ a.patch-sidebar-perf-link:hover {
 }
 
 .stage-chat-dock__presence-panel {
-  padding: 0.5rem 0;
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+  padding: 0;
 }
 
 .stage-chat-dock__presence-list {
@@ -2463,9 +2481,7 @@ a.patch-sidebar-perf-link:hover {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  padding: 0.5rem 0;
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+  padding: 0;
 }
 
 .stage-chat-dock__settings-label {
