@@ -2361,23 +2361,65 @@ a.patch-sidebar-perf-link:hover {
   background-color: color-mix(in srgb, var(--color-brand) 28%, var(--color-text-muted));
 }
 
-.stage-chat-dock__msg {
-  margin-bottom: 0.65rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
+.stage-chat-dock__msg-row {
+  display: flex;
+  width: 100%;
+  margin-bottom: 0.45rem;
+  justify-content: flex-start;
 }
 
-.stage-chat-dock__msg:last-child {
-  border-bottom: none;
+.stage-chat-dock__msg-row:last-child {
+  margin-bottom: 0;
 }
 
-.stage-chat-dock__msg-meta {
+.stage-chat-dock__msg-row--own {
+  justify-content: flex-end;
+}
+
+.stage-chat-dock__bubble {
+  max-width: min(88%, 20rem);
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.stage-chat-dock__bubble--other {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.stage-chat-dock__bubble--own {
+  background: color-mix(in srgb, var(--color-brand) 24%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-brand) 42%, var(--color-border));
+}
+
+.stage-chat-dock__bubble-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.35rem 0.5rem;
-  font-size: 0.75rem;
-  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  margin-bottom: 0.3rem;
+}
+
+.stage-chat-dock__bubble-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.stage-chat-dock__bubble-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
 }
 
 .stage-chat-dock__msg-who {
@@ -2394,11 +2436,6 @@ a.patch-sidebar-perf-link:hover {
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--color-brand) 18%, var(--color-surface));
   color: var(--color-brand);
-}
-
-.stage-chat-dock__msg-body {
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 .stage-chat-dock__composer {

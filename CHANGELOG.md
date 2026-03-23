@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** Stage chat uses **WhatsApp-style bubbles**: your messages (same **Name** as in Options) align **right** with a brand-tinted bubble; others align **left**. **`docs/ROADMAP.md`** (CH-1), **`docs/USER_GUIDE.md`**.
 - **Web:** Chat **Options** / **Who’s online** panels open **above** the button row (fixed above the composer); drawer titles and tinted backgrounds separate the message list, expanded panels, and input area. **`docs/USER_GUIDE.md`**.
 - **Deployment / security:** Added internet beta hardening guidance for HAProxy deployments (`docs/SECURITY_BETA_DEPLOY.md`), including required production env (`FORCE_SECURE_COOKIES`, `CORS_ALLOWED_ORIGINS`, `REQUIRE_PASSWORD`), preflight checks, and backup/restore runbooks.
 - **Ops:** Added `scripts/backup-data.sh`, `scripts/restore-data.sh`, and `scripts/preflight-beta.sh` plus `make backup-data`, `make restore-data BACKUP_DIR=...`, and `make preflight-beta BASE_URL=...`.

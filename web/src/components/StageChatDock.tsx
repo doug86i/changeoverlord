@@ -96,6 +96,12 @@ function formatChatTime(iso: string): string {
   }
 }
 
+/** Own vs others by display name (matches server-stored `author` on your sends). */
+function isOwnChatMessage(m: ChatMessageRow, viewerAuthorTrimmed: string): boolean {
+  if (!viewerAuthorTrimmed) return false;
+  return m.author.trim() === viewerAuthorTrimmed;
+}
+
 export function StageChatDock() {
   const qc = useQueryClient();
   const { pathname } = useLocation();
@@ -414,6 +420,7 @@ export function StageChatDock() {
     "This stage";
 
   const messages = messagesQ.data?.chatMessages ?? [];
+  const viewerAuthor = authorDraft.trim();
 
   /** Portal to `document.body` so stacking is not trapped under `#root` / flex ancestors (FortuneSheet, etc.). */
   return createPortal(
@@ -505,20 +512,42 @@ export function StageChatDock() {
             ) : messages.length === 0 ? (
               <p className="muted">No messages yet.</p>
             ) : (
-              messages.map((m) => (
-                <div key={m.id} className="stage-chat-dock__msg">
-                  <div className="stage-chat-dock__msg-meta">
-                    <span className="stage-chat-dock__msg-who">
-                      {m.author.trim() || "Anonymous"}
-                    </span>
-                    <span className="muted">{formatChatTime(m.createdAt)}</span>
-                    {m.scope === "event" ? (
-                      <span className="stage-chat-dock__badge">Event</span>
-                    ) : null}
+              messages.map((m) => {
+                const own = isOwnChatMessage(m, viewerAuthor);
+                return (
+                  <div
+                    key={m.id}
+                    className={`stage-chat-dock__msg-row${own ? " stage-chat-dock__msg-row--own" : ""}`}
+                  >
+                    <div
+                      className={`stage-chat-dock__bubble${own ? " stage-chat-dock__bubble--own" : " stage-chat-dock__bubble--other"}`}
+                    >
+                      {!own ? (
+                        <div className="stage-chat-dock__bubble-meta">
+                          <span className="stage-chat-dock__msg-who">
+                            {m.author.trim() || "Anonymous"}
+                          </span>
+                          {m.scope === "event" ? (
+                            <span className="stage-chat-dock__badge">Event</span>
+                          ) : null}
+                          <span className="muted">
+                            {formatChatTime(m.createdAt)}
+                          </span>
+                        </div>
+                      ) : null}
+                      <div className="stage-chat-dock__bubble-body">{m.body}</div>
+                      {own ? (
+                        <div className="stage-chat-dock__bubble-footer muted">
+                          {m.scope === "event" ? (
+                            <span className="stage-chat-dock__badge">Event</span>
+                          ) : null}
+                          <span>{formatChatTime(m.createdAt)}</span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="stage-chat-dock__msg-body">{m.body}</div>
-                </div>
-              ))
+                );
+              })
             )}
             <div ref={listEndRef} />
           </div>
