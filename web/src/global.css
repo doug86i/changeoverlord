@@ -751,7 +751,8 @@ a.search-dialog-result:focus-visible {
 /* Event dashboard — same ClockArena as stage clock, scaled to a preview height */
 .dashboard-mini-arena-wrap {
   padding: 0;
-  overflow: hidden;
+  /* Prefer scaling inside the arena; allow scroll only if something still overflows */
+  overflow: auto;
   display: flex;
   flex-direction: column;
   max-height: min(42vh, 22rem);
@@ -970,6 +971,9 @@ a.search-dialog-result:focus-visible {
 .clock-arena {
   box-sizing: border-box;
   position: relative;
+  /* Size queries so typography scales with this panel (not the viewport — fixes mini arenas on large screens). */
+  container-type: size;
+  container-name: clock-arena;
   min-height: 100%;
   width: 100%;
   display: flex;
@@ -977,6 +981,7 @@ a.search-dialog-result:focus-visible {
   align-items: stretch;
   justify-content: flex-start;
   padding: clamp(0.35rem, 1.2vmin, 1rem);
+  padding: clamp(0.15rem, 1.5cqmin, 1rem);
   background: var(--clock-arena-bg);
   color: var(--clock-arena-fg);
 }
@@ -1109,30 +1114,41 @@ a.search-dialog-result:focus-visible {
   max-width: 120rem;
   margin: 0 auto;
   gap: clamp(0.2rem, 1vmin, 0.65rem);
+  gap: clamp(0.1rem, 1.2cqmin, 0.65rem);
 }
 
 /* Top band: act / changeover (hero countdown fills .clock-arena-countdown-region) */
 .clock-arena-top-meta {
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  flex-shrink: 1;
   min-width: 0;
+  min-height: 0;
+  max-height: 14rem;
+  max-height: min(52cqh, 14rem);
+  overflow-x: hidden;
+  overflow-y: auto;
   text-align: center;
 }
 
 .clock-arena-countdown-region {
   flex: 1 1 0;
-  min-height: 0;
+  min-height: 4rem;
+  min-height: min(22cqh, 7.5rem);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: clamp(0.2rem, 1vmin, 0.5rem);
+  gap: clamp(0.1rem, 1cqmin, 0.5rem);
   padding: clamp(0.15rem, 0.8vmin, 0.5rem) 0;
+  padding: clamp(0.05rem, 0.8cqmin, 0.5rem) 0;
   width: 100%;
 }
 
 .clock-arena-countdown-label {
   flex-shrink: 0;
   font-size: clamp(0.85rem, 2.2vmin, 1.05rem);
+  font-size: clamp(0.55rem, 3.5cqmin, 1.05rem);
   font-weight: 600;
   color: var(--clock-arena-muted);
 }
@@ -1158,17 +1174,20 @@ a.search-dialog-result:focus-visible {
   width: 100%;
   max-width: 52rem;
   margin: 0 auto clamp(0.45rem, 1.2vmin, 0.75rem);
+  margin: 0 auto clamp(0.2rem, 1.2cqmin, 0.75rem);
   padding: clamp(0.5rem, 1.8vmin, 0.9rem) clamp(0.65rem, 2.2vmin, 1.1rem);
+  padding: clamp(0.25rem, 1.8cqmin, 0.9rem) clamp(0.35rem, 2.2cqmin, 1.1rem);
   border-radius: var(--radius-md);
   text-align: center;
   color: var(--color-text);
   background: var(--color-warning);
-  border: 4px solid color-mix(in srgb, var(--color-text) 30%, var(--color-warning));
+  border: 2px solid color-mix(in srgb, var(--color-text) 30%, var(--color-warning));
   box-shadow: 0 4px 20px color-mix(in srgb, var(--color-warning) 50%, transparent);
 }
 
 .clock-arena-handover-banner__title {
   font-size: clamp(1.5rem, 5.5vmin, 2.85rem);
+  font-size: clamp(0.55rem, 9cqmin, 2.85rem);
   font-weight: 900;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1179,14 +1198,17 @@ a.search-dialog-result:focus-visible {
 .clock-arena-handover-banner--title-only {
   gap: 0;
   padding: clamp(0.45rem, 1.5vmin, 0.75rem) clamp(0.55rem, 2vmin, 1rem);
+  padding: clamp(0.2rem, 1.5cqmin, 0.75rem) clamp(0.3rem, 2cqmin, 1rem);
 }
 
 .clock-arena-handover-banner--title-only .clock-arena-handover-banner__title {
   font-size: clamp(1.65rem, 6vmin, 3.1rem);
+  font-size: clamp(0.55rem, 10cqmin, 3.1rem);
 }
 
 .clock-arena-handover-banner__sub {
   font-size: clamp(0.95rem, 2.9vmin, 1.45rem);
+  font-size: clamp(0.45rem, 4cqmin, 1.45rem);
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: 0.03em;
@@ -1209,22 +1231,28 @@ a.search-dialog-result:focus-visible {
 
 .clock-arena-top-band {
   font-size: clamp(1.35rem, 4.5vmin, 2.75rem);
+  font-size: clamp(0.55rem, 7.5cqmin, 2.75rem);
   font-weight: 800;
   line-height: 1.15;
   text-wrap: balance;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--clock-arena-fg);
 }
 
 .clock-arena-label--top {
   margin-top: 0.35rem;
   font-size: clamp(0.85rem, 2.2vmin, 1.05rem);
+  font-size: clamp(0.5rem, 3.2cqmin, 1.05rem);
 }
 
 .clock-arena-label--slot {
   margin-top: 0.25rem;
   font-size: clamp(0.8rem, 2vmin, 0.95rem);
+  font-size: clamp(0.45rem, 3cqmin, 0.95rem);
   font-weight: 500;
   color: var(--clock-arena-muted);
+  overflow-wrap: anywhere;
 }
 
 .clock-arena-countdown-wrap {
@@ -1234,6 +1262,7 @@ a.search-dialog-result:focus-visible {
 /* Hero countdown — largest element on screen (read at a distance) */
 .clock-arena-countdown-top {
   font-size: clamp(3.75rem, 18vmin, 14rem);
+  font-size: clamp(1.25rem, 22cqmin, 14rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
@@ -1271,9 +1300,11 @@ a.search-dialog-result:focus-visible {
 .clock-arena-label {
   text-align: center;
   font-size: clamp(0.95rem, 2.5vmin, 1.25rem);
+  font-size: clamp(0.45rem, 3.2cqmin, 1.25rem);
   font-weight: 600;
   color: var(--clock-arena-muted);
   letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
 }
 
 .clock-arena-hero-wrap {
@@ -1302,10 +1333,12 @@ a.search-dialog-result:focus-visible {
   align-items: center;
   justify-content: center;
   padding: clamp(0.2rem, 0.8vmin, 0.5rem) 0;
+  padding: clamp(0.1rem, 0.9cqmin, 0.5rem) 0;
 }
 
 .clock-arena-wall-caption {
   font-size: clamp(0.7rem, 1.8vmin, 0.85rem);
+  font-size: clamp(0.45rem, 2.5cqmin, 0.85rem);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1315,6 +1348,7 @@ a.search-dialog-result:focus-visible {
 
 .clock-arena-wall--primary {
   font-size: clamp(1.25rem, 4vmin, 2.75rem);
+  font-size: clamp(0.55rem, 6cqmin, 2.75rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -1349,6 +1383,7 @@ a.search-dialog-result:focus-visible {
 
 .clock-arena-footer-label {
   font-size: clamp(0.6rem, 1.4vmin, 0.72rem);
+  font-size: clamp(0.45rem, 2.2cqmin, 0.72rem);
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1358,10 +1393,12 @@ a.search-dialog-result:focus-visible {
 
 .clock-arena-footer-value {
   font-size: clamp(0.78rem, 1.8vmin, 0.95rem);
+  font-size: clamp(0.45rem, 2.8cqmin, 0.95rem);
   font-weight: 600;
   line-height: 1.25;
   color: var(--clock-arena-fg);
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .clock-arena-footer-actions {
@@ -1424,6 +1461,7 @@ a.search-dialog-result:focus-visible {
   padding: 0.2em 0.55em;
   border-radius: 999px;
   font-size: clamp(0.75rem, 2vmin, 0.95rem);
+  font-size: clamp(0.45rem, 2.8cqmin, 0.95rem);
   font-weight: 700;
   letter-spacing: 0.06em;
 }

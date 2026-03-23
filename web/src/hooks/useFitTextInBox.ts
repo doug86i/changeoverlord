@@ -19,7 +19,6 @@ export function useFitTextInBox(
     const fit = () => {
       const cw = container.clientWidth;
       const ch = container.clientHeight;
-      if (cw < 12 || ch < 12) return;
 
       el.style.width = "100%";
       el.style.maxWidth = "100%";
@@ -35,8 +34,13 @@ export function useFitTextInBox(
         return el.scrollWidth <= cw + 2 && el.scrollHeight <= ch + 2;
       };
 
-      let low = 10;
-      let high = Math.min(2200, Math.max(cw * 0.95, ch * 0.95, 200));
+      if (cw < 8 || ch < 8) {
+        el.style.fontSize = "8px";
+        return;
+      }
+
+      let low = 8;
+      let high = Math.min(2200, Math.max(cw * 0.95, ch * 0.95, 120));
       for (let i = 0; i < 42; i++) {
         const mid = (low + high) / 2;
         if (fits(mid)) low = mid;
@@ -46,7 +50,9 @@ export function useFitTextInBox(
     };
 
     fit();
-    const ro = new ResizeObserver(() => fit());
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(fit);
+    });
     ro.observe(container);
     return () => {
       ro.disconnect();
