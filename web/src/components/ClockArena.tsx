@@ -201,48 +201,51 @@ export const ClockArena = forwardRef<HTMLDivElement, ClockArenaProps>(
           </div>
 
           <footer className="clock-arena-footer">
-            <div className="clock-arena-footer-grid">
-              <div className="clock-arena-footer-cell">
-                <div className="clock-arena-footer-label">Stage</div>
-                <div className="clock-arena-footer-value">{stageName || "—"}</div>
-              </div>
-              <div className="clock-arena-footer-cell">
-                <div className="clock-arena-footer-label">Date</div>
-                <div className="clock-arena-footer-value">{dayLabel}</div>
-              </div>
-              <div className="clock-arena-footer-cell">
-                <div className="clock-arena-footer-label">Countdown pace</div>
-                <div className="clock-arena-footer-value">
-                  {heroSeconds === null
-                    ? "—"
-                    : heroUrgencyTier === "ok"
-                      ? "> 5 min — OK"
-                      : heroUrgencyTier === "warn"
-                        ? "≤ 5 min — hurry"
-                        : "≤ 1 min — final"}
+            <div className="clock-arena-footer-bar">
+              <div className="clock-arena-footer-grid">
+                <div className="clock-arena-footer-cell">
+                  <div className="clock-arena-footer-label">Stage</div>
+                  <div className="clock-arena-footer-value">{stageName || "—"}</div>
+                </div>
+                <div className="clock-arena-footer-cell">
+                  <div className="clock-arena-footer-label">Date</div>
+                  <div className="clock-arena-footer-value">{dayLabel}</div>
+                </div>
+                <div className="clock-arena-footer-cell">
+                  <div className="clock-arena-footer-label">Countdown pace</div>
+                  <div className="clock-arena-footer-value">
+                    {heroSeconds === null
+                      ? "—"
+                      : heroUrgencyTier === "ok"
+                        ? "> 5 min — OK"
+                        : heroUrgencyTier === "warn"
+                          ? "≤ 5 min — hurry"
+                          : "≤ 1 min — final"}
+                  </div>
+                </div>
+                <div className="clock-arena-footer-cell">
+                  <div className="clock-arena-footer-label">
+                    {waitingForNextAct ? "Next start" : currentIdx >= 0 ? "Slot" : "Status"}
+                  </div>
+                  <div className="clock-arena-footer-value">
+                    {waitingForNextAct && nextIdx >= 0
+                      ? sorted[nextIdx]?.startTime ?? "—"
+                      : currentIdx >= 0 && sorted[currentIdx]
+                        ? sorted[currentIdx].endTime
+                          ? `${sorted[currentIdx].startTime}–${sorted[currentIdx].endTime}`
+                          : `${sorted[currentIdx].startTime}–…`
+                        : actPresentation.badge === "idle"
+                          ? "—"
+                          : actPresentation.sub || "—"}
+                  </div>
                 </div>
               </div>
-              <div className="clock-arena-footer-cell">
-                <div className="clock-arena-footer-label">
-                  {waitingForNextAct ? "Next start" : currentIdx >= 0 ? "Slot" : "Status"}
+              {footerActions ? (
+                <div className="clock-arena-footer-actions clock-arena-footer-actions--inline">
+                  {footerActions}
                 </div>
-                <div className="clock-arena-footer-value">
-                  {waitingForNextAct && nextIdx >= 0
-                    ? sorted[nextIdx]?.startTime ?? "—"
-                    : currentIdx >= 0 && sorted[currentIdx]
-                      ? sorted[currentIdx].endTime
-                        ? `${sorted[currentIdx].startTime}–${sorted[currentIdx].endTime}`
-                        : `${sorted[currentIdx].startTime}–…`
-                      : actPresentation.badge === "idle"
-                        ? "—"
-                        : actPresentation.sub || "—"}
-                </div>
-              </div>
+              ) : null}
             </div>
-
-            {footerActions ? (
-              <div className="clock-arena-footer-actions">{footerActions}</div>
-            ) : null}
           </footer>
         </div>
       </div>

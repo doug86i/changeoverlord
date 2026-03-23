@@ -51,7 +51,7 @@ function StageTodayCard({
     wallTime,
     heroUrgency,
     footerActions: (
-      <Link to={`/clock/day/${item.day.id}`} className="primary" style={{ fontSize: "0.85rem" }}>
+      <Link to={`/clock/day/${item.day.id}`} className="primary">
         Open stage clock
       </Link>
     ),
