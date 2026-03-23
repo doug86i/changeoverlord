@@ -181,67 +181,24 @@ export function StageDetailPage() {
         collapsedByDefault
       />
 
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <div className="title-bar" style={{ marginBottom: "0.75rem" }}>Add single day</div>
-        <div className="form-row">
-          <input type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)} />
-          <button
-            type="button"
-            className="primary"
-            onClick={() => createDay.mutate()}
-            disabled={createDay.isPending}
-          >
-            Add day
-          </button>
-        </div>
-      </div>
-
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <div className="title-bar" style={{ marginBottom: "0.75rem" }}>Bulk add days</div>
-        <div className="form-row">
-          <label>
-            <span className="form-label">From</span>
-            <input
-              type="date"
-              value={bulkFrom || (event?.startDate ?? "")}
-              onChange={(e) => setBulkFrom(e.target.value)}
-            />
-          </label>
-          <label>
-            <span className="form-label">To</span>
-            <input
-              type="date"
-              value={bulkTo || (event?.endDate ?? "")}
-              onChange={(e) => setBulkTo(e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => bulkCreate.mutate()}
-            disabled={bulkCreate.isPending}
-          >
-            {bulkCreate.isPending ? "Creating…" : "Add range"}
-          </button>
-        </div>
-      </div>
-
-      <h2 className="title-bar">Days</h2>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+      <h2 className="title-bar" style={{ marginTop: "1.25rem", marginBottom: "0.75rem" }}>
+        Days
+      </h2>
+      <ul className="stage-days-list">
         {days.map((d) => (
-          <li key={d.id} className="card" style={{ marginBottom: "0.75rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-              <Link to={`/stage-days/${d.id}`} style={{ fontWeight: 600 }}>
+          <li key={d.id} className="card stage-days-list__item">
+            <div className="stage-days-list__row">
+              <Link to={`/stage-days/${d.id}`} className="stage-days-list__link">
                 {formatDateShort(d.dayDate)}
               </Link>
-              <div style={{ flexShrink: 0 }}>
+              <div className="stage-days-list__actions">
                 <button
                   type="button"
                   className="icon-btn danger-text"
                   title="Delete day"
                   onClick={() => setDeleteDayId(d.id)}
                 >
-                  ✕
+                  Delete
                 </button>
               </div>
             </div>
@@ -249,11 +206,81 @@ export function StageDetailPage() {
         ))}
       </ul>
       {days.length === 0 && (
-        <div className="empty-state card">
-          <h2>No days yet</h2>
-          <p>Add individual days or use "Bulk add days" to create all days from the event date range at once.</p>
+        <div className="empty-state card" style={{ marginBottom: "1rem" }}>
+          <p className="muted" style={{ margin: 0 }}>
+            No days yet — expand <strong>Add days</strong> below to add one date or a full range.
+          </p>
         </div>
       )}
+
+      <details
+        className="card stage-add-days-details"
+        key={days.length === 0 ? "stage-days-empty" : "stage-days-has"}
+        defaultOpen={days.length === 0}
+      >
+        <summary className="stage-add-days-details__summary">
+          <span className="stage-add-days-details__chev" aria-hidden />
+          <span className="stage-add-days-details__summary-text">
+            <span className="title-bar" style={{ marginBottom: "0.15rem", display: "block" }}>
+              Add days
+            </span>
+            <span className="muted" style={{ fontSize: "0.85rem", textTransform: "none", letterSpacing: "normal", fontWeight: 400 }}>
+              Single date or bulk range
+            </span>
+          </span>
+        </summary>
+        <div className="stage-add-days-details__body">
+          <div className="stage-add-days-details__block">
+            <div className="title-bar" style={{ marginBottom: "0.5rem" }}>Single day</div>
+            <div className="form-row">
+              <label>
+                <span className="form-label">Date</span>
+                <input type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)} />
+              </label>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => createDay.mutate()}
+                disabled={createDay.isPending}
+              >
+                {createDay.isPending ? "Adding…" : "Add day"}
+              </button>
+            </div>
+          </div>
+          <div className="stage-add-days-details__block stage-add-days-details__block--split">
+            <div className="title-bar" style={{ marginBottom: "0.5rem" }}>Bulk date range</div>
+            <div className="form-row">
+              <label>
+                <span className="form-label">From</span>
+                <input
+                  type="date"
+                  value={bulkFrom || (event?.startDate ?? "")}
+                  onChange={(e) => setBulkFrom(e.target.value)}
+                />
+              </label>
+              <label>
+                <span className="form-label">To</span>
+                <input
+                  type="date"
+                  value={bulkTo || (event?.endDate ?? "")}
+                  onChange={(e) => setBulkTo(e.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => bulkCreate.mutate()}
+                disabled={bulkCreate.isPending}
+              >
+                {bulkCreate.isPending ? "Creating…" : "Add range"}
+              </button>
+            </div>
+            <p className="muted" style={{ marginTop: "0.5rem", marginBottom: 0, fontSize: "0.85rem" }}>
+              Defaults to the event start/end dates when left blank.
+            </p>
+          </div>
+        </div>
+      </details>
 
       <ConfirmDialog
         open={deleteStageOpen}

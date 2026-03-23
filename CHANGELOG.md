@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** Stage detail page shows the **Days** list first; **Add day** and **bulk date range** live in one collapsible **Add days** section with clearer labels and layout. **`docs/USER_GUIDE.md`** (schedule workflow).
 - **Deployment / security:** Added internet beta hardening guidance for HAProxy deployments (`docs/SECURITY_BETA_DEPLOY.md`), including required production env (`FORCE_SECURE_COOKIES`, `CORS_ALLOWED_ORIGINS`, `REQUIRE_PASSWORD`), preflight checks, and backup/restore runbooks.
 - **Ops:** Added `scripts/backup-data.sh`, `scripts/restore-data.sh`, and `scripts/preflight-beta.sh` plus `make backup-data`, `make restore-data BACKUP_DIR=...`, and `make preflight-beta BASE_URL=...`.
 - **Docker / env:** `docker-compose.yml` now passes through `CORS_ALLOWED_ORIGINS`, `FORCE_SECURE_COOKIES`, and `REQUIRE_PASSWORD`, and supports `HOST_BIND` so app traffic can be bound to localhost behind HAProxy.

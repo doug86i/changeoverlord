@@ -48,7 +48,7 @@ A **banner** appears at the top of the screen when the connection to the server 
 
 1. **Events** — Create or open an **event** (one location; times are **local event time**). You can **edit** or **delete** events using the ✎ and ✕ buttons. With **many** events, use **Load more** at the bottom of the list to fetch the next page.
 2. **Stages** — Inside an event, add **stages** (e.g. Main, Second). Stages are editable and deletable inline.
-3. **Stage days** — For each stage, add **days** (individual dates or **bulk add** from a date range). Days can be deleted.
+3. **Stage days** — On a **stage** page, the **Days** list appears first. Expand **Add days** to add one date or use **Bulk date range** for many days at once (defaults to the event’s start/end when fields are left blank). Days can be deleted from the list.
 4. **Performances** — On a **stage day**, add **performances** (bands/slots) with **start**, **end** (either as a clock time or as **set length** in minutes), plus notes. Every slot has a finite end.
 
 ### Performance management
