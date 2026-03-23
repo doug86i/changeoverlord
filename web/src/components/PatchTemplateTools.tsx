@@ -749,6 +749,17 @@ export function StagePatchTemplatePicker({
   const selected = rows.find((t) => t.id === defaultPatchTemplateId);
   const isLocal = selected ? selected.stageId === stageId : false;
 
+  const summarySubtitle =
+    defaultPatchTemplateId && selected
+      ? `${selected.name} — ${isLocal ? "Stage template" : "Global template"}`
+      : defaultPatchTemplateId && listQ.isPending
+        ? "Loading…"
+        : defaultPatchTemplateId
+          ? "Template not in list — expand to fix"
+          : rows.length === 0
+            ? "No templates yet — add below or in Settings"
+            : "Select a template below…";
+
   useEffect(() => {
     if (!editId) return;
     const onKey = (e: KeyboardEvent) => {
@@ -768,9 +779,31 @@ export function StagePatchTemplatePicker({
         boxSizing: "border-box",
       }}
     >
-      <div className="title-bar" style={{ marginBottom: "0.75rem" }}>
-        Default patch / RF template
-      </div>
+      <details
+        className="stage-patch-template-details"
+        key={defaultPatchTemplateId ? "has-default" : "needs-default"}
+        defaultOpen={defaultPatchTemplateId == null}
+      >
+        <summary className="stage-patch-template-details__summary">
+          <span className="stage-patch-template-details__chev" aria-hidden />
+          <span className="stage-patch-template-details__summary-text">
+            <span className="title-bar" style={{ marginBottom: "0.15rem", display: "block" }}>
+              Default patch / RF template
+            </span>
+            <span
+              className="muted"
+              style={{
+                fontSize: "0.85rem",
+                textTransform: "none",
+                letterSpacing: "normal",
+                fontWeight: 400,
+              }}
+            >
+              {summarySubtitle}
+            </span>
+          </span>
+        </summary>
+        <div className="stage-patch-template-details__body">
       <p className="muted" style={{ marginTop: 0, fontSize: "0.85rem" }}>
         <strong>Global</strong> templates are shared (manage in{" "}
         <Link to="/settings">Settings</Link>).{" "}
@@ -1037,6 +1070,8 @@ export function StagePatchTemplatePicker({
           />
         </div>
       </div>
+        </div>
+      </details>
 
       <input
         ref={replaceRef}

@@ -143,6 +143,8 @@ Templates come in two tiers:
 
 Each stage picks one template (global or stage) as its **default for new performances**. New performances get a copy of the template **`sheets_json`** when created; existing band patch workbooks are not updated.
 
+On the **stage** page, **Default patch / RF template** stays **expanded** until you pick a default; after that it **collapses** to a short summary (template name and global vs stage). **Expand** it again to change the default, use **Add stage template**, or open template actions (**Edit spreadsheet**, **Preview**, etc.).
+
 Adding a stage template (file upload, **Import workbook JSON**, or **Create blank template**) **selects it automatically** as that stage’s default when the upload succeeds; you can still pick another template in the dropdown.
 
 **Creating templates**
