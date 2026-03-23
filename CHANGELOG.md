@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Web / API:** **Patch & RF** — **Export Excel** (`GET /api/v1/performances/:id/sheets-excel`), **Print patch** (print stylesheet hides chrome), **collab presence** when **more than one** connection (`GET …/collab-presence`, refreshed every few seconds), and a short **highlight** when another user applies edits over collab.
 - **API / Web / DB:** **Per-event logo** — `events.logo_file_id`, `file_assets.event_id`, uploads with `?eventId=`, `PATCH /events/:id` `{ logoFileId }`; header shows the logo on event / stage / day / patch / performance-files routes.
 - **API / Web:** **Copy a day’s schedule** — `POST /api/v1/stage-days/:id/duplicate-schedule` with `targetStageDayId` and optional `replaceExisting`; UI on the **stage day** page when the stage has other days.
-- **Web:** **PWA** — **vite-plugin-pwa** precaches the built SPA (large bundle limit raised for FortuneSheet); API/WebSocket stay **network-only**. Add to home screen / install where the browser supports it.
+- **Web:** **PWA** — **vite-plugin-pwa** precaches the built SPA (large bundle limit raised for FortuneSheet); API/WebSocket stay **network-only**. The generated service worker is built in **development** mode (unminified) so production `vite build` stays reliable in constrained CI/sandbox environments. Add to home screen / install where the browser supports it.
 
 ### Fixed
 
