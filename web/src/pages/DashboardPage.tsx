@@ -6,13 +6,14 @@ import {
   useAllStagesClockBundle,
 } from "../hooks/useAllStagesClockBundle";
 import { useServerTime } from "../hooks/useServerTime";
+import { formatLocalCalendarDate } from "../lib/dateFormat";
 
 /**
  * Production overview: now/next and changeover hints for every stage that has a day today.
  */
 export function DashboardPage() {
   const { now, isLoading: timeLoading } = useServerTime({ tickIntervalMs: 1000 });
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = formatLocalCalendarDate(now);
 
   const { eventsQ, events, stagesQs } = useAllStagesClockBundle();
 

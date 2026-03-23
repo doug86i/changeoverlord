@@ -5,13 +5,13 @@ import {
   flattenStageDaysForClock,
   useAllStagesClockBundle,
 } from "../hooks/useAllStagesClockBundle";
-import { formatDateShort } from "../lib/dateFormat";
+import { formatDateShort, formatLocalCalendarDate } from "../lib/dateFormat";
 import { useServerTime } from "../hooks/useServerTime";
 
 export function ClockPage() {
   const navigate = useNavigate();
   const { now, isLoading: timeLoading } = useServerTime({ tickIntervalMs: 250 });
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = formatLocalCalendarDate(now);
 
   const { eventsQ, events, stagesQs } = useAllStagesClockBundle();
 

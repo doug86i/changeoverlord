@@ -1,12 +1,8 @@
 import { apiGet } from "../api/client";
 import { fetchAllEvents } from "../api/paginated";
+import { formatLocalCalendarDate } from "./dateFormat";
 import { logDebug } from "./debug";
 import { LAST_STAGE_DAY_STORAGE_KEY } from "./useLastVisited";
-
-function localDateYmdFromUnixMs(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 /**
  * Resolves where "My stage today" should go: today's stage-day running order
@@ -14,7 +10,7 @@ function localDateYmdFromUnixMs(ms: number): string {
  */
 export async function resolveMyStageTodayPath(): Promise<string> {
   const time = await apiGet<{ unixMs: number }>("/api/v1/time");
-  const today = localDateYmdFromUnixMs(time.unixMs);
+  const today = formatLocalCalendarDate(new Date(time.unixMs));
 
   let lastId: string | null = null;
   try {

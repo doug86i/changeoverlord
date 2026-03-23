@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **Web:** **Dashboard** (`/dashboard`) — now/next for every stage that has a day **today** (server date), with links to clock, running order, and patch.
+- **Web:** **Dashboard** (`/dashboard`) — now/next for every stage that has a day **today** (local calendar), with links to clock, running order, and patch.
 - **Web:** **Clock** — when **more than one** stage runs **today**, a **multi-stage** grid shows now/next for each before the usual day list.
 - **Web / API:** **Patch & RF** — **Export Excel** (`GET /api/v1/performances/:id/sheets-excel`), **Print patch** (print stylesheet hides chrome), **collab presence** when **more than one** connection (`GET …/collab-presence`, refreshed every few seconds), and a short **highlight** when another user applies edits over collab.
 - **API / Web / DB:** **Per-event logo** — `events.logo_file_id`, `file_assets.event_id`, uploads with `?eventId=`, `PATCH /events/:id` `{ logoFileId }`; header shows the logo on event / stage / day / patch / performance-files routes.
@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Clock** and **Dashboard** — “today” matched **`stage_days.day_date`** using **`toISOString()`** (UTC), so the wrong day could appear near midnight or in non-UTC time zones. Filters now use the **local calendar** date, aligned with **My stage today** (`formatLocalCalendarDate`).
 - **API / Web:** Collab structural-op detection now treats only whole-workbook `replace ["luckysheetfile"]` as structural. Routine cell edits often use nested `replace` paths under `luckysheetfile/...`; those now stay on op relay instead of forcing `fullState` remounts that reloaded the grid and could jump users to the first tab.
 - **Web:** Remote-op formula recalc no longer cycles `activateSheet` across every tab before calculating. Recalc now runs by sheet id without changing tab focus, avoiding visible tab refresh/jump during normal remote edits.
 - **Web:** Patch workbook now preserves the currently active sheet when a mid-session collab **`fullState`** remount arrives, so remote structural sync no longer jumps users back to the first tab.

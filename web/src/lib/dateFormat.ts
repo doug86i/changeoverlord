@@ -4,6 +4,14 @@ const SHORT_MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+/**
+ * YYYY-MM-DD in the browser's local calendar — matches `stage_days.day_date`
+ * and date pickers (naive calendar day, not UTC).
+ */
+export function formatLocalCalendarDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** "Fri 20 Jun 2026" from "2026-06-20" */
 export function formatDateFriendly(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
