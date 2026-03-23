@@ -1138,14 +1138,92 @@ a.search-dialog-result:focus-visible {
  */
 .clock-arena-top-meta:has(.clock-arena-handover-banner) {
   flex-shrink: 0;
-  min-height: auto;
+  /* Reserve space for the yellow strip; never let cqh=0 collapse this to 0 height. */
+  min-height: max(2.75rem, min(36cqh, 9rem));
   max-height: min(70cqh, 26rem);
   overflow-y: auto;
 }
 
-/* Give the hero a slightly smaller floor when a banner is present so both fit in tiny panels. */
+/* Give the hero a smaller floor when a banner is present so footer/wall can yield space. */
 .clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-countdown-region {
-  min-height: max(2rem, min(16cqh, 7.5rem));
+  min-height: max(1.25rem, min(12cqh, 6rem));
+}
+
+/* Handover mode: footer + local-time strip may shrink so the banner stays on screen (e.g. dashboard). */
+.clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-wall-mid {
+  flex-shrink: 1;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-wall-caption {
+  margin-bottom: 0.1rem;
+  font-size: clamp(0.4rem, 2.2cqmin, 0.75rem);
+}
+
+.clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-wall--primary {
+  font-size: clamp(0.45rem, 4cqmin, 1.5rem);
+}
+
+.clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-footer {
+  flex-shrink: 1;
+  min-height: 0;
+  margin-top: 0.15rem;
+  padding-top: 0;
+}
+
+.clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-footer-bar {
+  padding: 0.2rem 0.15rem 0.3rem;
+  gap: 0.2rem 0.4rem;
+}
+
+.clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-footer-label {
+  font-size: clamp(0.38rem, 1.8cqmin, 0.65rem);
+  margin-bottom: 0.02rem;
+}
+
+.clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-footer-value {
+  font-size: clamp(0.4rem, 2.2cqmin, 0.85rem);
+  line-height: 1.15;
+}
+
+/* Very short clock panels: compress metadata row even without :has (dashboard previews). */
+@container clock-arena (max-height: 280px) {
+  .clock-arena-footer {
+    flex-shrink: 1;
+    min-height: 0;
+  }
+
+  .clock-arena-footer-bar {
+    padding: 0.2rem 0.12rem 0.3rem;
+    gap: 0.2rem 0.35rem;
+  }
+
+  .clock-arena-wall-mid {
+    flex-shrink: 1;
+    min-height: 0;
+  }
+
+  .clock-arena-top-meta:has(.clock-arena-handover-banner) {
+    min-height: max(2.75rem, min(42cqh, 10rem));
+  }
+
+  .clock-arena-handover-banner {
+    padding: clamp(0.2rem, 1.5cqmin, 0.75rem) clamp(0.25rem, 1.8cqmin, 0.85rem);
+  }
+
+  .clock-arena-handover-banner__title {
+    font-size: clamp(0.65rem, 12cqmin, 3.5rem);
+  }
+
+  .clock-arena-handover-banner--title-only .clock-arena-handover-banner__title {
+    font-size: clamp(0.7rem, 14cqmin, 4rem);
+  }
+
+  .clock-arena-handover-banner__sub {
+    font-size: clamp(0.5rem, 5cqmin, 1.35rem);
+  }
 }
 
 .clock-arena-countdown-region {
