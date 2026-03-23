@@ -86,6 +86,13 @@ export type ChatMessageRow = {
   createdAt: string;
 };
 
+/** In-memory presence snapshot (`GET /api/v1/chat/presence`). */
+export type ChatPresenceOnlineRow = {
+  clientId: string;
+  displayName: string;
+  lastSeen: string;
+};
+
 export type FileAssetPurpose = "rider_pdf" | "plot_pdf" | "generic";
 
 export type FileAssetRow = {

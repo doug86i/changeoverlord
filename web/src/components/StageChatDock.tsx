@@ -9,13 +9,54 @@ import { createPortal } from "react-dom";
 import { useLocation, useMatch } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiSend } from "../api/client";
-import type { ChatMessageRow, StageRow } from "../api/types";
+import type {
+  ChatMessageRow,
+  ChatPresenceOnlineRow,
+  StageRow,
+} from "../api/types";
 import {
   setChatPushHandler,
   type RealtimeChatPushV1,
 } from "../realtime/chatPush";
 
 const CHAT_NAME_KEY = "changeoverlord_chat_display_name";
+const CHAT_CLIENT_ID_KEY = "changeoverlord_chat_client_id";
+
+function readStoredChatName(): string {
+  try {
+    return localStorage.getItem(CHAT_NAME_KEY)?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function getChatClientId(): string {
+  try {
+    let id = sessionStorage.getItem(CHAT_CLIENT_ID_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem(CHAT_CLIENT_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return `fallback-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+function formatPresenceAge(iso: string): string {
+  try {
+    const t = new Date(iso).getTime();
+    const s = Math.floor((Date.now() - t) / 1000);
+    if (s < 60) return "Active now";
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    return new Date(iso).toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
 
 /** While POST is in flight, SSE may arrive before `onSuccess` sets `lastSentIdRef`. */
 type PendingOwnEcho = {
@@ -148,21 +189,20 @@ export function StageChatDock() {
   const [expanded, setExpanded] = useState(false);
   const [flash, setFlash] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [presenceOpen, setPresenceOpen] = useState(false);
+  const [introDone, setIntroDone] = useState(() => Boolean(readStoredChatName()));
   const [sendScope, setSendScope] = useState<"stage" | "event">("stage");
   const [draft, setDraft] = useState("");
-  const [authorDraft, setAuthorDraft] = useState(() => {
-    try {
-      return localStorage.getItem(CHAT_NAME_KEY) ?? "";
-    } catch {
-      return "";
-    }
-  });
+  const [authorDraft, setAuthorDraft] = useState(() => readStoredChatName());
+  const authorDraftRef = useRef(authorDraft);
+  authorDraftRef.current = authorDraft;
 
   const lastSentIdRef = useRef<string | null>(null);
   const pendingOwnEchoRef = useRef<PendingOwnEcho | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const settingsOpenRef = useRef(false);
+  const presenceOpenRef = useRef(false);
 
   const acknowledgeChatAttention = useCallback(() => {
     setFlash(false);
@@ -172,19 +212,50 @@ export function StageChatDock() {
     settingsOpenRef.current = settingsOpen;
   }, [settingsOpen]);
 
+  useEffect(() => {
+    presenceOpenRef.current = presenceOpen;
+  }, [presenceOpen]);
+
   const messagesQ = useQuery({
     queryKey: ["chatMessages", eventId, contextStageId],
     queryFn: () =>
       apiGet<{ chatMessages: ChatMessageRow[] }>(
         `/api/v1/chat/messages?eventId=${encodeURIComponent(eventId!)}&stageId=${encodeURIComponent(contextStageId!)}`,
       ),
-    enabled: Boolean(eventId && contextStageId),
+    enabled: Boolean(eventId && contextStageId && introDone),
   });
+
+  const presenceQ = useQuery({
+    queryKey: ["chatPresence", eventId],
+    queryFn: () =>
+      apiGet<{ online: ChatPresenceOnlineRow[] }>(
+        `/api/v1/chat/presence?eventId=${encodeURIComponent(eventId!)}`,
+      ),
+    enabled: Boolean(eventId && presenceOpen && introDone),
+    refetchInterval: presenceOpen && introDone ? 20_000 : false,
+  });
+
+  useEffect(() => {
+    if (!expanded || !introDone || !eventId) return;
+    const tick = () => {
+      void apiSend("/api/v1/chat/presence", "POST", {
+        eventId,
+        clientId: getChatClientId(),
+        displayName: authorDraftRef.current.trim() || "Anonymous",
+      }).catch(() => {
+        /* offline / 401 — ignore */
+      });
+    };
+    tick();
+    const t = window.setInterval(tick, 45_000);
+    return () => window.clearInterval(t);
+  }, [expanded, introDone, eventId]);
 
   const sendMut = useMutation({
     mutationFn: async () => {
       const author = authorDraft.trim();
       const body = draft.trim();
+      if (!author) throw new Error("Set your display name in Options.");
       if (!eventId || !contextStageId) throw new Error("Missing context");
       try {
         localStorage.setItem(CHAT_NAME_KEY, author);
@@ -228,11 +299,18 @@ export function StageChatDock() {
   });
 
   const trySend = useCallback(() => {
-    if (!draft.trim() || sendMut.isPending || !eventId || !contextStageId) return;
+    if (
+      !draft.trim() ||
+      !authorDraft.trim() ||
+      sendMut.isPending ||
+      !eventId ||
+      !contextStageId
+    )
+      return;
     void sendMut.mutateAsync().catch(() => {
       /* surfaced below */
     });
-  }, [draft, sendMut, eventId, contextStageId]);
+  }, [draft, authorDraft, sendMut, eventId, contextStageId]);
 
   const onChatPush = useCallback(
     (msg: RealtimeChatPushV1) => {
@@ -270,16 +348,19 @@ export function StageChatDock() {
   }, [eventId, contextStageId, onChatPush]);
 
   useEffect(() => {
+    if (!introDone) return;
     if (!messagesQ.data?.chatMessages.length) return;
     listEndRef.current?.scrollIntoView({ block: "end" });
-  }, [messagesQ.data?.chatMessages]);
+  }, [introDone, messagesQ.data?.chatMessages]);
 
   useEffect(() => {
     if (!expanded) return;
     const onPointerDown = (e: PointerEvent) => {
       const root = rootRef.current;
       if (!root || root.contains(e.target as Node)) return;
-      if (settingsOpenRef.current) {
+      if (presenceOpenRef.current) {
+        setPresenceOpen(false);
+      } else if (settingsOpenRef.current) {
         setSettingsOpen(false);
       } else {
         setExpanded(false);
@@ -293,7 +374,9 @@ export function StageChatDock() {
     if (!expanded) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (settingsOpenRef.current) {
+      if (presenceOpenRef.current) {
+        setPresenceOpen(false);
+      } else if (settingsOpenRef.current) {
         setSettingsOpen(false);
       } else {
         setExpanded(false);
@@ -310,6 +393,17 @@ export function StageChatDock() {
       `stage-chat-dock${flash ? " stage-chat-dock--flash" : ""}${expanded ? " stage-chat-dock--open" : " stage-chat-dock--collapsed"}`,
     [flash, expanded],
   );
+
+  const completeIntro = useCallback(() => {
+    const name = authorDraft.trim();
+    if (!name) return;
+    try {
+      localStorage.setItem(CHAT_NAME_KEY, name);
+    } catch {
+      /* ignore */
+    }
+    setIntroDone(true);
+  }, [authorDraft]);
 
   if (onClockScreen || !eventId || !contextStageId) {
     return null;
@@ -362,11 +456,47 @@ export function StageChatDock() {
               onClick={() => {
                 setExpanded(false);
                 setSettingsOpen(false);
+                setPresenceOpen(false);
               }}
             >
               Minimize
             </button>
           </div>
+          {!introDone ? (
+            <div className="stage-chat-dock__intro">
+              <p className="title-bar" style={{ marginBottom: "0.5rem" }}>
+                Your name
+              </p>
+              <p className="muted" style={{ marginTop: 0, fontSize: "0.85rem" }}>
+                This appears on messages you send. You can change it later in{" "}
+                <strong>Options</strong>.
+              </p>
+              <input
+                type="text"
+                className="stage-chat-dock__input"
+                value={authorDraft}
+                onChange={(e) => setAuthorDraft(e.target.value)}
+                maxLength={80}
+                placeholder="e.g. FOH"
+                aria-label="Your chat display name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" || e.shiftKey) return;
+                  e.preventDefault();
+                  completeIntro();
+                }}
+              />
+              <button
+                type="button"
+                className="primary"
+                disabled={!authorDraft.trim()}
+                onClick={completeIntro}
+              >
+                Continue
+              </button>
+            </div>
+          ) : (
+            <>
           <div className="stage-chat-dock__messages" role="log" aria-live="polite">
             {messagesQ.isLoading ? (
               <p className="muted">Loading…</p>
@@ -399,11 +529,63 @@ export function StageChatDock() {
                 className="icon-btn"
                 aria-expanded={settingsOpen}
                 id="stage-chat-dock-options-btn"
-                onClick={() => setSettingsOpen((o) => !o)}
+                onClick={() => {
+                  setPresenceOpen(false);
+                  setSettingsOpen((o) => !o);
+                }}
               >
                 Options
               </button>
+              <button
+                type="button"
+                className="icon-btn"
+                aria-expanded={presenceOpen}
+                id="stage-chat-dock-presence-btn"
+                title="Browsers with chat open on this event (same server)"
+                onClick={() => {
+                  setSettingsOpen(false);
+                  setPresenceOpen((o) => !o);
+                }}
+              >
+                Who&apos;s online
+              </button>
             </div>
+            {presenceOpen ? (
+              <div
+                className="stage-chat-dock__presence-panel"
+                role="region"
+                aria-labelledby="stage-chat-dock-presence-btn"
+              >
+                {presenceQ.isLoading ? (
+                  <p className="muted">Loading…</p>
+                ) : presenceQ.isError ? (
+                  <p role="alert" className="stage-chat-dock__err">
+                    Could not load presence.
+                  </p>
+                ) : (presenceQ.data?.online.length ?? 0) === 0 ? (
+                  <p className="muted" style={{ margin: 0 }}>
+                    No other clients visible right now (or still connecting).
+                  </p>
+                ) : (
+                  <ul className="stage-chat-dock__presence-list">
+                    {presenceQ.data!.online.map((p) => (
+                      <li key={p.clientId}>
+                        <span className="stage-chat-dock__presence-name">
+                          {p.displayName}
+                        </span>
+                        <span className="muted stage-chat-dock__presence-age">
+                          {formatPresenceAge(p.lastSeen)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="muted stage-chat-dock__presence-note">
+                  Each open tab is listed separately. Entries expire ~90s after the
+                  last heartbeat. Single server process only.
+                </p>
+              </div>
+            ) : null}
             {settingsOpen ? (
               <div
                 id="stage-chat-dock-settings"
@@ -479,7 +661,9 @@ export function StageChatDock() {
             <button
               type="button"
               className="primary"
-              disabled={sendMut.isPending || !draft.trim()}
+              disabled={
+                sendMut.isPending || !draft.trim() || !authorDraft.trim()
+              }
               onClick={() => trySend()}
             >
               {sendMut.isPending ? "Sending…" : "Send"}
@@ -492,6 +676,8 @@ export function StageChatDock() {
               </p>
             ) : null}
           </div>
+            </>
+          )}
         </div>
       )}
     </div>,

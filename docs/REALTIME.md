@@ -110,6 +110,14 @@ The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON message
 
 ---
 
+## Chat presence (who’s online)
+
+**Not** sent over SSE. Clients with the chat panel open **`POST /api/v1/chat/presence`** on an interval (heartbeat) with **`eventId`**, a per-tab **`clientId`** (UUID in `sessionStorage`), and **`displayName`**. **`GET /api/v1/chat/presence?eventId=`** returns recent heartbeats.
+
+The server keeps presence **in memory** per event (`api/src/lib/chat-presence.ts`), with entries expiring **~90 seconds** after the last heartbeat. **Multiple API replicas do not share this list** — same limitation as the SSE bus unless you add shared state.
+
+---
+
 ## Limits (single API process)
 
 The invalidate bus is **in-process** (`EventEmitter`). It is correct for **one** API container (typical LAN deployment). Redis is **not** in the stack.

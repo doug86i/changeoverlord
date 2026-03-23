@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **API / Web:** Chat **presence** — `GET/POST /api/v1/chat/presence` with in-memory per-event heartbeats (~90s TTL, single API process). **Web:** **Who’s online** next to **Options**, and **first-time chat name** screen before messages load; send requires a non-empty display name. **`docs/REALTIME.md`**, **`docs/USER_GUIDE.md`**.
+
 ### Fixed
 
 - **API / Web:** Collab structural-op detection now treats only whole-workbook `replace ["luckysheetfile"]` as structural. Routine cell edits often use nested `replace` paths under `luckysheetfile/...`; those now stay on op relay instead of forcing `fullState` remounts that reloaded the grid and could jump users to the first tab.

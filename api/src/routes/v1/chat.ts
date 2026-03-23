@@ -2,10 +2,38 @@ import type { FastifyPluginAsync } from "fastify";
 import { and, asc, eq, or } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { events, stageChatMessages, stages } from "../../db/schema.js";
+import { getChatPresence, touchChatPresence } from "../../lib/chat-presence.js";
 import { broadcastChatMessage } from "../../lib/realtime-bus.js";
-import { chatMessagesQuery, postChatMessageBody } from "../../schemas/api.js";
+import {
+  chatMessagesQuery,
+  chatPresenceQuery,
+  postChatMessageBody,
+  postChatPresenceBody,
+} from "../../schemas/api.js";
 
 export const chatRoutes: FastifyPluginAsync = async (app) => {
+  app.get("/chat/presence", async (req, reply) => {
+    const q = chatPresenceQuery.parse(req.query);
+    const [ev] = await db.select().from(events).where(eq(events.id, q.eventId));
+    if (!ev) return reply.code(404).send({ error: "NotFound" });
+    return { online: getChatPresence(q.eventId) };
+  });
+
+  app.post("/chat/presence", async (req, reply) => {
+    const body = postChatPresenceBody.parse(req.body);
+    const [ev] = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, body.eventId));
+    if (!ev) return reply.code(404).send({ error: "NotFound" });
+    touchChatPresence(body.eventId, body.clientId, body.displayName);
+    req.log.debug(
+      { eventId: body.eventId, clientId: body.clientId },
+      "chat presence heartbeat",
+    );
+    return reply.code(204).send();
+  });
+
   app.get("/chat/messages", async (req, reply) => {
     const q = chatMessagesQuery.parse(req.query);
     const [ev] = await db.select().from(events).where(eq(events.id, q.eventId));

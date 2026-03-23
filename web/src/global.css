@@ -2412,6 +2412,53 @@ a.patch-sidebar-perf-link:hover {
   gap: 0.5rem;
 }
 
+.stage-chat-dock__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.stage-chat-dock__presence-panel {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stage-chat-dock__presence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(40vh, 200px);
+  overflow-y: auto;
+}
+
+.stage-chat-dock__presence-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+  font-size: 0.85rem;
+}
+
+.stage-chat-dock__presence-name {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.stage-chat-dock__presence-age {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+}
+
+.stage-chat-dock__presence-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .stage-chat-dock__settings-block {
   display: flex;
   flex-direction: column;

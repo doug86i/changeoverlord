@@ -95,6 +95,16 @@ export const chatMessagesQuery = z.object({
   stageId: z.string().uuid(),
 });
 
+export const chatPresenceQuery = z.object({
+  eventId: z.string().uuid(),
+});
+
+export const postChatPresenceBody = z.object({
+  eventId: z.string().uuid(),
+  clientId: z.string().uuid(),
+  displayName: z.string().max(80),
+});
+
 export const postChatMessageBody = z
   .object({
     eventId: z.string().uuid(),
