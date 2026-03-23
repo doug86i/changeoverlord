@@ -120,6 +120,15 @@ All tier-1 features from the original requirements are implemented:
 | DHSL footer branding | **Done** |
 | Stage chat (incl. sent vs received bubble layout) | **Done** |
 | Print day sheet | **Done** |
+| Event dashboard (today, all stages) | **Done** |
+| Multi-stage clock overview (2+ stages today) | **Done** |
+| Patch collab presence + remote-edit highlight | **Done** |
+| Per-event logo + header branding | **Done** |
+| Print patch workbook | **Done** |
+| Export performance patch as Excel (`.xlsx`) | **Done** |
+| Bulk day creation (stage page date range) | **Done** |
+| Duplicate day schedule to another day (same stage) | **Done** |
+| PWA / service worker (app shell precache) | **Done** |
 
 ---
 
@@ -127,25 +136,11 @@ All tier-1 features from the original requirements are implemented:
 
 ### Must-have
 
-| ID | Feature | Notes |
-|----|---------|-------|
-| B-1 | **Client logo upload** in Settings — PNG or SVG, displayed in the header | Not started |
-| B-2 | **Logo safe-area preview** — show how it will look before saving | |
-| M-1 | **Event dashboard** — each stage with current/next band and changeover status for today | |
+*(None — previous must-haves are shipped; add new rows here when priorities change.)*
 
 ### Should-have
 
-| ID | Feature | Notes |
-|----|---------|-------|
-| A-1 | **Active users count** — "2 people editing" on the patch page | |
-| A-2 | **Change highlighting** — flash cells changed by another user | |
-| B-3 | **Per-event logo** — different festivals may have different clients | |
-| M-2 | **Multi-stage clock** — now/next for all stages side by side | |
-| PR-2 | **Print patch list** — printable patch workbook formatted for paper | |
-| PR-3 | **Export patch as Excel** — download `.xlsx` of a performance's workbook | |
-| S-11 | **Bulk day creation** — "Add days from [start] to [end]" | |
-| S-12 | **Duplicate a day's running order** — copy Saturday's schedule to Sunday | |
-| W-4 | **PWA / service worker** — cache the app shell for faster reload on poor Wi-Fi | |
+*(None — previous should-haves from this doc are shipped or tracked above.)*
 
 ### Post-MVP ideas
 
@@ -154,9 +149,7 @@ All tier-1 features from the original requirements are implemented:
 | Activity log | Append-only schedule/patch history |
 | Kiosk / guest mode | Read-only URL for visiting engineers |
 | Light roles | FOH / monitors / stage — same data, different default views |
-| Contingency slots | TBD acts without breaking the clock |
 | Stage notes | Weather / intercom / SM notes per day (not the spreadsheet) |
-| Mic line / walk checklist | Optional separate from patch grid |
 | QR codes on running order | Display a QR code next to each performance in the running order (stage-day view / print sheet) linking directly to that band's patch workbook — patch crew can scan with their phone camera to jump straight to the right patch without navigating the app |
 | Cloud folder sync | Push/pull event packages via SeaDrive, Dropbox, Google Drive |
 | Live Google Sheets sync | Optional integration when internet + OAuth are acceptable |

@@ -20,16 +20,19 @@ Changeoverlord helps festival **sound crew** run **multi-day schedules**, **chan
 | Area | What it's for |
 |------|----------------|
 | **Events** | List and open **events** (festivals, tours, etc.). |
+| **Dashboard** | **Today** across the whole site — now/next for every stage that has a day on today’s date. |
 | **Clock** | **Stage clocks** — now/next and fullscreen display for a stage day. |
 | **Settings** | Shared password, **global patch / RF templates**, and other app options. |
 
-The header links **Events**, **Clock**, and **Settings** on every screen. On **mobile**, tap the **hamburger menu** (☰) to expand the navigation.
+The header links **Events**, **Dashboard**, **Clock**, and **Settings** on every screen. On **mobile**, tap the **hamburger menu** (☰) to expand the navigation.
+
+When an event has a **logo** set on its detail page, a small version may appear in the header while you work **inside that event** (event, stage, day, patch, or band files).
 
 ### Quick access
 
 - **Search** — Press **`/`** or **`Ctrl+K`** (or tap the 🔍 icon) to open the **search dialog**. Search by band name, event, or stage; results link directly to the relevant page.
 - **My stage today** — In the header, **My stage today** opens **today’s** stage-day **running order** (same screen as drilling in from Events → Stage → Day). It uses the **server date** and, when it matches, your **last visited** stage-day. If several stages have a day today, you’re sent to **Clock** to pick one. Shortcut: **`g`** then **`m`**.
-- **Keyboard shortcuts** — Press **`?`** to see all shortcuts (e.g. `g e` = Events, `g m` = My stage today, `g c` = Clock).
+- **Keyboard shortcuts** — Press **`?`** to see all shortcuts (e.g. `g e` = Events, `g d` = Dashboard, `g m` = My stage today, `g c` = Clock).
 - **Last visited stage-day** — The app remembers your last visited stage-day in the browser (for **My stage today** when that day is today).
 
 ### If the page crashes
@@ -48,8 +51,9 @@ A **banner** appears at the top of the screen when the connection to the server 
 
 1. **Events** — Create or open an **event** (one location; times are **local event time**). You can **edit** or **delete** events using the ✎ and ✕ buttons. With **many** events, use **Load more** at the bottom of the list to fetch the next page.
 2. **Stages** — Inside an event, add **stages** (e.g. Main, Second). Stages are editable and deletable inline.
-3. **Stage days** — On a **stage** page, the **Days** list appears first. Expand **Add days** to add one date or use **Bulk date range** for many days at once (defaults to the event’s start/end when fields are left blank). Days can be deleted from the list.
-4. **Performances** — On a **stage day**, add **performances** (bands/slots) with **start**, **end** (either as a clock time or as **set length** in minutes), plus notes. Every slot has a finite end.
+3. **Event logo (optional)** — On the **event** detail page, under **Event logo**, upload a **PNG** or **JPEG**. It appears in the header when you navigate within that event. You can **Clear logo** or pick **Use as logo** from images already uploaded for the event.
+4. **Stage days** — On a **stage** page, the **Days** list appears first. Expand **Add days** to add one date or use **Bulk date range** for many days at once (defaults to the event’s start/end when fields are left blank). Days can be deleted from the list.
+5. **Performances** — On a **stage day**, add **performances** (bands/slots) with **start**, **end** (either as a clock time or as **set length** in minutes), plus notes. Every slot has a finite end.
 
 ### Performance management
 
@@ -71,6 +75,7 @@ On the **stage day page**, each performance supports:
 - **Now/Next indicators** — Green "ON STAGE" and amber "NEXT" badges based on server-synced time.
 - **Time colours** — As an act's remaining time runs low, the duration displays in green → amber → red.
 - **Print** — Click 🖨 to print a clean running order table.
+- **Copy schedule to another day** — When the stage has **more than one** day, use **Copy schedule to another day** to duplicate **this** day’s acts and patch workbooks onto another date on the **same** stage. If the target day already has acts, tick **Replace existing acts on target** (this removes the target day’s performances first) or the copy is blocked.
 
 ### Export and import
 
@@ -102,6 +107,10 @@ Each **performance** can have a **patch / RF workbook** — a multi-sheet grid (
 - **Tablet and desktop (768px and wider):** the spreadsheet sits beside a **context sidebar** you can **Hide »** / **« Context** to collapse to a thin rail. On **tablet** the sidebar column is slightly narrower so the grid has more room.
 - **Phone (narrow portrait, same breakpoint as the rest of the app — viewport 767px wide or less):** the sheet is **read-only** and uses almost the full screen: a thin bar shows the **band name** and a **Menu** button. Open **Menu** for breadcrumbs, **prev/next band**, **connection status**, and the same **sidebar** content (clock, now/next, files, plot). The grid keeps **layout, conditional formatting, and formulas**; **toolbar** and **formula bar** are hidden. **Pinch-zoom** and **drag to pan** the sheet (movement matches your finger). Edits from a desktop still **update live** on the phone. When you **switch away** or the **screen turns off**, the app **disconnects** the patch sync to save battery and **reconnects** when you return.
 - **Collaboration** uses a live connection to the server; keep the tab open while **editing** on desktop/tablet.
+- **Who’s online (desktop/tablet)** — Next to **Live**, the page may show **N people editing** (count of open collab connections for this act, including your tab).
+- **When someone else edits** — The sheet area gives a **short highlight** so you notice remote changes (not per-cell tracing).
+- **Export Excel** — Downloads an **`.xlsx`** of this act’s workbook (same data as the grid; use **Export JSON** for FortuneSheet-native round-trips).
+- **Print patch** — Opens the browser **print** dialog; the print layout hides navigation and sidebar so the **grid** prints more cleanly.
 
 ### Patch page sidebar (stay on the sheet)
 
@@ -227,6 +236,13 @@ The app works on **desktop**, **tablet**, and **phone**:
 - **Desktop** — Full layout with sidebar navigation.
 - **Tablet** — Content expands to full width.
 - **Phone** — Hamburger menu, stacked forms, touch-friendly targets (44px minimum).
+
+---
+
+## Offline, install, and slow networks
+
+- The app uses **offline-first** caching for **REST** reads where possible; you still need the server for **sign-in**, **saving**, **collaborative patch**, and **realtime** updates.
+- **Progressive Web App (PWA)** — After the first visit, many browsers **cache** the built app (HTML/JS/CSS) so **reloading** the site is faster on poor Wi‑Fi. **API** and **WebSocket** traffic are not cached by the service worker. Use **Install app** / **Add to Home Screen** if your browser offers it.
 
 ---
 

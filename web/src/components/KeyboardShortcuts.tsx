@@ -4,6 +4,7 @@ const SHORTCUTS = [
   { key: "/", desc: "Search" },
   { key: "?", desc: "Show keyboard shortcuts" },
   { key: "g e", desc: "Go to Events" },
+  { key: "g d", desc: "Go to Dashboard" },
   { key: "g m", desc: "My stage today" },
   { key: "g c", desc: "Go to Clock" },
   { key: "g s", desc: "Go to Settings" },
@@ -96,6 +97,7 @@ export function useGlobalShortcuts({
         clearTimeout(gTimeoutRef.current);
         gTimeoutRef.current = undefined;
         if (e.key === "e") { navigate("/"); return; }
+        if (e.key === "d") { navigate("/dashboard"); return; }
         if (e.key === "m" && onMyStageToday) {
           e.preventDefault();
           void onMyStageToday();

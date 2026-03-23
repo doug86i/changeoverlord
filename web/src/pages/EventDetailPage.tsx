@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { apiGet, apiSend } from "../api/client";
-import type { EventRow, StageRow } from "../api/types";
-import { useState } from "react";
+import { apiGet, apiSend, apiSendForm } from "../api/client";
+import type { EventRow, FileAssetRow, StageRow } from "../api/types";
+import { useRef, useState } from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ExportEventButton } from "../components/ExportImportTools";
 import { formatDateFriendly } from "../lib/dateFormat";
@@ -23,6 +23,43 @@ export function EventDetailPage() {
     queryFn: () =>
       apiGet<{ stages: StageRow[] }>(`/api/v1/events/${eventId}/stages`),
     enabled: Boolean(eventId),
+  });
+
+  const eventFilesQ = useQuery({
+    queryKey: ["files", "event", eventId],
+    queryFn: () =>
+      apiGet<{ files: FileAssetRow[] }>(`/api/v1/files?eventId=${eventId}`),
+    enabled: Boolean(eventId),
+  });
+
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const setLogoMut = useMutation({
+    mutationFn: (logoFileId: string | null) =>
+      apiSend(`/api/v1/events/${eventId}`, "PATCH", { logoFileId }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["event", eventId] });
+      void qc.invalidateQueries({ queryKey: ["events"] });
+    },
+  });
+
+  const uploadEventFile = useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData();
+      fd.append("file", file);
+      return apiSendForm<{ file: FileAssetRow }>(
+        `/api/v1/files?eventId=${eventId}`,
+        "POST",
+        fd,
+      );
+    },
+    onSuccess: (res) => {
+      void qc.invalidateQueries({ queryKey: ["files", "event", eventId] });
+      const mime = res?.file?.mimeType ?? "";
+      if (mime.startsWith("image/") && res?.file?.id) {
+        setLogoMut.mutate(res.file.id);
+      }
+    },
   });
 
   const [name, setName] = useState("");
@@ -163,6 +200,85 @@ export function EventDetailPage() {
           </p>
         </>
       )}
+
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <div className="title-bar" style={{ marginBottom: "0.75rem" }}>
+          Event logo
+        </div>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Shown in the header when you work inside this event. PNG or JPEG recommended.
+        </p>
+        {ev.logoFileId ? (
+          <div style={{ marginBottom: "0.75rem" }}>
+            <img
+              src={`/api/v1/files/${ev.logoFileId}/raw`}
+              alt=""
+              style={{ maxHeight: 56, maxWidth: 200, objectFit: "contain" }}
+            />
+          </div>
+        ) : (
+          <p className="muted" style={{ marginTop: 0 }}>
+            No logo set.
+          </p>
+        )}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+          <button
+            type="button"
+            className="icon-btn"
+            disabled={uploadEventFile.isPending}
+            onClick={() => logoInputRef.current?.click()}
+          >
+            Upload image
+          </button>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) uploadEventFile.mutate(f);
+            }}
+          />
+          {ev.logoFileId ? (
+            <button
+              type="button"
+              className="icon-btn danger-text"
+              disabled={setLogoMut.isPending}
+              onClick={() => setLogoMut.mutate(null)}
+            >
+              Clear logo
+            </button>
+          ) : null}
+        </div>
+        {eventFilesQ.data?.files?.some((f) => f.mimeType.startsWith("image/")) ? (
+          <div style={{ marginTop: "0.75rem" }}>
+            <div className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.35rem" }}>
+              Or pick an uploaded image:
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {eventFilesQ.data.files
+                .filter((f) => f.mimeType.startsWith("image/"))
+                .map((f) => (
+                  <li key={f.id} style={{ marginBottom: "0.35rem" }}>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      disabled={setLogoMut.isPending || ev.logoFileId === f.id}
+                      onClick={() => setLogoMut.mutate(f.id)}
+                    >
+                      Use as logo
+                    </button>
+                    <span className="muted" style={{ marginLeft: "0.5rem", fontSize: "0.85rem" }}>
+                      {f.originalName}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
 
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <div className="title-bar" style={{ marginBottom: "0.75rem" }}>

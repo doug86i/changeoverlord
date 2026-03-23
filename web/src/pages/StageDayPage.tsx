@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useServerTime } from "../hooks/useServerTime";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import {
+  formatDateFriendly,
   formatDateShort,
   minutesBetween,
   formatDuration,
@@ -105,7 +106,9 @@ export function StageDayPage() {
   const dayQ = useQuery({
     queryKey: ["stageDay", stageDayId],
     queryFn: () =>
-      apiGet<{ stageDay: StageDayRow }>(`/api/v1/stage-days/${stageDayId}`),
+      apiGet<{ stageDay: StageDayRow; eventLogoFileId?: string | null }>(
+        `/api/v1/stage-days/${stageDayId}`,
+      ),
     enabled: Boolean(stageDayId),
   });
 
@@ -113,7 +116,17 @@ export function StageDayPage() {
 
   const stageQ = useQuery({
     queryKey: ["stage", stageId],
-    queryFn: () => apiGet<{ stage: StageRow }>(`/api/v1/stages/${stageId}`),
+    queryFn: () =>
+      apiGet<{ stage: StageRow & { eventLogoFileId?: string | null } }>(
+        `/api/v1/stages/${stageId}`,
+      ),
+    enabled: Boolean(stageId),
+  });
+
+  const daysListQ = useQuery({
+    queryKey: ["stageDays", stageId],
+    queryFn: () =>
+      apiGet<{ stageDays: StageDayRow[] }>(`/api/v1/stages/${stageId}/days`),
     enabled: Boolean(stageId),
   });
 
@@ -155,6 +168,8 @@ export function StageDayPage() {
   // Shift state
   const [shiftTargetId, setShiftTargetId] = useState<string | null>(null);
   const [shiftMinutes, setShiftMinutes] = useState(15);
+  const [copyTargetDayId, setCopyTargetDayId] = useState("");
+  const [copyReplaceExisting, setCopyReplaceExisting] = useState(false);
 
   const sorted = useMemo(
     () => sortPerfs(perfQ.data?.performances ?? []),
@@ -345,6 +360,22 @@ export function StageDayPage() {
     onSuccess: () => { invalidate(); setSwapSourceId(null); },
   });
 
+  const duplicateDaySchedule = useMutation({
+    mutationFn: ({ targetId, replace }: { targetId: string; replace: boolean }) =>
+      apiSend<{ performanceIds: string[] }>(
+        `/api/v1/stage-days/${stageDayId}/duplicate-schedule`,
+        "POST",
+        { targetStageDayId: targetId, replaceExisting: replace },
+      ),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: ["performances", vars.targetId] });
+      void qc.invalidateQueries({ queryKey: ["stageDay", vars.targetId] });
+      void qc.invalidateQueries({ queryKey: ["allStagesForClock"] });
+      setCopyTargetDayId("");
+      setCopyReplaceExisting(false);
+    },
+  });
+
   const shiftPerfs = useMutation({
     mutationFn: ({ fromId, minutes }: { fromId: string; minutes: number }) =>
       apiSend(`/api/v1/stage-days/${stageDayId}/shift`, "POST", {
@@ -380,6 +411,13 @@ export function StageDayPage() {
 
   const inSwapMode = swapSourceId !== null;
 
+  const otherStageDays = useMemo(() => {
+    const rows = daysListQ.data?.stageDays ?? [];
+    return [...rows]
+      .filter((d) => d.id !== stageDayId)
+      .sort((a, b) => a.dayDate.localeCompare(b.dayDate));
+  }, [daysListQ.data, stageDayId]);
+
   return (
     <div>
       <p className="muted" style={{ marginTop: 0 }}>
@@ -403,6 +441,79 @@ export function StageDayPage() {
           </span>
         )}
       </p>
+
+      {otherStageDays.length > 0 && (
+        <div className="card" style={{ marginBottom: "1rem" }}>
+          <div className="title-bar" style={{ marginBottom: "0.5rem" }}>
+            Copy schedule to another day
+          </div>
+          <p className="muted" style={{ marginTop: 0, fontSize: "0.9rem" }}>
+            Copies all acts and patch workbooks from <strong>{formatDateShort(day!.dayDate)}</strong>{" "}
+            to the day you pick. Same stage only.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+              alignItems: "center",
+            }}
+          >
+            <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+              <span className="form-label">Target day</span>
+              <select
+                value={copyTargetDayId}
+                onChange={(e) => setCopyTargetDayId(e.target.value)}
+                style={{ minWidth: "12rem" }}
+              >
+                <option value="">Select…</option>
+                {otherStageDays.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {formatDateFriendly(d.dayDate)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                cursor: "pointer",
+                fontSize: "0.9rem",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={copyReplaceExisting}
+                onChange={(e) => setCopyReplaceExisting(e.target.checked)}
+              />
+              Replace existing acts on target
+            </label>
+            <button
+              type="button"
+              className="primary"
+              disabled={
+                !copyTargetDayId || duplicateDaySchedule.isPending
+              }
+              onClick={() => {
+                if (!copyTargetDayId) return;
+                void duplicateDaySchedule.mutate({
+                  targetId: copyTargetDayId,
+                  replace: copyReplaceExisting,
+                });
+              }}
+            >
+              {duplicateDaySchedule.isPending ? "Copying…" : "Copy schedule"}
+            </button>
+          </div>
+          {duplicateDaySchedule.isError && (
+            <p role="alert" style={{ color: "var(--color-danger)", marginBottom: 0 }}>
+              {(duplicateDaySchedule.error as Error).message}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Swap mode banner */}
       {inSwapMode && (

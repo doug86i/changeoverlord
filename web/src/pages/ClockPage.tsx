@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { apiGet } from "../api/client";
-import { fetchAllEvents } from "../api/paginated";
-import type { EventRow, StageRow, StageDayRow } from "../api/types";
 import { useEffect, useMemo } from "react";
+import { TodayStagesStatusGrid } from "../components/TodayStagesStatusGrid";
+import {
+  flattenStageDaysForClock,
+  useAllStagesClockBundle,
+} from "../hooks/useAllStagesClockBundle";
 import { formatDateShort } from "../lib/dateFormat";
 import { useServerTime } from "../hooks/useServerTime";
 
@@ -12,45 +13,12 @@ export function ClockPage() {
   const { now, isLoading: timeLoading } = useServerTime({ tickIntervalMs: 250 });
   const todayStr = now.toISOString().slice(0, 10);
 
-  /** Own key — do not use `["events"]` (that cache holds `useInfiniteQuery` pages from Events). */
-  const eventsQ = useQuery({
-    queryKey: ["events", "allForClock"],
-    queryFn: () => fetchAllEvents(),
-  });
-
-  const events = eventsQ.data ?? [];
-  const eventIds = events.map((e) => e.id).sort().join(",");
-
-  const stagesQs = useQuery({
-    queryKey: ["allStagesForClock", eventIds],
-    queryFn: async () => {
-      const nested = await Promise.all(
-        events.map(async (ev) => {
-          const stagesRes = await apiGet<{ stages: StageRow[] }>(
-            `/api/v1/events/${ev.id}/stages`,
-          );
-          return Promise.all(
-            stagesRes.stages.map(async (st) => {
-              const daysRes = await apiGet<{ stageDays: StageDayRow[] }>(
-                `/api/v1/stages/${st.id}/days`,
-              );
-              return { event: ev, stage: st, days: daysRes.stageDays };
-            }),
-          );
-        }),
-      );
-      return nested.flat();
-    },
-    enabled: events.length > 0,
-  });
+  const { eventsQ, events, stagesQs } = useAllStagesClockBundle();
 
   const todayItems = useMemo(() => {
     if (!stagesQs.data) return [];
-    return stagesQs.data.flatMap((r) =>
-      r.days
-        .filter((d) => d.dayDate === todayStr)
-        .map((d) => ({ event: r.event, stage: r.stage, day: d })),
-    );
+    const flat = flattenStageDaysForClock(stagesQs.data);
+    return flat.filter((d) => d.day.dayDate === todayStr);
   }, [stagesQs.data, todayStr]);
 
   useEffect(() => {
@@ -61,9 +29,9 @@ export function ClockPage() {
 
   const allDays = useMemo(() => {
     if (!stagesQs.data) return [];
-    return stagesQs.data
-      .flatMap((r) => r.days.map((d) => ({ event: r.event, stage: r.stage, day: d })))
-      .sort((a, b) => a.day.dayDate.localeCompare(b.day.dayDate));
+    return flattenStageDaysForClock(stagesQs.data).sort((a, b) =>
+      a.day.dayDate.localeCompare(b.day.dayDate),
+    );
   }, [stagesQs.data]);
 
   if (eventsQ.isLoading) {
@@ -103,16 +71,28 @@ export function ClockPage() {
           : "…"}
       </div>
 
+      {todayItems.length > 1 && (
+        <>
+          <h2 className="title-bar">Today — all stages</h2>
+          <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem" }}>
+            Now and next for every stage running today (multi-stage overview).
+          </p>
+          <TodayStagesStatusGrid items={todayItems} now={now} />
+        </>
+      )}
+
       {todayItems.length > 0 && (
         <>
-          <h2 className="title-bar">Today's stages</h2>
+          <h2 className="title-bar">Today&apos;s stages</h2>
           <ul style={{ listStyle: "none", padding: 0, margin: "0 0 1.5rem" }}>
             {todayItems.map((t) => (
               <li key={t.day.id} className="card" style={{ marginBottom: "0.5rem" }}>
                 <Link to={`/clock/day/${t.day.id}`} style={{ fontWeight: 600 }}>
                   {t.stage.name}
                 </Link>
-                <span className="muted" style={{ marginLeft: "0.5rem" }}>{t.event.name}</span>
+                <span className="muted" style={{ marginLeft: "0.5rem" }}>
+                  {t.event.name}
+                </span>
               </li>
             ))}
           </ul>
@@ -127,7 +107,9 @@ export function ClockPage() {
               <Link to={`/clock/day/${t.day.id}`}>
                 {t.stage.name} — {formatDateShort(t.day.dayDate)}
               </Link>
-              <span className="muted" style={{ marginLeft: "0.5rem" }}>{t.event.name}</span>
+              <span className="muted" style={{ marginLeft: "0.5rem" }}>
+                {t.event.name}
+              </span>
             </li>
           ))}
         </ul>

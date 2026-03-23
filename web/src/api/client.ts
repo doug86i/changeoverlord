@@ -103,6 +103,39 @@ export async function downloadWorkbookJson(
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+/** Download binary attachment (e.g. `.xlsx`) with session cookie. */
+export async function downloadBinaryFile(
+  path: string,
+  filenameFallback: string,
+): Promise<void> {
+  const r = await fetch(`${base}${path}`, {
+    credentials: "include",
+  });
+  if (!r.ok) {
+    redirectToLoginIfNeeded(path, r.status);
+    const text = await r.text();
+    let msg = text || r.statusText;
+    try {
+      const j = JSON.parse(text) as { message?: string };
+      if (typeof j.message === "string" && j.message) msg = j.message;
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(msg);
+  }
+  const cd = r.headers.get("Content-Disposition");
+  let filename = filenameFallback;
+  const m = cd?.match(/filename="([^"]+)"/);
+  if (m?.[1]) filename = m[1];
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 export async function apiSendForm<T>(
   path: string,
   method: string,

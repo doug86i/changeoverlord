@@ -123,6 +123,8 @@ export function usePatchWorkbookCollab(opts: {
   /** When true, `<Workbook>` can mount (parent finished loading domain row). */
   workbookReady: boolean;
   onLocalOp?: () => void;
+  /** Fires after a remote peer’s ops were applied (visible feedback for collab). */
+  onRemotePatchActivity?: () => void;
   pauseWhenHidden?: boolean;
   readOnly?: boolean;
 }): {
@@ -135,8 +137,17 @@ export function usePatchWorkbookCollab(opts: {
   /** Bump with `Workbook` `key` so mid-session `fullState` remounts the grid (structural collab). */
   workbookDataRev: number;
 } {
-  const { roomId, mode, workbookReady, onLocalOp, pauseWhenHidden = false, readOnly = false } =
-    opts;
+  const {
+    roomId,
+    mode,
+    workbookReady,
+    onLocalOp,
+    onRemotePatchActivity,
+    pauseWhenHidden = false,
+    readOnly = false,
+  } = opts;
+  const onRemotePatchActivityRef = useRef(onRemotePatchActivity);
+  onRemotePatchActivityRef.current = onRemotePatchActivity;
   const wbRef = useRef<WorkbookInstance>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptRef = useRef(0);
@@ -233,6 +244,7 @@ export function usePatchWorkbookCollab(opts: {
             }
             wb.applyOp(batch);
             flushRemoteFormulaRecalc(wb, suppressLocalOpsRef);
+            onRemotePatchActivityRef.current?.();
           } catch (e) {
             logDebug("patch-workbook-collab", "applyOp failed for remote batch", e);
             logClientDebugCollab("patch-workbook-collab", "applyOp failed for remote batch", {

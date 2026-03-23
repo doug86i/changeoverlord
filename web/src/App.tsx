@@ -19,7 +19,9 @@ import { LoginPage } from "./pages/LoginPage";
 import { PatchPage } from "./pages/PatchPage";
 import { PatchTemplateEditorPage } from "./pages/PatchTemplateEditorPage";
 import { PerformanceFilesPage } from "./pages/PerformanceFilesPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { StageChatDock } from "./components/StageChatDock";
+import { HeaderEventLogo } from "./components/HeaderEventLogo";
 
 function Layout() {
   const { toggle, theme } = useTheme();
@@ -74,9 +76,12 @@ function Layout() {
       <ConnectionStatus />
       <header className="app-header">
         <div className="header-row">
-          <NavLink to="/" className="brand-link" onClick={closeMenu}>
-            Changeoverlord
-          </NavLink>
+          <div className="header-brand-cluster">
+            <HeaderEventLogo />
+            <NavLink to="/" className="brand-link" onClick={closeMenu}>
+              Changeoverlord
+            </NavLink>
+          </div>
           <button
             type="button"
             className="hamburger"
@@ -168,6 +173,7 @@ export function App() {
           }
         >
           <Route index element={<EventsPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="stages/:stageId" element={<StageDetailPage />} />
           <Route path="stage-days/:stageDayId" element={<StageDayPage />} />

@@ -58,6 +58,7 @@ export function PerformanceBandNav({ performanceId, stageDayId, mode }: Props) {
 
   return (
     <nav
+      className="performance-band-nav"
       aria-label="Band navigation"
       style={{
         display: "flex",

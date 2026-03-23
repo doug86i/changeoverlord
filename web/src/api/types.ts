@@ -3,6 +3,8 @@ export type EventRow = {
   name: string;
   startDate: string;
   endDate: string;
+  /** Optional logo (`file_assets` row with `eventId`); use `/api/v1/files/:id/raw`. */
+  logoFileId?: string | null;
   createdAt: string;
 };
 
@@ -26,6 +28,8 @@ export type StageRow = {
   hasPatchTemplate?: boolean;
   /** Urgent line on stage clocks (synced via API). */
   clockMessage?: string | null;
+  /** From parent event — for header branding on stage routes. */
+  eventLogoFileId?: string | null;
 };
 
 /** Patch/RF workbook template. `stageId` null = global; set = local to that stage. */
@@ -102,6 +106,7 @@ export type FileAssetRow = {
   byteSize: number;
   purpose: FileAssetPurpose;
   stageId: string | null;
+  eventId: string | null;
   performanceId: string | null;
   parentFileId: string | null;
   createdAt: string;

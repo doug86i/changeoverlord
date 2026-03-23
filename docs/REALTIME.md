@@ -62,7 +62,7 @@ Clients that do not implement chat should **ignore** unknown top-level fields an
    - `["performances", stageDayId]`, `["performance", performanceId]`
    - `["allStagesForClock"]` — prefix key for the multi-event stages aggregator on **`ClockPage`** (invalidate after event / stage / stage-day mutations that change which days exist)
    - `["patchTemplatePreview"]` — prefix for template preview queries when templates change
-   - `["files", stageId]` (stage-scoped PDF list), `["files", "performance", performanceId]` (performance-scoped PDF list)
+   - `["files", stageId]` (stage-scoped PDF list), `["files", "performance", performanceId]` (performance-scoped PDF list), `["event", eventId]` (event-scoped uploads, e.g. logos — also `["events"]` when branding changes)
    - `["settings"]`, `["authSession"]` (password / auth visibility)
 3. **Deletes** that cascade (e.g. event → stages → days → performances) should prefetch child IDs **before** delete (see existing **`events`** / **`stages`** route handlers) and invalidate **all** keys a client might have cached.
 4. **Do not** forget: if a screen shows the data, some mutation path must invalidate that screen’s **queryKey**.

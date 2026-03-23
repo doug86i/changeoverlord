@@ -1,8 +1,20 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Workbook } from "@fortune-sheet/react";
-import { apiGet, apiSend, downloadWorkbookJson, readFileAsText } from "../api/client";
+import {
+  apiGet,
+  apiSend,
+  downloadBinaryFile,
+  downloadWorkbookJson,
+  readFileAsText,
+} from "../api/client";
 import type { PerformanceRow, StageDayRow, StageRow } from "../api/types";
 import { PatchWorkbookErrorBoundary } from "../components/PatchWorkbookErrorBoundary";
 import { PerformanceBandNav } from "../components/PerformanceBandNav";
@@ -22,7 +34,25 @@ export function PatchPage() {
   const patchWorkbookHostRef = useRef<HTMLDivElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
+  const [remotePeerFlash, setRemotePeerFlash] = useState(false);
+  const peerFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPhone = useMediaQuery(PHONE_MAX_MEDIA);
+
+  const bumpRemotePeerFlash = useCallback(() => {
+    setRemotePeerFlash(true);
+    if (peerFlashTimerRef.current) clearTimeout(peerFlashTimerRef.current);
+    peerFlashTimerRef.current = setTimeout(() => {
+      setRemotePeerFlash(false);
+      peerFlashTimerRef.current = null;
+    }, 900);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (peerFlashTimerRef.current) clearTimeout(peerFlashTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     try {
@@ -70,10 +100,20 @@ export function PatchPage() {
   const perfQ = useQuery({
     queryKey: ["performance", performanceId],
     queryFn: () =>
-      apiGet<{ performance: PerformanceRow }>(
+      apiGet<{ performance: PerformanceRow; eventLogoFileId?: string | null }>(
         `/api/v1/performances/${performanceId}`,
       ),
     enabled: Boolean(performanceId),
+  });
+
+  const collabPresenceQ = useQuery({
+    queryKey: ["collabPresence", performanceId],
+    queryFn: () =>
+      apiGet<{ collabConnected: number }>(
+        `/api/v1/performances/${performanceId}/collab-presence`,
+      ),
+    enabled: Boolean(performanceId),
+    refetchInterval: 5_000,
   });
 
   const importPerfWorkbookJson = useMutation({
@@ -117,6 +157,7 @@ export function PatchPage() {
     mode: "performance",
     workbookReady,
     onLocalOp: markDirty,
+    onRemotePatchActivity: isPhone ? undefined : bumpRemotePeerFlash,
     pauseWhenHidden: isPhone,
     readOnly: isPhone,
   });
@@ -162,6 +203,14 @@ export function PatchPage() {
   const perf = perfQ.data.performance;
   const day = dayQ.data?.stageDay;
   const stage = stageQ.data?.stage;
+
+  const collabN = collabPresenceQ.data?.collabConnected;
+  const collabHint =
+    !isPhone && workbookHydrated && collabN != null && collabN > 0
+      ? collabN === 1
+        ? "1 person editing"
+        : `${collabN} people editing`
+      : null;
 
   const connLabel =
     conn === "error"
@@ -322,6 +371,11 @@ export function PatchPage() {
                 ) : null}
                 <p className={connClass} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
                   ● {connLabel}
+                  {collabHint ? (
+                    <span className="muted" style={{ marginLeft: "0.5rem", fontWeight: 500 }}>
+                      · {collabHint}
+                    </span>
+                  ) : null}
                 </p>
                 {sidebarProps ? (
                   <PatchPageSidebar
@@ -349,6 +403,7 @@ export function PatchPage() {
             )}
 
             <div
+              className="patch-page-toolbar"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -381,6 +436,30 @@ export function PatchPage() {
                   type="button"
                   className="icon-btn"
                   disabled={importPerfWorkbookJson.isPending}
+                  onClick={async () => {
+                    try {
+                      await downloadBinaryFile(
+                        `/api/v1/performances/${performanceId}/sheets-excel`,
+                        `${perf.bandName || "performance"}_patch.xlsx`,
+                      );
+                    } catch (err) {
+                      window.alert((err as Error).message);
+                    }
+                  }}
+                >
+                  Export Excel
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => window.print()}
+                >
+                  Print patch
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  disabled={importPerfWorkbookJson.isPending}
                   onClick={() => perfJsonImportRef.current?.click()}
                 >
                   Import JSON
@@ -404,6 +483,11 @@ export function PatchPage() {
                 />
                 <span className={connClass} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
                   ● {connLabel}
+                  {collabHint ? (
+                    <span className="muted" style={{ marginLeft: "0.5rem", fontWeight: 500 }}>
+                      · {collabHint}
+                    </span>
+                  ) : null}
                 </span>
               </div>
             </div>
@@ -419,7 +503,7 @@ export function PatchPage() {
         <div
           ref={patchWorkbookHostRef}
           className={
-            `patch-workbook-host${isPhone ? " patch-workbook-host--readonly patch-workbook-host--phone" : ""}`
+            `patch-workbook-host${isPhone ? " patch-workbook-host--readonly patch-workbook-host--phone" : ""}${remotePeerFlash && !isPhone ? " patch-workbook-host--remote-peer-flash" : ""}`
           }
           style={{
             border: "1px solid var(--color-border)",

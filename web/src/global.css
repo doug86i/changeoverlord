@@ -442,6 +442,22 @@ details.stage-patch-template-details[open] .stage-patch-template-details__chev {
   gap: 1rem;
 }
 
+.header-brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.header-event-logo {
+  height: 36px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .brand-link {
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -2630,6 +2646,19 @@ a.patch-sidebar-perf-link:hover {
   display: none !important;
 }
 
+.patch-workbook-host--remote-peer-flash {
+  animation: patch-remote-peer-flash 0.85s ease-out;
+}
+
+@keyframes patch-remote-peer-flash {
+  0% {
+    box-shadow: 0 0 0 3px var(--color-brand);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
 @media print {
   .app-header,
   .app-footer,
@@ -2653,7 +2682,34 @@ a.patch-sidebar-perf-link:hover {
   }
 
   .card {
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
     break-inside: avoid;
+  }
+
+  /* Patch workbook: hide chrome, expand grid */
+  .patch-page-layout .patch-page-sidebar,
+  .patch-page-breadcrumbs,
+  .patch-page-toolbar,
+  .performance-band-nav,
+  .patch-collab-banner,
+  .patch-workbook-host__loading {
+    display: none !important;
+  }
+
+  .patch-page-layout {
+    display: block !important;
+  }
+
+  .patch-page-main {
+    display: block !important;
+  }
+
+  .patch-workbook-host {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    page-break-inside: auto;
   }
 }

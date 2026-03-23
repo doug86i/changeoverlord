@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Web:** **Dashboard** (`/dashboard`) — now/next for every stage that has a day **today** (server date), with links to clock, running order, and patch.
+- **Web:** **Clock** — when **more than one** stage runs **today**, a **multi-stage** grid shows now/next for each before the usual day list.
+- **Web / API:** **Patch & RF** — **Export Excel** (`GET /api/v1/performances/:id/sheets-excel`), **Print patch** (print stylesheet hides chrome), **collab presence** line (`GET …/collab-presence`, refreshed every few seconds), and a short **highlight** when another user applies edits over collab.
+- **API / Web / DB:** **Per-event logo** — `events.logo_file_id`, `file_assets.event_id`, uploads with `?eventId=`, `PATCH /events/:id` `{ logoFileId }`; header shows the logo on event / stage / day / patch / performance-files routes.
+- **API / Web:** **Copy a day’s schedule** — `POST /api/v1/stage-days/:id/duplicate-schedule` with `targetStageDayId` and optional `replaceExisting`; UI on the **stage day** page when the stage has other days.
+- **Web:** **PWA** — **vite-plugin-pwa** precaches the built SPA (large bundle limit raised for FortuneSheet); API/WebSocket stay **network-only**. Add to home screen / install where the browser supports it.
+
 ### Fixed
 
 - **API / Web:** Collab structural-op detection now treats only whole-workbook `replace ["luckysheetfile"]` as structural. Routine cell edits often use nested `replace` paths under `luckysheetfile/...`; those now stay on op relay instead of forcing `fullState` remounts that reloaded the grid and could jump users to the first tab.
