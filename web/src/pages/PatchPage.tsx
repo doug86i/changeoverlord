@@ -206,10 +206,8 @@ export function PatchPage() {
 
   const collabN = collabPresenceQ.data?.collabConnected;
   const collabHint =
-    !isPhone && workbookHydrated && collabN != null && collabN > 0
-      ? collabN === 1
-        ? "1 person editing"
-        : `${collabN} people editing`
+    !isPhone && workbookHydrated && collabN != null && collabN > 1
+      ? `${collabN} people editing`
       : null;
 
   const connLabel =
