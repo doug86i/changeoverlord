@@ -8,8 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **Web:** **Dashboard** (`/dashboard`) — now/next for every stage that has a day **today** (local calendar), with links to clock, running order, and patch.
-- **Web:** **Clock** — when **more than one** stage runs **today**, a **multi-stage** grid shows now/next for each before the usual day list.
+- **Web:** **Event dashboard** (`/dashboard`) — main nav link **`g d`**; for each stage with a day **today**, a **mini `ClockArena`** (same layout as the full stage clock) plus expandable **Running order** per stage. **`/clock`** redirects here (old clock hub removed).
 - **Web / API:** **Patch & RF** — **Export Excel** (`GET /api/v1/performances/:id/sheets-excel`), **Print patch** (print stylesheet hides chrome), **collab presence** when **more than one** connection (`GET …/collab-presence`, refreshed every few seconds), and a short **highlight** when another user applies edits over collab.
 - **API / Web / DB:** **Per-event logo** — `events.logo_file_id`, `file_assets.event_id`, uploads with `?eventId=`, `PATCH /events/:id` `{ logoFileId }`; header shows the logo on event / stage / day / patch / performance-files routes.
 - **API / Web:** **Copy a day’s schedule** — `POST /api/v1/stage-days/:id/duplicate-schedule` with `targetStageDayId` and optional `replaceExisting`; UI on the **stage day** page when the stage has other days.
@@ -38,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** **Clock hub** (`/clock` listing) removed in favour of **Event dashboard**; nav **Stage clock** / **`g c`** / **My stage today** fall back to **`/dashboard`** when no last-viewed stage day is remembered. **`docs/USER_GUIDE.md`**, **`docs/REALTIME.md`**, **`docs/KNOWN_ISSUES.md`**.
 - **Deployment / security:** Added internet beta hardening guidance for HAProxy deployments (`docs/SECURITY_BETA_DEPLOY.md`), including required production env (`FORCE_SECURE_COOKIES`, `CORS_ALLOWED_ORIGINS`, `REQUIRE_PASSWORD`), preflight checks, and backup/restore runbooks.
 - **Ops:** Added `scripts/backup-data.sh`, `scripts/restore-data.sh`, and `scripts/preflight-beta.sh` plus `make backup-data`, `make restore-data BACKUP_DIR=...`, and `make preflight-beta BASE_URL=...`.
 - **Docker / env:** `docker-compose.yml` now passes through `CORS_ALLOWED_ORIGINS`, `FORCE_SECURE_COOKIES`, and `REQUIRE_PASSWORD`, and supports `HOST_BIND` so app traffic can be bound to localhost behind HAProxy.

@@ -17,7 +17,7 @@ When one browser changes schedule or domain data (events, stages, days, performa
 1. **REST** unchanged — mutations stay `POST` / `PATCH` / `DELETE` under `/api/v1/...`.
 2. **Server-Sent Events (SSE)** — `GET /api/v1/realtime` is a long-lived stream (same auth as other API routes when a password is set).
 3. After a successful mutation, the API calls **`broadcastInvalidate()`** (`api/src/lib/realtime-bus.ts`) with a small JSON payload listing **TanStack Query `queryKey` tuples** to invalidate.
-4. The web app opens **one** `EventSource` in **`RealtimeSync`** (`web/src/realtime/RealtimeSync.tsx`). It only connects when **`GET /api/v1/auth/session`** allows API access (open LAN or logged in). On each message, it runs `queryClient.invalidateQueries({ queryKey, exact: false })` so a broadcast key also matches **longer** client keys (e.g. **`["allStagesForClock"]`** invalidates **`["allStagesForClock", "<serialized-event-ids>"]`** on **ClockPage**).
+4. The web app opens **one** `EventSource` in **`RealtimeSync`** (`web/src/realtime/RealtimeSync.tsx`). It only connects when **`GET /api/v1/auth/session`** allows API access (open LAN or logged in). On each message, it runs `queryClient.invalidateQueries({ queryKey, exact: false })` so a broadcast key also matches **longer** client keys (e.g. **`["allStagesForClock"]`** invalidates **`["allStagesForClock", "<serialized-event-ids>"]`** on **DashboardPage** (Event dashboard).
 
 ### Wire format (versioned)
 
@@ -60,7 +60,7 @@ Clients that do not implement chat should **ignore** unknown top-level fields an
    - `["stages", eventId]`, `["stage", stageId]`, `["patchTemplates"]`, `["patchTemplate"]` (global patch/RF templates — REST; template workbook saves via collab relay → debounced `sheets_json`)
    - `["stageDays", stageId]`, `["stageDay", stageDayId]`
    - `["performances", stageDayId]`, `["performance", performanceId]`
-   - `["allStagesForClock"]` — prefix key for the multi-event stages aggregator on **`ClockPage`** (invalidate after event / stage / stage-day mutations that change which days exist)
+   - `["allStagesForClock"]` — prefix key for the multi-event stages aggregator on **`DashboardPage`** (invalidate after event / stage / stage-day mutations that change which days exist)
    - `["patchTemplatePreview"]` — prefix for template preview queries when templates change
    - `["files", stageId]` (stage-scoped PDF list), `["files", "performance", performanceId]` (performance-scoped PDF list), `["event", eventId]` (event-scoped uploads, e.g. logos — also `["events"]` when branding changes)
    - `["settings"]`, `["authSession"]` (password / auth visibility)

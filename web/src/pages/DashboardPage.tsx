@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
 import { TodayStagesStatusGrid } from "../components/TodayStagesStatusGrid";
 import {
   flattenStageDaysForClock,
@@ -9,7 +8,7 @@ import { useServerTime } from "../hooks/useServerTime";
 import { formatLocalCalendarDate } from "../lib/dateFormat";
 
 /**
- * Production overview: now/next and changeover hints for every stage that has a day today.
+ * Production overview: same {@link ClockArena} layout as each stage clock, miniaturized per stage today.
  */
 export function DashboardPage() {
   const { now, isLoading: timeLoading } = useServerTime({ tickIntervalMs: 1000 });
@@ -37,22 +36,10 @@ export function DashboardPage() {
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Dashboard</h1>
-      <p className="muted">
-        Today&apos;s stages — current act, next act, and countdowns ({todayStr}).{" "}
-        <Link to="/clock">Open clock hub</Link>
-      </p>
-      <div
-        className="card"
-        style={{
-          fontSize: "clamp(1.5rem, 5vw, 2.25rem)",
-          fontWeight: 700,
-          fontVariantNumeric: "tabular-nums",
-          textAlign: "center",
-          padding: "1rem",
-          marginBottom: "1rem",
-        }}
-      >
+      <h1 style={{ marginTop: 0 }}>Event dashboard</h1>
+      <p className="muted" style={{ marginBottom: "1rem" }}>
+        Stages running today on {todayStr}.{" "}
+        Local time:{" "}
         {!timeLoading
           ? now.toLocaleTimeString(undefined, {
               hour: "2-digit",
@@ -60,7 +47,7 @@ export function DashboardPage() {
               second: "2-digit",
             })
           : "…"}
-      </div>
+      </p>
       <h2 className="title-bar">Stages today</h2>
       <TodayStagesStatusGrid items={todayItems} now={now} />
     </div>

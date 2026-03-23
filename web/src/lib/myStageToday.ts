@@ -6,7 +6,7 @@ import { LAST_STAGE_DAY_STORAGE_KEY } from "./useLastVisited";
 
 /**
  * Resolves where "My stage today" should go: today's stage-day running order
- * (`/stage-days/:id`) when unambiguous, otherwise `/clock` (pick a stage) or `/`.
+ * (`/stage-days/:id`) when unambiguous, otherwise `/dashboard` (event overview) or `/`.
  */
 export async function resolveMyStageTodayPath(): Promise<string> {
   const time = await apiGet<{ unixMs: number }>("/api/v1/time");
@@ -51,6 +51,5 @@ export async function resolveMyStageTodayPath(): Promise<string> {
   }
 
   if (todayIds.length === 1) return `/stage-days/${todayIds[0]}`;
-  if (todayIds.length > 1) return "/clock";
-  return "/clock";
+  return "/dashboard";
 }

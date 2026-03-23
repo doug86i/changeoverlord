@@ -748,6 +748,53 @@ a.search-dialog-result:focus-visible {
   min-height: 0;
 }
 
+/* Event dashboard — same ClockArena as stage clock, scaled to a preview height */
+.dashboard-mini-arena-wrap {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: min(42vh, 22rem);
+  min-height: 11rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.dashboard-mini-arena-wrap .clock-arena {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.dashboard-running-order-details {
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  padding-top: 0.5rem;
+}
+
+.dashboard-running-order-summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  list-style: none;
+}
+
+.dashboard-running-order-summary::-webkit-details-marker {
+  display: none;
+}
+
+.dashboard-running-order-summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.08s ease;
+}
+
+.dashboard-running-order-details[open] .dashboard-running-order-summary::before {
+  transform: rotate(90deg);
+}
+
+.dashboard-running-order-list li:last-child {
+  margin-bottom: 0;
+}
+
 .clock-day-controls-title {
   margin: 0 0 0.75rem;
   font-size: clamp(1.05rem, 2.2vw, 1.35rem);

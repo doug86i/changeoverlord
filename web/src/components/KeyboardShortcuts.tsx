@@ -4,7 +4,7 @@ const SHORTCUTS = [
   { key: "/", desc: "Search" },
   { key: "?", desc: "Show keyboard shortcuts" },
   { key: "g e", desc: "Go to Events" },
-  { key: "g d", desc: "Go to Dashboard" },
+  { key: "g d", desc: "Go to Event dashboard" },
   { key: "g m", desc: "My stage today" },
   { key: "g c", desc: "Go to Clock" },
   { key: "g s", desc: "Go to Settings" },
@@ -66,7 +66,7 @@ export function useGlobalShortcuts({
   onHelp: () => void;
   navigate: (path: string) => void;
   onMyStageToday?: () => void | Promise<void>;
-  /** When set (e.g. last-viewed stage day), `g c` uses this instead of `/clock`. */
+  /** When set (e.g. last-viewed stage day), `g c` uses this instead of `/dashboard`. */
   onClockNavigate?: () => void;
 }) {
   const gPendingRef = useRef(false);
@@ -105,7 +105,7 @@ export function useGlobalShortcuts({
         }
         if (e.key === "c") {
           if (onClockNavigate) onClockNavigate();
-          else navigate("/clock");
+          else navigate("/dashboard");
           return;
         }
         if (e.key === "s") { navigate("/settings"); return; }

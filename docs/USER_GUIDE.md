@@ -176,10 +176,9 @@ If the spreadsheet shows **`sheet not found`** (FortuneSheet error), the workboo
 
 ## Clock
 
-- **Clock** in the nav opens the **last stage day you were viewing** (running order or stage-day clock), when that is known — same remembered day as **My stage today** uses. Otherwise it opens the **Clock** picker (`/clock`). The **`g c`** shortcut follows the same rule.
-- On the **Clock** picker, **today’s stages** are listed when any exist for today’s date. If there’s only one today, it **auto-redirects** to that day’s clock.
-- **All stage days** are listed below for quick access to any day's clock.
-- The clock display shows **server-synced time** (corrected for any device clock drift).
+- **Event dashboard** (`/dashboard`) — In the main nav; **`g d`**. For every stage that has a **day today**, you get a **mini preview** of the same **stage clock arena** used on the full clock (countdown, local time, footer metadata). Expand **Running order** under a stage for times and band names; **Open stage clock** opens the full **`/clock/day/...`** page. The line at the top shows **today’s calendar date** and **local time** (server-synced for drift — same as elsewhere).
+- **Stage clock** in the nav opens the **last stage day you were viewing** (running order or stage-day clock), when that is known — same remembered day as **My stage today** uses. Otherwise it opens the **Event dashboard** so you can pick a stage. The **`g c`** shortcut follows the same rule.
+- Bookmark **`/clock`** still works: it **redirects** to the Event dashboard.
 
 ### Stage day clock features
 

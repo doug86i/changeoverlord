@@ -10,7 +10,7 @@ export type StageDayWithContext = {
 };
 
 /**
- * All stages and their days (used by Clock overview, dashboard, multi-stage today).
+ * All stages and their days (used by Clock overview, event dashboard, multi-stage today).
  * Query key prefix `["allStagesForClock"]` — invalidate via SSE after event/stage/day changes.
  */
 export function useAllStagesClockBundle() {

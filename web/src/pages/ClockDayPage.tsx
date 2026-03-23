@@ -24,22 +24,16 @@ import {
   emptyStageDayClockMetrics,
   sortPerformancesByStart,
 } from "../lib/stageDayClockMetrics";
+import {
+  buildClockArenaActPresentation,
+  urgencyFromSeconds,
+} from "../lib/clockArenaHelpers";
 
 function warningClass(seconds: number | null): string {
   if (seconds === null) return "";
   if (seconds <= 60) return "status-danger";
   if (seconds <= 300) return "status-warn";
   return "status-ok";
-}
-
-/** Green → amber → red; final minute uses flashing red (CSS class). */
-function urgencyFromSeconds(seconds: number | null): {
-  tier: "ok" | "warn" | "danger";
-} {
-  if (seconds === null) return { tier: "ok" };
-  if (seconds <= 60) return { tier: "danger" };
-  if (seconds <= 300) return { tier: "warn" };
-  return { tier: "ok" };
 }
 
 function requestFullscreenOn(el: HTMLElement | null): Promise<void> {
@@ -197,30 +191,10 @@ export function ClockDayPage() {
     return computeStageDayClockMetrics(dayDate, sorted, now);
   }, [dayDate, sorted, now]);
 
-  const actPresentation = useMemo(() => {
-    if (sorted.length === 0) {
-      return { title: "No performances", sub: "", badge: "idle" as const };
-    }
-    if (currentIdx >= 0) {
-      const p = sorted[currentIdx];
-      return {
-        title: p.bandName || "—",
-        sub: [p.startTime, p.endTime ? p.endTime : null]
-          .filter(Boolean)
-          .join(" – "),
-        badge: "on" as const,
-      };
-    }
-    if (nextIdx >= 0) {
-      const p = sorted[nextIdx];
-      return {
-        title: p.bandName || "—",
-        sub: `Starts ${p.startTime}`,
-        badge: "next" as const,
-      };
-    }
-    return { title: "Day finished", sub: "", badge: "idle" as const };
-  }, [sorted, currentIdx, nextIdx]);
+  const actPresentation = useMemo(
+    () => buildClockArenaActPresentation(sorted, currentIdx, nextIdx),
+    [sorted, currentIdx, nextIdx],
+  );
 
   const [focusIdx, setFocusIdx] = useState(0);
   const [autoAdvance, setAutoAdvance] = useState(true);

@@ -1,6 +1,15 @@
 import { useState, useCallback, useMemo } from "react";
 import { resolveMyStageTodayPath } from "./lib/myStageToday";
-import { Routes, Route, NavLink, Outlet, useMatch, useNavigate, useLocation } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  NavLink,
+  Outlet,
+  useMatch,
+  useNavigate,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
 import { ClockNavProvider, useClockNav } from "./ClockNavContext";
 import { useTheme } from "./theme/ThemeContext";
 import { AuthGate } from "./auth/AuthGate";
@@ -12,7 +21,6 @@ import { EventsPage } from "./pages/EventsPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
 import { StageDetailPage } from "./pages/StageDetailPage";
 import { StageDayPage } from "./pages/StageDayPage";
-import { ClockPage } from "./pages/ClockPage";
 import { ClockDayPage } from "./pages/ClockDayPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -29,10 +37,11 @@ function Layout() {
   const { pathname } = useLocation();
   const { preferredStageDayId } = useClockNav();
   const clockHref = useMemo(
-    () => (preferredStageDayId ? `/clock/day/${preferredStageDayId}` : "/clock"),
+    () =>
+      preferredStageDayId ? `/clock/day/${preferredStageDayId}` : "/dashboard",
     [preferredStageDayId],
   );
-  const clockNavActive = pathname === "/clock" || pathname.startsWith("/clock/");
+  const clockNavActive = pathname.startsWith("/clock/");
   const patchView = useMatch("/patch/:performanceId");
   const templateEditView = useMatch("/patch-templates/:templateId/edit");
   const wideMain = Boolean(patchView || templateEditView);
@@ -97,12 +106,15 @@ function Layout() {
             <NavLink to="/" onClick={closeMenu} end>
               Events
             </NavLink>
+            <NavLink to="/dashboard" onClick={closeMenu}>
+              Event dashboard
+            </NavLink>
             <button
               type="button"
               className="primary nav-my-stage"
               disabled={myStageBusy}
-              aria-label="My stage today — open today’s running order for your stage (server date; uses last visit when it’s today)"
-              title="Open today’s stage-day running order for your stage (server date). Uses last visit when it’s today."
+              aria-label="My stage today — open today’s running order for your stage (local calendar; uses last visit when it’s today)"
+              title="Open today’s stage-day running order for your stage (local calendar). Uses last visit when it’s today."
               onClick={() => void goMyStageToday()}
             >
               {myStageBusy ? "…" : "My stage today"}
@@ -114,7 +126,7 @@ function Layout() {
               }
               onClick={closeMenu}
             >
-              Clock
+              Stage clock
             </NavLink>
             <NavLink to="/settings" onClick={closeMenu}>Settings</NavLink>
           </nav>
@@ -174,10 +186,10 @@ export function App() {
         >
           <Route index element={<EventsPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="clock" element={<Navigate to="/dashboard" replace />} />
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="stages/:stageId" element={<StageDetailPage />} />
           <Route path="stage-days/:stageDayId" element={<StageDayPage />} />
-          <Route path="clock" element={<ClockPage />} />
           <Route path="clock/day/:stageDayId" element={<ClockDayPage />} />
           <Route path="patch/:performanceId" element={<PatchPage />} />
           <Route

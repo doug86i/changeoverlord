@@ -140,7 +140,7 @@
 
 ### 17. SSE invalidation gaps (stale data across browsers) *(clock prefix addressed)*
 
-**Update:** [`web/src/realtime/RealtimeSync.tsx`](../web/src/realtime/RealtimeSync.tsx) calls **`invalidateQueries({ queryKey, exact: false })`**, so a broadcast **`["allStagesForClock"]`** also invalidates **`["allStagesForClock", "<eventIds-json>"]`** on **ClockPage**.
+**Update:** [`web/src/realtime/RealtimeSync.tsx`](../web/src/realtime/RealtimeSync.tsx) calls **`invalidateQueries({ queryKey, exact: false })`**, so a broadcast **`["allStagesForClock"]`** also invalidates **`["allStagesForClock", "<eventIds-json>"]`** on **DashboardPage**.
 
 - `["patchTemplatePreview", id]` in [`web/src/components/PatchTemplateTools.tsx`](../web/src/components/PatchTemplateTools.tsx) — template **workbook** edits over **WebSocket** may not invalidate an open preview query until **`["patchTemplates"]`** / related REST paths refetch (low frequency).
 
@@ -312,9 +312,9 @@ Possible race: doc destroyed after async `writeState` while a new client attache
 
 [`api/src/routes/v1/search.ts`](../api/src/routes/v1/search.ts) — user input containing `%` or `_` is passed directly into ILIKE patterns, allowing broader matches than the user intended. Not SQL injection, but can return unexpected results. Fix: escape `%` and `_` in user input before building the pattern.
 
-### 61. ClockPage sequential API requests
+### 61. Event dashboard sequential API requests
 
-[`web/src/pages/ClockPage.tsx`](../web/src/pages/ClockPage.tsx) — fetches stages per event sequentially in a loop. For multi-event deployments, this creates a waterfall of requests. Fix: parallelize with `Promise.all` or a batch endpoint.
+[`useAllStagesClockBundle`](../web/src/hooks/useAllStagesClockBundle.ts) (Event dashboard) — fetches stages per event in parallel, but still N+1 requests per event. A batch endpoint could reduce round-trips for multi-event deployments.
 
 ---
 
@@ -322,7 +322,7 @@ Possible race: doc destroyed after async `writeState` while a new client attache
 
 ### 62. Server-time sync pattern duplicated five times
 
-The same `useQuery(["serverTime"])` + `offsetMs` + `setInterval` + `now = new Date(tick + offsetMs)` pattern is independently implemented in [`ClockPage.tsx`](../web/src/pages/ClockPage.tsx), [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx), [`StageDayPage.tsx`](../web/src/pages/StageDayPage.tsx), and [`PatchPageSidebar.tsx`](../web/src/components/PatchPageSidebar.tsx). Tick intervals vary (250ms vs 1000ms) without clear reason. Fix: extract a `useServerTime(opts?: { tickIntervalMs?: number })` hook that returns `{ now: Date; isLoading: boolean }`.
+The same `useQuery(["serverTime"])` + `offsetMs` + `setInterval` + `now = new Date(tick + offsetMs)` pattern is independently implemented in [`DashboardPage.tsx`](../web/src/pages/DashboardPage.tsx), [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx), [`StageDayPage.tsx`](../web/src/pages/StageDayPage.tsx), and [`PatchPageSidebar.tsx`](../web/src/components/PatchPageSidebar.tsx). Tick intervals vary (250ms vs 1000ms) without clear reason. Fix: extract a `useServerTime(opts?: { tickIntervalMs?: number })` hook that returns `{ now: Date; isLoading: boolean }`.
 
 ### 63. Duplicated clock/countdown logic across three files
 
@@ -345,9 +345,9 @@ Fix: export `parseLocal` and `sortPerformancesByStart` from `stageDayClockMetric
 
 **Update:** **Patch**, **Settings**, **PatchTemplateTools**, **Events** create, and **Login** now use **`--color-danger`** + **`role="alert"`** where applicable. Spot-check any newer mutations for the same pattern.
 
-### 67. Missing loading and error states on ClockPage and SettingsPage
+### 67. Missing loading and error states on DashboardPage and SettingsPage
 
-- [`ClockPage.tsx`](../web/src/pages/ClockPage.tsx) — no loading or error handling for `eventsQ` or `stagesQs`; errors silently render as empty lists.
+- [`DashboardPage.tsx`](../web/src/pages/DashboardPage.tsx) — verify loading/error handling for `eventsQ` / `stagesQs` matches other pages.
 - [`SettingsPage.tsx`](../web/src/pages/SettingsPage.tsx) — no loading state for the settings query; shows "not set (open LAN)" while data is still loading, which is misleading.
 - [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx) — checks `!dayQ.data` but not `dayQ.error`; `perfQ.error` is never surfaced.
 
@@ -367,7 +367,7 @@ No page component sets `document.title`, so browser tabs always show the generic
 
 ### 71. Inline `toLocaleTimeString` in five places instead of shared formatter
 
-[`ClockPage.tsx`](../web/src/pages/ClockPage.tsx), [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx), [`PatchPageSidebar.tsx`](../web/src/components/PatchPageSidebar.tsx), and [`StageChatDock.tsx`](../web/src/components/StageChatDock.tsx) each call `toLocaleTimeString` with slightly different options (some include seconds, some use 24-hour, some omit seconds). Fix: add a shared `formatWallClock(date, opts?)` to `dateFormat.ts` and reuse it.
+[`DashboardPage.tsx`](../web/src/pages/DashboardPage.tsx), [`ClockDayPage.tsx`](../web/src/pages/ClockDayPage.tsx), [`PatchPageSidebar.tsx`](../web/src/components/PatchPageSidebar.tsx), and [`StageChatDock.tsx`](../web/src/components/StageChatDock.tsx) each call `toLocaleTimeString` with slightly different options (some include seconds, some use 24-hour, some omit seconds). Fix: add a shared `formatWallClock(date, opts?)` to `dateFormat.ts` and reuse it.
 
 ### 72. ExportEventButton uses raw `fetch` instead of shared download helper
 
