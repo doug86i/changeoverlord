@@ -19,6 +19,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 | **[`REALTIME.md`](REALTIME.md)** | Live schedule updates (SSE) vs patch grid collaboration (WebSocket JSON op relay) |
 | **[`LOGGING.md`](LOGGING.md)** | Structured logging — API Pino / `req.log`, web `logDebug`, optional fast-stack **client NDJSON** (`$DATA_DIR/logs/client-debug.ndjson`), `LOG_LEVEL`, no secrets |
 | **[`KNOWN_ISSUES.md`](KNOWN_ISSUES.md)** | Known issues and technical debt — code, infra, CSS, realtime, collab (**#83** duplicate tabs), follow-ups |
+| **[`SECURITY_BETA_DEPLOY.md`](SECURITY_BETA_DEPLOY.md)** | Internet-facing beta hardening with HAProxy, required env, backups, and preflight checks |
 | **[`PATCH_TEMPLATE_JSON.md`](PATCH_TEMPLATE_JSON.md)** | FortuneSheet JSON patch template upload — file shape, preserved fields, API |
 | **[`LICENSING.md`](LICENSING.md)** | Repository and dependency licences |
 

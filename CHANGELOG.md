@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **API / Web:** Collab structural-op detection now treats only whole-workbook `replace ["luckysheetfile"]` as structural. Routine cell edits often use nested `replace` paths under `luckysheetfile/...`; those now stay on op relay instead of forcing `fullState` remounts that reloaded the grid and could jump users to the first tab.
+- **Web:** Remote-op formula recalc no longer cycles `activateSheet` across every tab before calculating. Recalc now runs by sheet id without changing tab focus, avoiding visible tab refresh/jump during normal remote edits.
+- **Web:** Patch workbook now preserves the currently active sheet when a mid-session collab **`fullState`** remount arrives, so remote structural sync no longer jumps users back to the first tab.
 - **Web / vendor:** Forked FortuneSheet now generates a **stable sheet ID per Add Sheet click** in `SheetTab` and enforces **core `addSheet` idempotency by ID**. This closes the remaining path where one UI action could emit multiple structural batches with different UUIDs and create duplicate **Sheet2** tabs on peers.
 - **API:** Collab relay now drops rapid duplicate **`addSheet`** batches from the **same socket** (short cooldown) and sends sender **`fullState`** to resync. Logs/DB showed one click emitting multiple structural batches with different sheet UUIDs (e.g. **dfggfh**), creating duplicate **Sheet2** tabs on remotes.
 - **API:** Collab relay **cold room** load used **`sheetsUsableForServing`**, which rejects Fortune **`addSheet`** tabs that only have **`row` / `column`** (no **`data`** / **`celldata`** yet). Persist used the looser **`sheetsSafeForCollabPersist`**, so after leaving and reopening a patch the DB snapshot was discarded and replaced with the blank **Input / RF** default. Relay seeding now matches persist + **`hydrateSheetsForCollabRoom`**; **`applyOpBatchToSheets`** materializes matrices on **`addSheet`** / full **`luckysheetfile`** replace. **`docs/REALTIME.md`**.
@@ -24,6 +27,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Deployment / security:** Added internet beta hardening guidance for HAProxy deployments (`docs/SECURITY_BETA_DEPLOY.md`), including required production env (`FORCE_SECURE_COOKIES`, `CORS_ALLOWED_ORIGINS`, `REQUIRE_PASSWORD`), preflight checks, and backup/restore runbooks.
+- **Ops:** Added `scripts/backup-data.sh`, `scripts/restore-data.sh`, and `scripts/preflight-beta.sh` plus `make backup-data`, `make restore-data BACKUP_DIR=...`, and `make preflight-beta BASE_URL=...`.
+- **Docker / env:** `docker-compose.yml` now passes through `CORS_ALLOWED_ORIGINS`, `FORCE_SECURE_COOKIES`, and `REQUIRE_PASSWORD`, and supports `HOST_BIND` so app traffic can be bound to localhost behind HAProxy.
+- **API:** Production startup now honors `REQUIRE_PASSWORD=1` and exits when no shared password is configured, preventing accidental internet launch in open mode.
 - **API / Docs:** **`collab-ws-relay`** logs **`collab ws: client json parse failed`** (debug), **`collab ws: client message rejected`** (warn, first Zod **issues**), and **`collab ws: op payload is not an array`** (warn) when inbound WebSocket frames are dropped. **`docs/LOGGING.md`** — **`outbound cell op batches (aggregated)`** in NDJSON vs server **`relay op batch applied`** for save diagnostics.
 
 - **Docker (fast) / API:** Client collab debug NDJSON is written under **`${DATA_DIR}/logs/client-debug.ndjson`** (Compose mount **`…/logs` → `/var/changeoverlord/logs`**, with **`db/`** and **`uploads/`**). **`POST /api/v1/debug/client-log`** allows paths under **`dirname(UPLOADS_DIR)`** as well as the repo cwd. Docs: **`data/README.md`**, **`docs/LOGGING.md`**.

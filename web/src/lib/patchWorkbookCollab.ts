@@ -41,16 +41,32 @@ function getActiveSheetId(wb: WorkbookInstance): string | undefined {
   return String(active.id);
 }
 
-function sheetIdExists(wb: WorkbookInstance, id: string): boolean {
-  return (wb.getAllSheets() as Sheet[]).some(
-    (s) => s.id != null && String(s.id) === id,
-  );
+function preserveActiveSheetInSnapshot(sheets: Sheet[], activeSheetId: string | undefined): void {
+  if (!activeSheetId) return;
+  let found = false;
+  for (const sheet of sheets) {
+    const sid = sheet.id == null ? "" : String(sheet.id);
+    if (sid === activeSheetId) {
+      sheet.status = 1;
+      found = true;
+    } else if (sheet.status === 1) {
+      sheet.status = 0;
+    }
+  }
+  if (!found) return;
 }
 
 function batchHasStructuralOps(ops: Op[]): boolean {
   for (const o of ops) {
     if (o.op === "addSheet" || o.op === "deleteSheet") return true;
-    if (o.op === "replace" && o.path?.[0] === "luckysheetfile") return true;
+    if (
+      o.op === "replace" &&
+      o.path?.[0] === "luckysheetfile" &&
+      Array.isArray(o.path) &&
+      o.path.length === 1
+    ) {
+      return true;
+    }
   }
   return false;
 }
@@ -62,7 +78,6 @@ function flushRemoteFormulaRecalc(
 ): void {
   suppressLocalOpsRef.current = true;
   try {
-    const savedActiveId = getActiveSheetId(wb);
     const sheets = wb.getAllSheets() as Sheet[];
     for (const sheet of sheets) {
       const sheetId = sheet.id;
@@ -70,10 +85,7 @@ function flushRemoteFormulaRecalc(
       try {
         const range = fullDataRange(sheet);
         flushSync(() => {
-          wb.batchCallApis([
-            { name: "activateSheet", args: [{ id: sheetId }] },
-            { name: "calculateFormula", args: [sheetId, range] },
-          ]);
+          wb.batchCallApis([{ name: "calculateFormula", args: [sheetId, range] }]);
         });
       } catch (e) {
         logDebug("patch-workbook-collab", "per-sheet calculateFormula skipped", { sheetId }, e);
@@ -88,21 +100,6 @@ function flushRemoteFormulaRecalc(
       });
     } catch (e) {
       logDebug("patch-workbook-collab", "calculateFormula failed after remote op", e);
-    }
-    if (savedActiveId && sheetIdExists(wb, savedActiveId)) {
-      const current = (wb.getAllSheets() as Sheet[]).find(
-        (s) => s.id != null && String(s.id) === savedActiveId,
-      );
-      const restoreId = current?.id;
-      if (restoreId != null && restoreId !== "") {
-        try {
-          flushSync(() => {
-            wb.batchCallApis([{ name: "activateSheet", args: [{ id: restoreId }] }]);
-          });
-        } catch {
-          /* ignore */
-        }
-      }
     }
   } finally {
     /* One frame after the current stack — shorter than double rAF so local `onOp` is less likely to drop
@@ -203,14 +200,17 @@ export function usePatchWorkbookCollab(opts: {
         }
         if (msg.type === "fullState" && Array.isArray(msg.sheets)) {
           const midSession = !awaitingFirstFullStateRef.current;
+          const activeSheetIdBeforeRemount =
+            midSession && wbRef.current ? getActiveSheetId(wbRef.current) : undefined;
+          const nextSheets = structuredClone(msg.sheets) as Sheet[];
+          preserveActiveSheetInSnapshot(nextSheets, activeSheetIdBeforeRemount);
           logClientDebugCollab("patch-workbook-collab", "fullState received", {
             roomId,
             sheetCount: msg.sheets.length,
             midSessionRemount: midSession,
+            activeSheetIdBeforeRemount,
           });
-          setWorkbookSheets(
-            normalizeSheetsForFortuneMount(structuredClone(msg.sheets) as Sheet[]),
-          );
+          setWorkbookSheets(normalizeSheetsForFortuneMount(nextSheets));
           if (midSession) {
             setWorkbookDataRev((r) => r + 1);
           } else {

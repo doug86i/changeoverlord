@@ -115,6 +115,7 @@ See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for building from source, Doc
 | **[Decisions](docs/DECISIONS.md)** | Engineering and product decisions, visual design |
 | **[Realtime](docs/REALTIME.md)** | SSE vs collab WebSocket architecture |
 | **[Logging](docs/LOGGING.md)** | Structured logs; fast-stack **client NDJSON** (`data/logs/client-debug.ndjson` under `DATA_DIR`) for patch collab troubleshooting |
+| **[Security beta deploy](docs/SECURITY_BETA_DEPLOY.md)** | Internet-facing hardening checklist for HAProxy + shared-password beta launches |
 | **[Changelog](CHANGELOG.md)** | Release notes and version history |
 
 Full index: **[docs/README.md](docs/README.md)**.

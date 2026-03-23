@@ -186,7 +186,16 @@ function broadcastOp(room: RoomState, exclude: { send: (s: string) => void }, op
 function batchHasStructuralOps(ops: Op[]): boolean {
   for (const op of ops) {
     if (op.op === "addSheet" || op.op === "deleteSheet") return true;
-    if (op.op === "replace" && op.path?.[0] === "luckysheetfile") return true;
+    // Treat only whole-workbook replaces as structural.
+    // Cell edits are often `replace` ops under `luckysheetfile/...` and must stay on op relay.
+    if (
+      op.op === "replace" &&
+      op.path?.[0] === "luckysheetfile" &&
+      Array.isArray(op.path) &&
+      op.path.length === 1
+    ) {
+      return true;
+    }
   }
   return false;
 }

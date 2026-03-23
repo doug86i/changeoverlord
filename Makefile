@@ -1,4 +1,4 @@
-.PHONY: dev dev-app dev-fresh dev-rebuild dev-fast dev-fast-app dev-fast-rebuild dev-fast-down deploy-local up dev-down
+.PHONY: dev dev-app dev-fresh dev-rebuild dev-fast dev-fast-app dev-fast-rebuild dev-fast-down deploy-local up dev-down backup-data restore-data preflight-beta
 
 # Compose files: base (GHCR image) + dev overlay (`build: .`). See docker-compose.yml header.
 COMPOSE = docker compose -f docker-compose.yml -f docker-compose.dev.yml
@@ -73,3 +73,20 @@ dev-fast-rebuild:
 
 dev-fast-down:
 	$(COMPOSE_FAST) down
+
+backup-data:
+	./scripts/backup-data.sh
+
+restore-data:
+	@if [ -z "$(BACKUP_DIR)" ]; then \
+	  echo "Usage: make restore-data BACKUP_DIR=./backups/<timestamp>"; \
+	  exit 1; \
+	fi
+	./scripts/restore-data.sh "$(BACKUP_DIR)"
+
+preflight-beta:
+	@if [ -z "$(BASE_URL)" ]; then \
+	  echo "Usage: make preflight-beta BASE_URL=https://beta.example.com"; \
+	  exit 1; \
+	fi
+	./scripts/preflight-beta.sh "$(BASE_URL)"
