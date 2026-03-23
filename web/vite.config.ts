@@ -10,6 +10,8 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      /** Unminified SW avoids flaky terser during `vite build` in constrained environments. */
+      mode: "development",
       registerType: "autoUpdate",
       includeAssets: [],
       manifest: {
