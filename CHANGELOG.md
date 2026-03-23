@@ -6,10 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
-
-- **API / Web:** Chat **presence** — `GET/POST /api/v1/chat/presence` with in-memory per-event heartbeats (~90s TTL, single API process). **Web:** **Who’s online** next to **Options**, and **first-time chat name** screen before messages load; send requires a non-empty display name. **`docs/REALTIME.md`**, **`docs/USER_GUIDE.md`**.
-
 ### Fixed
 
 - **API / Web:** Collab structural-op detection now treats only whole-workbook `replace ["luckysheetfile"]` as structural. Routine cell edits often use nested `replace` paths under `luckysheetfile/...`; those now stay on op relay instead of forcing `fullState` remounts that reloaded the grid and could jump users to the first tab.
@@ -31,8 +27,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Web:** Stage chat uses **WhatsApp-style bubbles**: your messages (same **Name** as in Options) align **right** with a brand-tinted bubble; others align **left**. **`docs/ROADMAP.md`** (CH-1), **`docs/USER_GUIDE.md`**.
-- **Web:** Chat **Options** / **Who’s online** panels open **above** the button row (fixed above the composer); drawer titles and tinted backgrounds separate the message list, expanded panels, and input area. **`docs/USER_GUIDE.md`**.
 - **Deployment / security:** Added internet beta hardening guidance for HAProxy deployments (`docs/SECURITY_BETA_DEPLOY.md`), including required production env (`FORCE_SECURE_COOKIES`, `CORS_ALLOWED_ORIGINS`, `REQUIRE_PASSWORD`), preflight checks, and backup/restore runbooks.
 - **Ops:** Added `scripts/backup-data.sh`, `scripts/restore-data.sh`, and `scripts/preflight-beta.sh` plus `make backup-data`, `make restore-data BACKUP_DIR=...`, and `make preflight-beta BASE_URL=...`.
 - **Docker / env:** `docker-compose.yml` now passes through `CORS_ALLOWED_ORIGINS`, `FORCE_SECURE_COOKIES`, and `REQUIRE_PASSWORD`, and supports `HOST_BIND` so app traffic can be bound to localhost behind HAProxy.
@@ -53,6 +47,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 
 ---
+
+## [1.2.1] — 2026-03-24
+
+### Added
+
+- **API / Web:** Chat **presence** — `GET/POST /api/v1/chat/presence` with in-memory per-event heartbeats (~90s TTL, single API process). **Web:** **Who’s online** next to **Options**, and **first-time chat name** screen before messages load; send requires a non-empty display name. **`docs/REALTIME.md`**, **`docs/USER_GUIDE.md`**.
+
+### Changed
+
+- **Web:** Stage chat uses **WhatsApp-style bubbles**: your messages (same **Name** as in Options) align **right** with a brand-tinted bubble; others align **left**. **`docs/ROADMAP.md`** (CH-1), **`docs/USER_GUIDE.md`**.
+- **Web:** Chat **Options** / **Who’s online** panels open **above** the button row (fixed above the composer); drawer titles and tinted backgrounds separate the message list, expanded panels, and input area. **`docs/USER_GUIDE.md`**.
+- **Docs:** **`docs/README.md`** index row for **`USER_GUIDE.md`** mentions chat presence and layout.
 
 ## [1.2.0] — 2026-03-23
 

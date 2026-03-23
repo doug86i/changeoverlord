@@ -8,7 +8,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 
 | Document | What it covers |
 |----------|----------------|
-| **[`USER_GUIDE.md`](USER_GUIDE.md)** | How to use the app — events, stages, patch/RF workbook, templates, clocks, files, chat, settings |
+| **[`USER_GUIDE.md`](USER_GUIDE.md)** | How to use the app — events, stages, patch/RF workbook, templates, clocks, files, chat (presence, bubbles, options layout), settings |
 
 ## For developers and contributors
 
