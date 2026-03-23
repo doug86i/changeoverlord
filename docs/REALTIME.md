@@ -92,6 +92,7 @@ The **FortuneSheet** patch / RF workbook uses **WebSockets** with **JSON message
 - **Server → other clients (cell / format edits):** `{ "type": "op", "data": Op[] }` — after **`applyOpBatchToSheets`** (`api/src/lib/workbook-ops.ts`).
 - **Server → other clients (structural batches):** `{ "type": "fullState", "sheets": Sheet[] }` — when the batch includes **`addSheet`**, **`deleteSheet`**, or **`replace`** with `path[0] === "luckysheetfile"` (whole workbook replace). Peers remount from server truth so duplicate structural **`op`** replay is avoided. The sender already applied the op locally and does not receive this message.
 - **`addSheet`** remains **idempotent** in **`applyOpBatchToSheets`** when the sheet **`id`** already exists.
+- **Rapid duplicate `addSheet` guard:** if the same socket sends back-to-back `addSheet` batches inside a short cooldown window (one click emitting multiple UUIDs), the relay drops the duplicate burst and sends sender `fullState` to resync.
 
 **Rules:**
 

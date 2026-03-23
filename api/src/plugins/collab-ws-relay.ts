@@ -21,6 +21,8 @@ import {
 
 const WS_MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
 const PERSIST_DEBOUNCE_MS = 1500;
+/** Guard duplicate Fortune `addSheet` bursts from one click (same socket, different UUIDs). */
+const ADD_SHEET_SOCKET_COOLDOWN_MS = 220;
 
 const relayLog = createLogger("collab-ws-relay");
 
@@ -33,11 +35,12 @@ const clientMessageSchema = z.object({
 });
 
 type RoomKind = "performance" | "template";
+type CollabSocket = { send: (s: string) => void; close: () => void };
 
 type RoomState = {
   kind: RoomKind;
   entityId: string;
-  sockets: Set<{ send: (s: string) => void; close: () => void }>;
+  sockets: Set<CollabSocket>;
   sheets: Sheet[];
   persistTimer: ReturnType<typeof setTimeout> | null;
   dirty: boolean;
@@ -45,6 +48,8 @@ type RoomState = {
   sheetMutationSeq: number;
   /** Serializes `persistRoom` so overlapping awaits cannot write an older snapshot last (timer + disconnect). */
   persistTail: Promise<void>;
+  /** Last accepted `addSheet` batch time by socket (ms since epoch). */
+  lastAddSheetAtBySocket: Map<CollabSocket, number>;
 };
 
 const rooms = new Map<string, RoomState>();
@@ -213,6 +218,28 @@ function wsIncomingByteLength(raw: Buffer | string): number {
   return typeof raw === "string" ? raw.length : raw.length;
 }
 
+function batchContainsAddSheet(ops: Op[]): boolean {
+  for (const op of ops) {
+    if (op.op === "addSheet") return true;
+  }
+  return false;
+}
+
+function shouldDropRapidAddSheetBurst(
+  room: RoomState,
+  sock: CollabSocket,
+  ops: Op[],
+): boolean {
+  if (!batchContainsAddSheet(ops)) return false;
+  const now = Date.now();
+  const last = room.lastAddSheetAtBySocket.get(sock) ?? 0;
+  if (now - last < ADD_SHEET_SOCKET_COOLDOWN_MS) {
+    return true;
+  }
+  room.lastAddSheetAtBySocket.set(sock, now);
+  return false;
+}
+
 function broadcastFullStateToPeers(
   room: RoomState,
   exclude: { send: (s: string) => void },
@@ -330,6 +357,7 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
       dirty: seededDefault,
       sheetMutationSeq: 0,
       persistTail: Promise.resolve(),
+      lastAddSheetAtBySocket: new Map(),
     };
     rooms.set(key, room);
     if (seededDefault) schedulePersist(key, room);
@@ -342,6 +370,7 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
     sock: { send: (s: string) => void; close: () => void },
   ): void {
     room.sockets.delete(sock);
+    room.lastAddSheetAtBySocket.delete(sock);
     if (room.sockets.size === 0) {
       if (room.persistTimer) {
         clearTimeout(room.persistTimer);
@@ -419,6 +448,18 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         const ops = msg.data.data as Op[];
         if (!Array.isArray(ops)) {
           relayLog.warn({ performanceId: id }, "collab ws: op payload is not an array");
+          return;
+        }
+        if (shouldDropRapidAddSheetBurst(room, sock, ops)) {
+          relayLog.warn(
+            { performanceId: id, ...collabOpBatchSummary(ops) },
+            "drop rapid duplicate addSheet batch from same socket",
+          );
+          try {
+            sendFullState(sock, room.sheets);
+          } catch {
+            /* ignore */
+          }
           return;
         }
         try {
@@ -516,6 +557,18 @@ export const collabWsRelayPlugin: FastifyPluginAsync = async (app) => {
         const ops = msg.data.data as Op[];
         if (!Array.isArray(ops)) {
           relayLog.warn({ templateId: id }, "collab ws: op payload is not an array");
+          return;
+        }
+        if (shouldDropRapidAddSheetBurst(room, sock, ops)) {
+          relayLog.warn(
+            { templateId: id, ...collabOpBatchSummary(ops) },
+            "drop rapid duplicate addSheet batch from same socket",
+          );
+          try {
+            sendFullState(sock, room.sheets);
+          } catch {
+            /* ignore */
+          }
           return;
         }
         try {
