@@ -1131,6 +1131,23 @@ a.search-dialog-result:focus-visible {
   text-align: center;
 }
 
+/*
+ * Yellow handover / changeover banners: `min-height: 0` + `flex-shrink: 1` let flex collapse this
+ * block to nothing when the countdown has a large min-height (e.g. Event dashboard mini arena).
+ * Never shrink the banner away — scroll inside the block if the panel is short.
+ */
+.clock-arena-top-meta:has(.clock-arena-handover-banner) {
+  flex-shrink: 0;
+  min-height: auto;
+  max-height: min(70cqh, 26rem);
+  overflow-y: auto;
+}
+
+/* Give the hero a slightly smaller floor when a banner is present so both fit in tiny panels. */
+.clock-arena-inner:has(.clock-arena-handover-banner) .clock-arena-countdown-region {
+  min-height: max(2rem, min(16cqh, 7.5rem));
+}
+
 .clock-arena-countdown-region {
   flex: 1 1 0;
   /* Keep at least 4rem even when 22cqh is 0 before layout settles. */
