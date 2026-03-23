@@ -292,6 +292,12 @@ export function broadcastFullStateToPerformanceRoom(
   schedulePersist(key, room);
 }
 
+/** Connected WebSocket clients in the performance collab room (for presence UI). */
+export function getPerformanceCollabConnectedCount(performanceId: string): number {
+  const room = rooms.get(roomKey("performance", performanceId));
+  return room?.sockets.size ?? 0;
+}
+
 /** Push full workbook to all sockets in a template room. */
 export function broadcastFullStateToTemplateRoom(templateId: string, sheets: Sheet[]): void {
   const key = roomKey("template", templateId);

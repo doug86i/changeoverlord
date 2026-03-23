@@ -35,6 +35,14 @@ export const patchEventBody = z.object({
   name: z.string().min(1).max(500).optional(),
   startDate: dateStr.optional(),
   endDate: dateStr.optional(),
+  /** Set to an `event_id`-scoped upload, or `null` to clear. */
+  logoFileId: z.string().uuid().nullable().optional(),
+});
+
+export const duplicateStageDayScheduleBody = z.object({
+  targetStageDayId: z.string().uuid(),
+  /** When true, delete existing performances on the target day before copying. */
+  replaceExisting: z.boolean().optional(),
 });
 
 export const createStageBody = z.object({

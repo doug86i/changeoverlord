@@ -78,6 +78,13 @@
       "when": 1743200000000,
       "tag": "0010_replace_yjs_with_json",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1743300000000,
+      "tag": "0011_event_logo_file_event_id",
+      "breakpoints": true
     }
   ]
 }

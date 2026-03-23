@@ -1,10 +1,18 @@
+import { randomUUID } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
-import { eq, asc } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
-import { stages, stageDays } from "../../db/schema.js";
+import {
+  events,
+  performanceWorkbooks,
+  performances,
+  stages,
+  stageDays,
+} from "../../db/schema.js";
 import {
   createStageDayBody,
+  duplicateStageDayScheduleBody,
   patchStageDayBody,
   stageIdParam,
   uuidParam,
@@ -62,7 +70,103 @@ export const stageDaysRoutes: FastifyPluginAsync = async (app) => {
     const { id } = uuidParam.parse(req.params);
     const [row] = await db.select().from(stageDays).where(eq(stageDays.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
-    return { stageDay: row };
+    const [ctx] = await db
+      .select({ eventLogoFileId: events.logoFileId })
+      .from(stages)
+      .innerJoin(events, eq(stages.eventId, events.id))
+      .where(eq(stages.id, row.stageId))
+      .limit(1);
+    return {
+      stageDay: row,
+      eventLogoFileId: ctx?.eventLogoFileId ?? null,
+    };
+  });
+
+  app.post("/stage-days/:id/duplicate-schedule", async (req, reply) => {
+    const { id: sourceId } = uuidParam.parse(req.params);
+    const body = duplicateStageDayScheduleBody.parse(req.body);
+
+    const [source] = await db.select().from(stageDays).where(eq(stageDays.id, sourceId));
+    const [target] = await db
+      .select()
+      .from(stageDays)
+      .where(eq(stageDays.id, body.targetStageDayId));
+    if (!source || !target) return reply.code(404).send({ error: "NotFound" });
+    if (source.stageId !== target.stageId) {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: "Source and target days must belong to the same stage",
+      });
+    }
+
+    const existingTarget = await db
+      .select({ id: performances.id })
+      .from(performances)
+      .where(eq(performances.stageDayId, body.targetStageDayId));
+
+    if (existingTarget.length > 0 && !body.replaceExisting) {
+      return reply.code(409).send({
+        error: "Conflict",
+        message:
+          "Target day already has performances. Send replaceExisting: true to replace its schedule.",
+      });
+    }
+
+    const sourcePerfs = await db
+      .select()
+      .from(performances)
+      .where(eq(performances.stageDayId, sourceId))
+      .orderBy(asc(performances.sortOrder), asc(performances.startTime), asc(performances.id));
+
+    const newPerfIds = await db.transaction(async (tx) => {
+      if (body.replaceExisting && existingTarget.length > 0) {
+        const ids = existingTarget.map((p) => p.id);
+        await tx.delete(performances).where(inArray(performances.id, ids));
+      }
+      const created: string[] = [];
+      for (const sp of sourcePerfs) {
+        const newId = randomUUID();
+        await tx.insert(performances).values({
+          id: newId,
+          stageDayId: body.targetStageDayId,
+          sortOrder: sp.sortOrder,
+          bandName: sp.bandName,
+          notes: sp.notes,
+          startTime: sp.startTime,
+          endTime: sp.endTime,
+        });
+        const [wb] = await tx
+          .select({ sheetsJson: performanceWorkbooks.sheetsJson })
+          .from(performanceWorkbooks)
+          .where(eq(performanceWorkbooks.performanceId, sp.id))
+          .limit(1);
+        if (wb && Array.isArray(wb.sheetsJson) && wb.sheetsJson.length > 0) {
+          const copy = structuredClone(wb.sheetsJson) as unknown[];
+          await tx.insert(performanceWorkbooks).values({
+            performanceId: newId,
+            sheetsJson: copy,
+            updatedAt: new Date(),
+          });
+        }
+        created.push(newId);
+      }
+      return created;
+    });
+
+    const keys: (string | null)[][] = [
+      ["performances", body.targetStageDayId],
+      ["stageDay", body.targetStageDayId],
+      ["stageDays", target.stageId],
+      ["stage", target.stageId],
+      ["allStagesForClock"],
+    ];
+    for (const pid of newPerfIds) keys.push(["performance", pid]);
+    broadcastInvalidate(keys);
+    req.log.debug(
+      { sourceStageDayId: sourceId, targetStageDayId: body.targetStageDayId, count: newPerfIds.length },
+      "stage day schedule duplicated",
+    );
+    return { performanceIds: newPerfIds };
   });
 
   app.patch("/stage-days/:id", async (req, reply) => {

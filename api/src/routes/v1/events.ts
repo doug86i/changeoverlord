@@ -3,7 +3,7 @@ import { count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
-import { events, stageDays, stages } from "../../db/schema.js";
+import { events, fileAssets, stageDays, stages } from "../../db/schema.js";
 import {
   createEventBody,
   patchEventBody,
@@ -72,12 +72,28 @@ export const eventsRoutes: FastifyPluginAsync = async (app) => {
         message: "endDate must be on or after startDate",
       });
     }
+    if (body.logoFileId !== undefined) {
+      if (body.logoFileId !== null) {
+        const [logoFile] = await db
+          .select({ eventId: fileAssets.eventId })
+          .from(fileAssets)
+          .where(eq(fileAssets.id, body.logoFileId));
+        if (!logoFile?.eventId || logoFile.eventId !== id) {
+          return reply.code(400).send({
+            error: "ValidationError",
+            message:
+              "logoFileId must reference a file uploaded for this event (POST /api/v1/files?eventId=…)",
+          });
+        }
+      }
+    }
     const [row] = await db
       .update(events)
       .set({
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.startDate !== undefined ? { startDate: body.startDate } : {}),
         ...(body.endDate !== undefined ? { endDate: body.endDate } : {}),
+        ...(body.logoFileId !== undefined ? { logoFileId: body.logoFileId } : {}),
       })
       .where(eq(events.id, id))
       .returning();

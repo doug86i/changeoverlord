@@ -5,8 +5,12 @@ import { eq, asc } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { validatePerformanceSchedule, hhmmToMinutes } from "../../lib/performance-overlap.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
-import { broadcastFullStateToPerformanceRoom } from "../../plugins/collab-ws-relay.js";
 import {
+  broadcastFullStateToPerformanceRoom,
+  getPerformanceCollabConnectedCount,
+} from "../../plugins/collab-ws-relay.js";
+import {
+  events,
   performanceWorkbooks,
   patchTemplates,
   stageDays,
@@ -18,6 +22,7 @@ import {
   buildWorkbookJsonExportV1,
   safeDownloadBasename,
 } from "../../lib/workbook-json-envelope.js";
+import { sheetsToExcelBuffer } from "../../lib/sheets-to-excel.js";
 import {
   sheetsFromJsonb,
   sheetsUsableForServing,
@@ -201,6 +206,50 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
     return reply.send(JSON.stringify(payload, null, 2));
   });
 
+  app.get("/performances/:id/sheets-excel", async (req, reply) => {
+    const { id } = uuidParam.parse(req.params);
+    const [perf] = await db
+      .select()
+      .from(performances)
+      .where(eq(performances.id, id));
+    if (!perf) return reply.code(404).send({ error: "NotFound" });
+    const [wb] = await db
+      .select({ sheetsJson: performanceWorkbooks.sheetsJson })
+      .from(performanceWorkbooks)
+      .where(eq(performanceWorkbooks.performanceId, id))
+      .limit(1);
+    const sheets = sheetsFromJsonb(wb?.sheetsJson);
+    if (!sheetsUsableForServing(sheets)) {
+      return reply.code(404).send({
+        error: "NotFound",
+        message: "No patch workbook for this performance",
+      });
+    }
+    const label = perf.bandName || "performance";
+    const fname = safeDownloadBasename(label, "patch");
+    const buf = await sheetsToExcelBuffer(sheets);
+    reply.header(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    reply.header(
+      "Content-Disposition",
+      `attachment; filename="${fname}_patch.xlsx"`,
+    );
+    req.log.debug({ performanceId: id }, "performance workbook exported as xlsx");
+    return reply.send(buf);
+  });
+
+  app.get("/performances/:id/collab-presence", async (req, reply) => {
+    const { id } = uuidParam.parse(req.params);
+    const [perf] = await db
+      .select({ id: performances.id })
+      .from(performances)
+      .where(eq(performances.id, id));
+    if (!perf) return reply.code(404).send({ error: "NotFound" });
+    return { collabConnected: getPerformanceCollabConnectedCount(id) };
+  });
+
   app.put(
     "/performances/:id/sheets-import",
     { bodyLimit: JSON_SHEETS_BODY_LIMIT },
@@ -258,7 +307,17 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       .from(performances)
       .where(eq(performances.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
-    return { performance: row };
+    const [ctx] = await db
+      .select({ eventLogoFileId: events.logoFileId })
+      .from(stageDays)
+      .innerJoin(stages, eq(stageDays.stageId, stages.id))
+      .innerJoin(events, eq(stages.eventId, events.id))
+      .where(eq(stageDays.id, row.stageDayId))
+      .limit(1);
+    return {
+      performance: row,
+      eventLogoFileId: ctx?.eventLogoFileId ?? null,
+    };
   });
 
   app.patch("/performances/:id", async (req, reply) => {

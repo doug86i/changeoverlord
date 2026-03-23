@@ -25,6 +25,7 @@ import {
   riderStorageExtension,
 } from "../../lib/upload-allowlists.js";
 import {
+  events,
   fileAssets,
   performances,
   stageDays,
@@ -40,19 +41,27 @@ const listQuery = z
   .object({
     stageId: z.string().uuid().optional(),
     performanceId: z.string().uuid().optional(),
+    eventId: z.string().uuid().optional(),
   })
-  .refine((q) => Boolean(q.stageId) !== Boolean(q.performanceId), {
-    message: "Provide exactly one of stageId or performanceId",
-  });
+  .refine(
+    (q) => [q.stageId, q.performanceId, q.eventId].filter(Boolean).length === 1,
+    {
+      message: "Provide exactly one of stageId, performanceId, or eventId",
+    },
+  );
 
 const uploadQuery = z
   .object({
     stageId: z.string().uuid().optional(),
     performanceId: z.string().uuid().optional(),
+    eventId: z.string().uuid().optional(),
   })
-  .refine((q) => (q.stageId ? 1 : 0) + (q.performanceId ? 1 : 0) === 1, {
-    message: "Provide exactly one of stageId or performanceId",
-  });
+  .refine(
+    (q) => [q.stageId, q.performanceId, q.eventId].filter(Boolean).length === 1,
+    {
+      message: "Provide exactly one of stageId, performanceId, or eventId",
+    },
+  );
 
 const extractBody = z.object({
   pageIndex: z.number().int().min(0),
@@ -74,6 +83,7 @@ function toFileJson(
     byteSize: number;
     purpose: string;
     stageId: string | null;
+    eventId: string | null;
     performanceId: string | null;
     parentFileId: string | null;
     createdAt: Date;
@@ -87,6 +97,7 @@ function toFileJson(
     byteSize: row.byteSize,
     purpose: row.purpose,
     stageId: row.stageId,
+    eventId: row.eventId,
     performanceId: row.performanceId,
     parentFileId: row.parentFileId,
     createdAt: row.createdAt.toISOString(),
@@ -116,15 +127,22 @@ function absStoredFile(storageKey: string): string {
   return resolvePathUnderUploadsRoot(getUploadsDir(), storageKey);
 }
 
-function invalidateFileQueries(stageId: string, performanceId: string | null) {
-  const keys: (string | null)[][] = [
-    ["stage", stageId],
-    ["files", stageId],
-  ];
+function invalidateFileQueries(
+  stageId: string | null,
+  performanceId: string | null,
+  eventId: string | null = null,
+) {
+  const keys: (string | null)[][] = [];
+  if (eventId) {
+    keys.push(["event", eventId], ["events"]);
+  }
+  if (stageId) {
+    keys.push(["stage", stageId], ["files", stageId]);
+  }
   if (performanceId) {
     keys.push(["performance", performanceId], ["files", "performance", performanceId]);
   }
-  broadcastInvalidate(keys);
+  if (keys.length > 0) broadcastInvalidate(keys);
 }
 
 function isPlotPurpose(purpose: string): boolean {
@@ -185,19 +203,22 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
   app.get("/files", async (req, reply) => {
     const q = listQuery.parse(req.query);
 
+    const fileListCols = {
+      id: fileAssets.id,
+      originalName: fileAssets.originalName,
+      mimeType: fileAssets.mimeType,
+      byteSize: fileAssets.byteSize,
+      purpose: fileAssets.purpose,
+      stageId: fileAssets.stageId,
+      eventId: fileAssets.eventId,
+      performanceId: fileAssets.performanceId,
+      parentFileId: fileAssets.parentFileId,
+      createdAt: fileAssets.createdAt,
+    };
+
     if (q.performanceId) {
       const rows = await db
-        .select({
-          id: fileAssets.id,
-          originalName: fileAssets.originalName,
-          mimeType: fileAssets.mimeType,
-          byteSize: fileAssets.byteSize,
-          purpose: fileAssets.purpose,
-          stageId: fileAssets.stageId,
-          performanceId: fileAssets.performanceId,
-          parentFileId: fileAssets.parentFileId,
-          createdAt: fileAssets.createdAt,
-        })
+        .select(fileListCols)
         .from(fileAssets)
         .where(eq(fileAssets.performanceId, q.performanceId))
         .orderBy(desc(fileAssets.createdAt))
@@ -205,18 +226,18 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       return { files: rows.map((r) => toFileJson(r)) };
     }
 
+    if (q.eventId) {
+      const rows = await db
+        .select(fileListCols)
+        .from(fileAssets)
+        .where(eq(fileAssets.eventId, q.eventId))
+        .orderBy(desc(fileAssets.createdAt))
+        .limit(200);
+      return { files: rows.map((r) => toFileJson(r)) };
+    }
+
     const rows = await db
-      .select({
-        id: fileAssets.id,
-        originalName: fileAssets.originalName,
-        mimeType: fileAssets.mimeType,
-        byteSize: fileAssets.byteSize,
-        purpose: fileAssets.purpose,
-        stageId: fileAssets.stageId,
-        performanceId: fileAssets.performanceId,
-        parentFileId: fileAssets.parentFileId,
-        createdAt: fileAssets.createdAt,
-      })
+      .select(fileListCols)
       .from(fileAssets)
       .where(
         and(
@@ -285,22 +306,32 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
-    let stageId: string;
+    let stageId: string | null = null;
     let performanceId: string | null = null;
+    let eventIdForRow: string | null = null;
 
     if (q.performanceId) {
       const sid = await resolvePerformanceStageId(q.performanceId);
       if (!sid) return reply.code(404).send({ error: "NotFound" });
       stageId = sid;
       performanceId = q.performanceId;
+    } else if (q.eventId) {
+      const [ev] = await db
+        .select({ id: events.id })
+        .from(events)
+        .where(eq(events.id, q.eventId))
+        .limit(1);
+      if (!ev) return reply.code(404).send({ error: "NotFound" });
+      eventIdForRow = q.eventId;
     } else {
-      stageId = q.stageId!;
+      const sid = q.stageId!;
       const [stg] = await db
         .select({ id: stages.id })
         .from(stages)
-        .where(eq(stages.id, stageId))
+        .where(eq(stages.id, sid))
         .limit(1);
       if (!stg) return reply.code(404).send({ error: "NotFound" });
+      stageId = sid;
     }
 
     const ext = riderStorageExtension(mp.filename, mp.mimetype || "");
@@ -317,6 +348,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       byteSize: number;
       purpose: string;
       stageId: string | null;
+      eventId: string | null;
       performanceId: string | null;
       parentFileId: string | null;
       createdAt: Date;
@@ -332,6 +364,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
           purpose: "generic",
           stageId,
           performanceId,
+          eventId: eventIdForRow,
           parentFileId: null,
         })
         .returning({
@@ -341,6 +374,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
           byteSize: fileAssets.byteSize,
           purpose: fileAssets.purpose,
           stageId: fileAssets.stageId,
+          eventId: fileAssets.eventId,
           performanceId: fileAssets.performanceId,
           parentFileId: fileAssets.parentFileId,
           createdAt: fileAssets.createdAt,
@@ -351,9 +385,9 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       throw e;
     }
 
-    invalidateFileQueries(stageId, performanceId);
+    invalidateFileQueries(stageId, performanceId, eventIdForRow);
     req.log.debug(
-      { fileId: row.id, stageId, performanceId, pageCount },
+      { fileId: row.id, stageId, performanceId, eventId: eventIdForRow, pageCount },
       "file uploaded",
     );
 
@@ -424,6 +458,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         byteSize: fileAssets.byteSize,
         purpose: fileAssets.purpose,
         stageId: fileAssets.stageId,
+        eventId: fileAssets.eventId,
         performanceId: fileAssets.performanceId,
         parentFileId: fileAssets.parentFileId,
         createdAt: fileAssets.createdAt,
@@ -438,7 +473,9 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       await demoteOtherRidersInScope(row.stageId, row.performanceId, row.id);
     }
 
-    if (row.stageId) {
+    if (row.eventId) {
+      invalidateFileQueries(null, null, row.eventId);
+    } else if (row.stageId) {
       invalidateFileQueries(row.stageId, row.performanceId);
     }
 
@@ -536,6 +573,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       byteSize: number;
       purpose: string;
       stageId: string | null;
+      eventId: string | null;
       performanceId: string | null;
       parentFileId: string | null;
       createdAt: Date;
@@ -551,6 +589,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
           purpose: "generic",
           stageId: parent.stageId,
           performanceId: parent.performanceId,
+          eventId: parent.eventId,
           parentFileId: parent.id,
         })
         .returning({
@@ -560,6 +599,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
           byteSize: fileAssets.byteSize,
           purpose: fileAssets.purpose,
           stageId: fileAssets.stageId,
+          eventId: fileAssets.eventId,
           performanceId: fileAssets.performanceId,
           parentFileId: fileAssets.parentFileId,
           createdAt: fileAssets.createdAt,
@@ -570,9 +610,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       throw e;
     }
 
-    if (parent.stageId) {
-      invalidateFileQueries(parent.stageId, parent.performanceId);
-    }
+    invalidateFileQueries(parent.stageId, parent.performanceId, parent.eventId);
 
     req.log.debug({ fileId: row.id, parentId: parent.id }, "converted to pdf");
 
@@ -626,6 +664,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
       byteSize: number;
       purpose: string;
       stageId: string | null;
+      eventId: string | null;
       performanceId: string | null;
       parentFileId: string | null;
       createdAt: Date;
@@ -641,6 +680,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
           purpose: "plot_pdf",
           stageId: parent.stageId,
           performanceId: parent.performanceId,
+          eventId: parent.eventId,
           parentFileId: parent.id,
         })
         .returning({
@@ -650,6 +690,7 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
           byteSize: fileAssets.byteSize,
           purpose: fileAssets.purpose,
           stageId: fileAssets.stageId,
+          eventId: fileAssets.eventId,
           performanceId: fileAssets.performanceId,
           parentFileId: fileAssets.parentFileId,
           createdAt: fileAssets.createdAt,
@@ -666,8 +707,8 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
         parent.performanceId,
         row.id,
       );
-      invalidateFileQueries(parent.stageId, parent.performanceId);
     }
+    invalidateFileQueries(parent.stageId, parent.performanceId, parent.eventId);
 
     let pageCount: number | undefined;
     try {
@@ -703,7 +744,9 @@ export const filesRoutes: FastifyPluginAsync = async (app) => {
 
     await db.delete(fileAssets).where(eq(fileAssets.id, id));
 
-    if (row.stageId) {
+    if (row.eventId) {
+      invalidateFileQueries(null, null, row.eventId);
+    } else if (row.stageId) {
       invalidateFileQueries(row.stageId, row.performanceId);
     }
 

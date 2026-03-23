@@ -64,11 +64,16 @@ export const stagesRoutes: FastifyPluginAsync = async (app) => {
   app.get("/stages/:id", async (req, reply) => {
     const { id } = uuidParam.parse(req.params);
     const [row] = await db
-      .select(stageColsWithTemplate)
+      .select({
+        ...stageColsWithTemplate,
+        eventLogoFileId: events.logoFileId,
+      })
       .from(stages)
+      .innerJoin(events, eq(stages.eventId, events.id))
       .where(eq(stages.id, id));
     if (!row) return reply.code(404).send({ error: "NotFound" });
-    return { stage: row };
+    const { eventLogoFileId, ...stage } = row;
+    return { stage: { ...stage, eventLogoFileId } };
   });
 
   app.patch("/stages/:id/clock-message", async (req, reply) => {

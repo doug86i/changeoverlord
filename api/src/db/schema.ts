@@ -24,6 +24,10 @@ export const events = pgTable("events", {
   name: text("name").notNull(),
   startDate: date("start_date", { mode: "string" }).notNull(),
   endDate: date("end_date", { mode: "string" }).notNull(),
+  /** Optional client / festival logo (`file_assets` with `event_id` set). */
+  logoFileId: uuid("logo_file_id").references((): AnyPgColumn => fileAssets.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -103,6 +107,8 @@ export const fileAssets = pgTable("file_assets", {
   /** rider_pdf, plot_pdf (stage plot / single-page extract), generic (other) */
   purpose: text("purpose").notNull(),
   stageId: uuid("stage_id").references(() => stages.id, { onDelete: "set null" }),
+  /** Event-scoped uploads (e.g. client logo). Mutually exclusive with stage/performance scope in routes. */
+  eventId: uuid("event_id").references(() => events.id, { onDelete: "cascade" }),
   performanceId: uuid("performance_id").references(() => performances.id, {
     onDelete: "set null",
   }),
