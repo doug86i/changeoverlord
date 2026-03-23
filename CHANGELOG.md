@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Clock arena** — **`max-height: min(52cqh, …)`** on the top block could resolve to **0** when **`cqh`** was unset, collapsing the **changeover / handover** banners. **`max-height`** now uses **`max(6rem, 52cqh)`**; countdown **`min-height`** uses **`max(4rem, …)`** so **`cqh`** cannot zero out the hero region.
 - **Web:** **Clock arena** — typography used **viewport `vmin`**, so embedded / small arenas (e.g. Event dashboard previews) could clip or starve the hero countdown on large monitors. The arena is now a **size container**; fonts use **`cqmin` / `cqh`** so they scale with the panel. Top meta can scroll if needed; countdown has a **minimum flex height**; **`useFitCountdownInBox` / `useFitTextInBox`** handle tiny boxes and **`ResizeObserver`** runs after **`requestAnimationFrame`**. Dashboard mini preview uses **`overflow: auto`** as a last resort.
 - **Web:** **Stage day** page — **`otherStageDays`** `useMemo` was placed after loading/error **early returns**, so the hook ran only after data loaded and React threw **“Rendered more hooks than during the previous render.”** The memo is now declared with the other hooks before any return.
 - **Web:** **Clock** and **Dashboard** — “today” matched **`stage_days.day_date`** using **`toISOString()`** (UTC), so the wrong day could appear near midnight or in non-UTC time zones. Filters now use the **local calendar** date, aligned with **My stage today** (`formatLocalCalendarDate`).
