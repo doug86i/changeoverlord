@@ -8,25 +8,17 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import {
   formatDateFriendly,
   formatDateShort,
-  minutesBetween,
+  slotDurationMinutes,
   formatDuration,
   formatCountdownOrDays,
   addMinutesToHhmm,
 } from "../lib/dateFormat";
+import {
+  buildPerformanceTimeline,
+  sortPerformancesByRunOrder,
+} from "../lib/performanceTimeline";
 import { useClockNav } from "../ClockNavContext";
 import { PrintDaySheet } from "../components/PrintDaySheet";
-
-function parseLocal(dayDate: string, hhmm: string): Date {
-  return new Date(`${dayDate}T${hhmm}:00`);
-}
-
-function sortPerfs(p: PerformanceRow[]): PerformanceRow[] {
-  return [...p].sort((a, b) => {
-    const t = a.startTime.localeCompare(b.startTime);
-    if (t !== 0) return t;
-    return a.id.localeCompare(b.id);
-  });
-}
 
 /** Default slot length when the day is empty or a previous performance has no end. */
 const DEFAULT_SET_LENGTH_MINS = 60;
@@ -35,8 +27,8 @@ const DEFAULT_CHANGEOVER_MINS = 30;
 
 function durationMinsFromLastPerformance(last: PerformanceRow): number {
   if (last.endTime) {
-    const m = minutesBetween(last.startTime, last.endTime);
-    if (m !== null && m > 0) return m;
+    const m = slotDurationMinutes(last.startTime, last.endTime);
+    if (m > 0) return m;
   }
   return DEFAULT_SET_LENGTH_MINS;
 }
@@ -172,8 +164,17 @@ export function StageDayPage() {
   const [copyReplaceExisting, setCopyReplaceExisting] = useState(false);
 
   const sorted = useMemo(
-    () => sortPerfs(perfQ.data?.performances ?? []),
+    () => sortPerformancesByRunOrder(perfQ.data?.performances ?? []),
     [perfQ.data],
+  );
+
+  const dayDateStr = dayQ.data?.stageDay?.dayDate;
+  const timeline = useMemo(
+    () =>
+      dayDateStr && sorted.length
+        ? buildPerformanceTimeline(dayDateStr, sorted)
+        : [],
+    [dayDateStr, sorted],
   );
 
   /** Signature of the last performance — when it changes (local or remote), refresh add-form suggestions. */
@@ -210,42 +211,47 @@ export function StageDayPage() {
   const stage = stageQ.data?.stage;
   const event = eventQ.data?.event;
 
-  // Detect overlaps for visual warnings
+  // Detect overlaps for visual warnings (server rejects; this is a safety net)
   const overlappingIds = useMemo(() => {
     const ids = new Set<string>();
     for (let i = 0; i < sorted.length - 1; i++) {
-      const cur = sorted[i];
-      const nxt = sorted[i + 1];
-      if (cur.endTime) {
-        const gap = minutesBetween(cur.endTime, nxt.startTime);
-        if (gap !== null && gap < 0) {
-          ids.add(cur.id);
-          ids.add(nxt.id);
-        }
+      const curT = timeline[i];
+      const nxtT = timeline[i + 1];
+      if (!curT || !nxtT || curT.endMs === null) continue;
+      if (nxtT.startMs < curT.endMs) {
+        ids.add(sorted[i]!.id);
+        ids.add(sorted[i + 1]!.id);
       }
     }
     return ids;
-  }, [sorted]);
+  }, [sorted, timeline]);
 
   const { currentIdx, nextIdx, secondsToNext } = useMemo(() => {
-    if (!day || sorted.length === 0)
+    if (!dayDateStr || sorted.length === 0 || timeline.length !== sorted.length)
       return { currentIdx: -1, nextIdx: -1, secondsToNext: null as number | null };
+    const nowMs = now.getTime();
     let current = -1;
     for (let i = 0; i < sorted.length; i++) {
-      const p = sorted[i];
-      const s = parseLocal(day.dayDate, p.startTime);
-      const ns = sorted[i + 1] ? parseLocal(day.dayDate, sorted[i + 1].startTime) : null;
-      const e = p.endTime ? parseLocal(day.dayDate, p.endTime) : ns;
-      if (now >= s && (!e || now < e)) { current = i; break; }
+      const t = timeline[i]!;
+      const startMs = t.startMs;
+      const endMs = t.endMs;
+      if (nowMs >= startMs && (endMs === null || nowMs < endMs)) {
+        current = i;
+        break;
+      }
     }
     let next = -1;
     let sec: number | null = null;
     for (let i = 0; i < sorted.length; i++) {
-      const s = parseLocal(day.dayDate, sorted[i].startTime);
-      if (s > now) { next = i; sec = Math.floor((s.getTime() - now.getTime()) / 1000); break; }
+      const t = timeline[i]!;
+      if (t.startMs > nowMs) {
+        next = i;
+        sec = Math.floor((t.startMs - nowMs) / 1000);
+        break;
+      }
     }
     return { currentIdx: current, nextIdx: next, secondsToNext: sec };
-  }, [day, sorted, now]);
+  }, [dayDateStr, sorted, timeline, now]);
 
   const invalidate = useCallback(() => {
     void qc.invalidateQueries({ queryKey: ["performances", stageDayId] });
@@ -258,8 +264,8 @@ export function StageDayPage() {
       return !Number.isNaN(d) && d > 0;
     }
     if (!end || end.length < 4) return false;
-    const m = minutesBetween(s, end.slice(0, 5));
-    return m !== null && m > 0;
+    const m = slotDurationMinutes(s, end.slice(0, 5));
+    return m > 0;
   }, [start, end, addTimeMode, addDurationMins]);
 
   const createPerf = useMutation({
@@ -277,8 +283,8 @@ export function StageDayPage() {
           throw new Error("Enter an end time after the start.");
         }
         const endSlice = end.slice(0, 5);
-        const gap = minutesBetween(startH, endSlice);
-        if (gap === null || gap <= 0) {
+        const len = slotDurationMinutes(startH, endSlice);
+        if (len <= 0) {
           throw new Error("End time must be after the start time.");
         }
         endH = endSlice;
@@ -297,7 +303,7 @@ export function StageDayPage() {
         addTimeMode === "duration"
           ? addMinutesToHhmm(startH, parseInt(addDurationMins.trim(), 10))
           : end.slice(0, 5);
-      const durM = minutesBetween(startH, endH) ?? DEFAULT_SET_LENGTH_MINS;
+      const durM = slotDurationMinutes(startH, endH) || DEFAULT_SET_LENGTH_MINS;
       const nextStart = addMinutesToHhmm(endH, addChangeoverMins);
       setStart(nextStart);
       setEnd(addMinutesToHhmm(nextStart, durM));
@@ -319,7 +325,7 @@ export function StageDayPage() {
   const duplicatePerf = useMutation({
     mutationFn: (p: PerformanceRow) => {
       const last = sorted[sorted.length - 1];
-      const dur = minutesBetween(p.startTime, p.endTime);
+      const dur = p.endTime ? slotDurationMinutes(p.startTime, p.endTime) : 0;
       let newStart: string;
       let newEnd: string | null;
 
@@ -327,7 +333,7 @@ export function StageDayPage() {
         if (sorted.length === 1) {
           newStart = addMinutesToHhmm(last.startTime, 60);
           newEnd =
-            dur !== null && dur > 0
+            dur > 0
               ? addMinutesToHhmm(newStart, dur)
               : addMinutesToHhmm(newStart, 60);
         } else {
@@ -338,7 +344,7 @@ export function StageDayPage() {
       } else {
         newStart = addMinutesToHhmm(last.endTime, DEFAULT_CHANGEOVER_MINS);
         newEnd =
-          dur !== null && dur > 0
+          dur > 0
             ? addMinutesToHhmm(newStart, dur)
             : addMinutesToHhmm(newStart, DEFAULT_SET_LENGTH_MINS);
       }
@@ -611,8 +617,8 @@ export function StageDayPage() {
               onChange={(e) => {
                 const newStart = e.target.value.slice(0, 5);
                 if (addTimeMode === "end" && end && end.length >= 5) {
-                  const len = minutesBetween(start.slice(0, 5), end.slice(0, 5));
-                  if (len !== null && len > 0) {
+                  const len = slotDurationMinutes(start.slice(0, 5), end.slice(0, 5));
+                  if (len > 0) {
                     setEnd(addMinutesToHhmm(newStart, len));
                   }
                 }
@@ -651,8 +657,8 @@ export function StageDayPage() {
                     const s = start.slice(0, 5);
                     const e = end.length >= 5 ? end.slice(0, 5) : "";
                     if (e) {
-                      const m = minutesBetween(s, e);
-                      if (m !== null && m > 0) setAddDurationMins(String(m));
+                      const m = slotDurationMinutes(s, e);
+                      if (m > 0) setAddDurationMins(String(m));
                     }
                   }}
                 />
@@ -713,7 +719,7 @@ export function StageDayPage() {
         <p className="muted" style={{ fontSize: "0.8rem", margin: "0.75rem 0 0" }}>
           {addTimeMode === "duration"
             ? "Set length is stored as end time (start + length). Every slot has an end. Changeover fills the next start only — it is not saved. Switching to End time keeps the same length."
-            : "End must be after start. Changeover fills the next start only — it is not saved. Switching to Set length keeps the same length."}
+            : "End must extend past start (overnight is OK). Changeover fills the next start only — it is not saved. Switching to Set length keeps the same length."}
         </p>
         {createPerf.isError && (
           <p role="alert" style={{ color: "var(--color-danger)", marginTop: "0.75rem", marginBottom: 0 }}>
@@ -727,9 +733,15 @@ export function StageDayPage() {
         {sorted.map((p, i) => {
           const isNow = i === currentIdx;
           const isNext = i === nextIdx;
-          const dur = minutesBetween(p.startTime, p.endTime);
-          const prevEnd = i > 0 ? sorted[i - 1].endTime : null;
-          const changeoverMin = minutesBetween(prevEnd, p.startTime);
+          const dur = p.endTime
+            ? slotDurationMinutes(p.startTime, p.endTime)
+            : null;
+          const changeoverMin =
+            i > 0 && timeline[i] && timeline[i - 1] && timeline[i - 1]!.endMs !== null
+              ? Math.round(
+                  (timeline[i]!.startMs - timeline[i - 1]!.endMs!) / 60000,
+                )
+              : null;
           const hasOverlap = overlappingIds.has(p.id);
           const isSwapSource = swapSourceId === p.id;
           const hasNotes = Boolean(p.notes?.trim());
@@ -737,7 +749,9 @@ export function StageDayPage() {
           const timeClass = isNow
             ? dur !== null && dur > 0
               ? (() => {
-                  const elapsed = (now.getTime() - parseLocal(day!.dayDate, p.startTime).getTime()) / 60000;
+                  const t0 = timeline[i]?.startMs;
+                  if (t0 === undefined) return "status-ok";
+                  const elapsed = (now.getTime() - t0) / 60000;
                   const remaining = dur - elapsed;
                   if (remaining <= 1) return "status-danger";
                   if (remaining <= 5) return "status-warn";
@@ -755,7 +769,9 @@ export function StageDayPage() {
 
           return (
             <li key={p.id}>
-              {i > 0 && changeoverMin !== null && (
+              {i > 0 &&
+                changeoverMin !== null &&
+                (sorted[i - 1]!.endTime || changeoverMin < 0) && (
                 <div
                   className={`changeover-badge${changeoverMin < 0 ? " changeover-overlap" : ""}`}
                 >

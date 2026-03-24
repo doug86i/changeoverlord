@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **API / Web:** Performances may **run past midnight** — end time can be “earlier” than start on the wall clock (e.g. 23:00–01:00). Schedule validation uses **extended** time and **running order** (`sort_order`); the API **normalizes** `sort_order` to chronological extended order after create/update/delete/shift and lists performances by `sort_order` then time. **Web** uses a shared **overnight-aware** timeline for stage day, clock, and print views; **add** form and **shift** wrap times modulo 24h like HTML time inputs.
 - Root **package-lock.json** refreshed (npm `peer` metadata; no intentional dependency version bumps).
 
 ### Fixed

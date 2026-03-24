@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
+import { normalizePerformancesOrderForStageDay } from "../../lib/performance-sort-order.js";
 import {
   events,
   performanceWorkbooks,
@@ -152,6 +153,10 @@ export const stageDaysRoutes: FastifyPluginAsync = async (app) => {
       }
       return created;
     });
+
+    if (newPerfIds.length > 0) {
+      await normalizePerformancesOrderForStageDay(body.targetStageDayId);
+    }
 
     const keys: (string | null)[][] = [
       ["performances", body.targetStageDayId],

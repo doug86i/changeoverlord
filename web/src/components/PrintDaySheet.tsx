@@ -1,5 +1,9 @@
 import type { PerformanceRow } from "../api/types";
-import { minutesBetween, formatDuration } from "../lib/dateFormat";
+import { formatDuration, slotDurationMinutes } from "../lib/dateFormat";
+import {
+  buildPerformanceTimeline,
+  sortPerformancesByRunOrder,
+} from "../lib/performanceTimeline";
 
 type Props = {
   stageName: string;
@@ -8,11 +12,8 @@ type Props = {
 };
 
 export function PrintDaySheet({ stageName, dayDate, performances }: Props) {
-  const sorted = [...performances].sort((a, b) => {
-    const t = a.startTime.localeCompare(b.startTime);
-    if (t !== 0) return t;
-    return a.id.localeCompare(b.id);
-  });
+  const sorted = sortPerformancesByRunOrder(performances);
+  const timeline = buildPerformanceTimeline(dayDate, sorted);
 
   const handlePrint = () => window.print();
 
@@ -34,8 +35,15 @@ export function PrintDaySheet({ stageName, dayDate, performances }: Props) {
           </thead>
           <tbody>
             {sorted.map((p, i) => {
-              const dur = minutesBetween(p.startTime, p.endTime);
-              const changeover = i > 0 ? minutesBetween(sorted[i - 1].endTime, p.startTime) : null;
+              const dur = p.endTime
+                ? slotDurationMinutes(p.startTime, p.endTime)
+                : null;
+              const changeover =
+                i > 0 && timeline[i] && timeline[i - 1] && timeline[i - 1]!.endMs !== null
+                  ? Math.round(
+                      (timeline[i]!.startMs - timeline[i - 1]!.endMs!) / 60000,
+                    )
+                  : null;
               return (
                 <tr key={p.id}>
                   <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem", fontVariantNumeric: "tabular-nums" }}>

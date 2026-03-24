@@ -15,10 +15,11 @@ import { useClockNav } from "../ClockNavContext";
 import { useServerTime } from "../hooks/useServerTime";
 import {
   formatDateShort,
-  minutesBetween,
+  slotDurationMinutes,
   formatDuration,
   formatStageClockCountdown,
 } from "../lib/dateFormat";
+import { buildPerformanceTimeline } from "../lib/performanceTimeline";
 import {
   computeStageDayClockMetrics,
   emptyStageDayClockMetrics,
@@ -114,6 +115,10 @@ export function ClockDayPage() {
   );
 
   const dayDate = dayQ.data?.stageDay.dayDate ?? "";
+  const timeline = useMemo(
+    () => (dayDate && sorted.length ? buildPerformanceTimeline(dayDate, sorted) : []),
+    [dayDate, sorted],
+  );
   const stageId = dayQ.data?.stageDay?.stageId;
   const stage = stageQ.data?.stage;
 
@@ -290,9 +295,16 @@ export function ClockDayPage() {
   }
 
   const focus = sorted[focusIdx];
-  const changeoverToFocus = focusIdx > 0 && focus
-    ? minutesBetween(sorted[focusIdx - 1].endTime, focus.startTime)
-    : null;
+  const changeoverToFocus =
+    focusIdx > 0 &&
+    focus &&
+    timeline[focusIdx] &&
+    timeline[focusIdx - 1] &&
+    timeline[focusIdx - 1]!.endMs !== null
+      ? Math.round(
+          (timeline[focusIdx]!.startMs - timeline[focusIdx - 1]!.endMs!) / 60000,
+        )
+      : null;
 
   const bandFontSize = "clamp(1.1rem, 2.5vw, 1.5rem)";
 
@@ -483,8 +495,8 @@ export function ClockDayPage() {
                   {focus.startTime}
                   {focus.endTime ? ` – ${focus.endTime}` : ""}
                   {focus.endTime && focus.startTime && (() => {
-                    const dur = minutesBetween(focus.startTime, focus.endTime);
-                    return dur !== null ? ` (${formatDuration(dur)})` : "";
+                    const dur = slotDurationMinutes(focus.startTime, focus.endTime);
+                    return dur > 0 ? ` (${formatDuration(dur)})` : "";
                   })()}
                 </div>
                 {changeoverToFocus !== null && (

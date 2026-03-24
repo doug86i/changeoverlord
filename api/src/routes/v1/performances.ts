@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import type { Sheet } from "@fortune-sheet/core";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, max } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { validatePerformanceSchedule, hhmmToMinutes } from "../../lib/performance-overlap.js";
+import { normalizePerformancesOrderForStageDay } from "../../lib/performance-sort-order.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import {
   broadcastFullStateToPerformanceRoom,
@@ -37,11 +38,12 @@ import { z } from "zod";
 
 const JSON_SHEETS_BODY_LIMIT = 12 * 1024 * 1024;
 
+/** Shift wall times; wraps modulo 24h (same as browser time fields). */
 function addMinutes(hhmm: string, delta: number): string {
   const base = hhmmToMinutes(hhmm);
   if (Number.isNaN(base)) return hhmm;
   let total = base + delta;
-  total = Math.max(0, Math.min(24 * 60 - 1, total));
+  total = ((total % (24 * 60)) + (24 * 60)) % (24 * 60);
   const h = Math.floor(total / 60);
   const m = total % 60;
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
@@ -59,7 +61,11 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       .select()
       .from(performances)
       .where(eq(performances.stageDayId, stageDayId))
-      .orderBy(asc(performances.startTime), asc(performances.id));
+      .orderBy(
+        asc(performances.sortOrder),
+        asc(performances.startTime),
+        asc(performances.id),
+      );
     return { performances: rows };
   });
 
@@ -75,21 +81,30 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
     const existing = await db
       .select({
         id: performances.id,
+        sortOrder: performances.sortOrder,
         startTime: performances.startTime,
         endTime: performances.endTime,
       })
       .from(performances)
       .where(eq(performances.stageDayId, stageDayId));
 
+    const [mx] = await db
+      .select({ mx: max(performances.sortOrder) })
+      .from(performances)
+      .where(eq(performances.stageDayId, stageDayId));
+    const nextSort = Number(mx?.mx ?? 0) + 1;
+
     const newId = randomUUID();
     const trial = [
       ...existing.map((p) => ({
         id: p.id,
+        sortOrder: p.sortOrder,
         startTime: p.startTime,
         endTime: p.endTime,
       })),
       {
         id: newId,
+        sortOrder: nextSort,
         startTime: body.startTime,
         endTime: body.endTime ?? null,
       },
@@ -122,7 +137,7 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
           notes: body.notes ?? "",
           startTime: body.startTime,
           endTime: body.endTime ?? null,
-          sortOrder: body.sortOrder ?? 0,
+          sortOrder: body.sortOrder ?? nextSort,
         })
         .returning();
 
@@ -151,6 +166,13 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       return inserted!;
     });
 
+    await normalizePerformancesOrderForStageDay(stageDayId);
+    const [freshRow] = await db
+      .select()
+      .from(performances)
+      .where(eq(performances.id, row.id))
+      .limit(1);
+
     broadcastInvalidate([
       ["performances", stageDayId],
       ["performance", row.id],
@@ -167,7 +189,7 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       },
       "performance created",
     );
-    return reply.code(201).send({ performance: row });
+    return reply.code(201).send({ performance: freshRow ?? row });
   });
 
   app.get("/performances/:id/sheets-export", async (req, reply) => {
@@ -326,22 +348,39 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
     const [before] = await db.select().from(performances).where(eq(performances.id, id));
     if (!before) return reply.code(404).send({ error: "NotFound" });
 
-    if (body.startTime || body.endTime !== undefined) {
-      const mergedStart = body.startTime ?? before.startTime;
-      const mergedEnd =
-        body.endTime !== undefined ? body.endTime : before.endTime;
-      const startM = hhmmToMinutes(mergedStart);
-      const endM = mergedEnd !== null ? hhmmToMinutes(mergedEnd) : null;
-      if (Number.isNaN(startM) || (endM !== null && Number.isNaN(endM))) {
+    const timeChanged =
+      body.startTime !== undefined || body.endTime !== undefined;
+    if (timeChanged) {
+      const dayRows = await db
+        .select()
+        .from(performances)
+        .where(eq(performances.stageDayId, before.stageDayId))
+        .orderBy(
+          asc(performances.sortOrder),
+          asc(performances.startTime),
+          asc(performances.id),
+        );
+      const trial = dayRows.map((r) => {
+        if (r.id !== id) {
+          return {
+            id: r.id,
+            sortOrder: r.sortOrder,
+            startTime: r.startTime,
+            endTime: r.endTime,
+          };
+        }
+        return {
+          id: r.id,
+          sortOrder: r.sortOrder,
+          startTime: body.startTime ?? r.startTime,
+          endTime: body.endTime !== undefined ? body.endTime : r.endTime,
+        };
+      });
+      const scheduleErr = validatePerformanceSchedule(trial);
+      if (scheduleErr) {
         return reply.code(400).send({
           error: "ValidationError",
-          message: "Invalid time (use HH:mm)",
-        });
-      }
-      if (mergedEnd !== null && endM! <= startM) {
-        return reply.code(400).send({
-          error: "ValidationError",
-          message: "End time must be after start time",
+          message: scheduleErr,
         });
       }
     }
@@ -360,12 +399,20 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(performances.id, id))
       .returning();
     if (!row) return reply.code(404).send({ error: "NotFound" });
+    if (timeChanged) {
+      await normalizePerformancesOrderForStageDay(row.stageDayId);
+    }
+    const [freshRow] = await db
+      .select()
+      .from(performances)
+      .where(eq(performances.id, id))
+      .limit(1);
     broadcastInvalidate([
       ["performances", row.stageDayId],
       ["performance", id],
     ]);
     req.log.debug({ performanceId: id }, "performance updated");
-    return { performance: row };
+    return { performance: freshRow ?? row };
   });
 
   /** Swap band details (name + notes) between two performances on the same day. */
@@ -430,7 +477,11 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       .select()
       .from(performances)
       .where(eq(performances.stageDayId, stageDayId))
-      .orderBy(asc(performances.startTime), asc(performances.id));
+      .orderBy(
+        asc(performances.sortOrder),
+        asc(performances.startTime),
+        asc(performances.id),
+      );
 
     const fromIdx = rows.findIndex((r) => r.id === fromPerformanceId);
     if (fromIdx < 0) return reply.code(404).send({ error: "Performance not found on this day" });
@@ -449,6 +500,8 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
       }
     });
 
+    await normalizePerformancesOrderForStageDay(stageDayId);
+
     broadcastInvalidate([
       ["performances", stageDayId],
       ...updated.map((uid) => ["performance", uid] as (string | null)[]),
@@ -466,6 +519,8 @@ export const performancesRoutes: FastifyPluginAsync = async (app) => {
     if (!existing) return reply.code(404).send({ error: "NotFound" });
 
     await db.delete(performances).where(eq(performances.id, id));
+
+    await normalizePerformancesOrderForStageDay(existing.stageDayId);
 
     broadcastInvalidate([
       ["performances", existing.stageDayId],

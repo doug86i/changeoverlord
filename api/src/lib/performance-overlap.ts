@@ -11,51 +11,106 @@ export function hhmmToMinutes(hhmm: string): number {
 
 export type PerfInterval = {
   id: string;
+  sortOrder: number;
   startTime: string;
   endTime: string | null;
 };
 
+type WalkOk = {
+  ok: true;
+  /** Extended minutes from midnight of the stage day (may exceed 1440). */
+  startExtents: Map<string, number>;
+};
+
+type WalkErr = { ok: false; message: string };
+
 /**
- * Returns an error message if performances overlap or times are invalid; otherwise null.
- * Sorted by start time. Open-ended slots (no end) run until the next performance's start.
- * Touching at boundaries (end 14:00, next start 14:00) is allowed.
+ * Walks performances in running order (sortOrder, startTime, id) and assigns
+ * extended start times so overnight slots and post-midnight acts order correctly.
  */
-export function validatePerformanceSchedule(
+export function walkPerformanceTimeline(
   items: PerfInterval[],
-): string | null {
-  if (items.length === 0) return null;
+): WalkOk | WalkErr {
+  if (items.length === 0) return { ok: true, startExtents: new Map() };
 
   const sorted = [...items].sort((a, b) => {
-    const da = hhmmToMinutes(a.startTime);
-    const db = hhmmToMinutes(b.startTime);
-    if (Number.isNaN(da) || Number.isNaN(db)) return a.id.localeCompare(b.id);
-    if (da !== db) return da - db;
+    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+    const t = a.startTime.localeCompare(b.startTime);
+    if (t !== 0) return t;
     return a.id.localeCompare(b.id);
   });
+
+  const startExtents = new Map<string, number>();
+  let prevEndExt: number | null = null;
 
   for (let i = 0; i < sorted.length; i++) {
     const p = sorted[i];
     const s = hhmmToMinutes(p.startTime);
-    if (Number.isNaN(s)) return "Invalid start time (use HH:mm)";
-    const next = sorted[i + 1];
-    const nextStart = next ? hhmmToMinutes(next.startTime) : null;
-    if (nextStart != null && Number.isNaN(nextStart)) {
-      return "Invalid start time (use HH:mm)";
+    if (Number.isNaN(s)) return { ok: false, message: "Invalid start time (use HH:mm)" };
+
+    let startExt = s;
+    if (prevEndExt !== null) {
+      while (startExt < prevEndExt) {
+        startExt += 1440;
+      }
     }
+    startExtents.set(p.id, startExt);
 
     if (p.endTime !== null) {
       const e = hhmmToMinutes(p.endTime);
-      if (Number.isNaN(e)) return "Invalid end time (use HH:mm)";
-      if (e <= s) return "End time must be after start time";
-      if (nextStart !== null && e > nextStart) {
-        return "Performances overlap — adjust times so slots do not overlap";
+      if (Number.isNaN(e)) return { ok: false, message: "Invalid end time (use HH:mm)" };
+      if (e === s) {
+        return { ok: false, message: "End time must be after start time" };
       }
-    } else if (next !== null) {
-      if (s >= nextStart!) {
-        return "Performances overlap — same start time as another act, or adjust end times";
+      let endExt: number;
+      if (e > s) {
+        endExt = startExt + (e - s);
+      } else {
+        endExt = startExt + (1440 - s + e);
       }
+      prevEndExt = endExt;
+    } else {
+      const next = sorted[i + 1];
+      if (!next) {
+        prevEndExt = startExt + 1;
+        continue;
+      }
+      const ns = hhmmToMinutes(next.startTime);
+      if (Number.isNaN(ns)) return { ok: false, message: "Invalid start time (use HH:mm)" };
+      let nextStartExt = ns;
+      while (nextStartExt <= startExt) {
+        nextStartExt += 1440;
+      }
+      prevEndExt = nextStartExt;
     }
   }
 
+  return { ok: true, startExtents };
+}
+
+/**
+ * Returns an error message if performances overlap or times are invalid; otherwise null.
+ * Running order is sortOrder, then startTime, then id.
+ */
+export function validatePerformanceSchedule(items: PerfInterval[]): string | null {
+  const w = walkPerformanceTimeline(items);
+  if (!w.ok) return w.message;
   return null;
+}
+
+/**
+ * Returns performance ids sorted by extended chronological start (then id).
+ */
+export function chronologicalIdsByExtendedStart(items: PerfInterval[]): string[] | null {
+  const w = walkPerformanceTimeline(items);
+  if (!w.ok) return null;
+  const pairs = items.map((p) => ({
+    id: p.id,
+    sx: w.startExtents.get(p.id) ?? 0,
+  }));
+  pairs.sort((a, b) => {
+    if (a.sx !== b.sx) return a.sx - b.sx;
+    return a.id.localeCompare(b.id);
+  });
+  return pairs.map((x) => x.id);
 }

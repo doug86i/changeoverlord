@@ -1,17 +1,8 @@
 import type { PerformanceRow } from "../api/types";
+import { buildPerformanceTimeline } from "./performanceTimeline";
 
-function parseLocal(dayDate: string, hhmm: string): Date {
-  const t = hhmm.slice(0, 5);
-  return new Date(`${dayDate}T${t}:00`);
-}
-
-export function sortPerformancesByStart(p: PerformanceRow[]): PerformanceRow[] {
-  return [...p].sort((a, b) => {
-    const t = a.startTime.localeCompare(b.startTime);
-    if (t !== 0) return t;
-    return a.id.localeCompare(b.id);
-  });
-}
+/** @deprecated Prefer {@link sortPerformancesByRunOrder} from `./performanceTimeline` — name kept for call sites. */
+export { sortPerformancesByRunOrder as sortPerformancesByStart } from "./performanceTimeline";
 
 /**
  * Prominent clock messaging for TV / distance viewing.
@@ -61,26 +52,31 @@ export function computeStageDayClockMetrics(
   if (!dayDate || sorted.length === 0) {
     return { ...EMPTY };
   }
+  const timeline = buildPerformanceTimeline(dayDate, sorted);
+  const nowMs = now.getTime();
+
   let current = -1;
   let remaining: number | null = null;
   for (let i = 0; i < sorted.length; i++) {
-    const p = sorted[i];
-    const start = parseLocal(dayDate, p.startTime);
-    const nextStart = sorted[i + 1] ? parseLocal(dayDate, sorted[i + 1].startTime) : null;
-    const end = p.endTime ? parseLocal(dayDate, p.endTime) : nextStart;
-    if (now >= start && (!end || now < end)) {
+    const t = timeline[i]!;
+    const startMs = t.startMs;
+    const endMs = t.endMs;
+    if (nowMs >= startMs && (endMs === null || nowMs < endMs)) {
       current = i;
-      if (end) remaining = Math.floor((end.getTime() - now.getTime()) / 1000);
+      if (endMs !== null) {
+        remaining = Math.floor((endMs - nowMs) / 1000);
+      }
       break;
     }
   }
+
   let next = -1;
   let sec: number | null = null;
   for (let i = 0; i < sorted.length; i++) {
-    const start = parseLocal(dayDate, sorted[i].startTime);
-    if (start > now) {
+    const t = timeline[i]!;
+    if (t.startMs > nowMs) {
       next = i;
-      sec = Math.floor((start.getTime() - now.getTime()) / 1000);
+      sec = Math.floor((t.startMs - nowMs) / 1000);
       break;
     }
   }
@@ -114,8 +110,8 @@ export function computeStageDayClockMetrics(
   if (implicitCountdownToNext) {
     clockBanner = "on_stage_next";
   } else if (current < 0 && next >= 0 && sec !== null) {
-    const firstStart = parseLocal(dayDate, sorted[0].startTime);
-    clockBanner = now < firstStart ? "pre_show" : "between_acts";
+    const firstStartMs = timeline[0]!.startMs;
+    clockBanner = nowMs < firstStartMs ? "pre_show" : "between_acts";
   }
 
   return {

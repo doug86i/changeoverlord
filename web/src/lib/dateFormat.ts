@@ -31,24 +31,24 @@ function hhmmToMinutes(hhmm: string): number {
   return h * 60 + m;
 }
 
-/** Add minutes to HH:mm (same calendar day, clamped 00:00–23:59). */
+/** Add minutes to HH:mm; wraps past midnight (00:00–23:59 wall clock, same as HTML time inputs). */
 export function addMinutesToHhmm(hhmm: string, delta: number): string {
   let total = hhmmToMinutes(hhmm) + delta;
-  total = Math.max(0, Math.min(24 * 60 - 1, total));
+  total = ((total % (24 * 60)) + (24 * 60)) % (24 * 60);
   const h = Math.floor(total / 60);
   const m = total % 60;
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-/** Minutes between two HH:mm strings. Returns null if either is missing. */
-export function minutesBetween(
-  a: string | null | undefined,
-  b: string | null | undefined,
-): number | null {
-  if (!a || !b) return null;
-  const [ah, am] = a.split(":").map(Number);
-  const [bh, bm] = b.split(":").map(Number);
-  return bh * 60 + bm - (ah * 60 + am);
+/**
+ * Set length in minutes from start/end wall times (end may be “next morning” after midnight).
+ */
+export function slotDurationMinutes(start: string, end: string): number {
+  const s = hhmmToMinutes(start.slice(0, 5));
+  const e = hhmmToMinutes(end.slice(0, 5));
+  if (Number.isNaN(s) || Number.isNaN(e) || e === s) return 0;
+  if (e > s) return e - s;
+  return 1440 - s + e;
 }
 
 /** Format a duration in minutes: "45 min" or "1h 15m" */

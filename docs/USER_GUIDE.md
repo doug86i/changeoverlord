@@ -62,7 +62,7 @@ A **banner** appears at the top of the screen when the connection to the server 
 ### Performance management
 
 **Adding performances** — In **Add performance**, choose **End time** or **Set length**:
-- **End time** — End must be **after** start (same as editing a row).
+- **End time** — The slot may **cross midnight** (e.g. start 23:00, end 01:00). End must not equal start (same as editing a row).
 - **Set length** — Enter the slot length in **minutes**; the app stores it as an end time (start + length). Switching between **End time** and **Set length** keeps the **same duration** where possible.
 - **Defaults** — First act on an empty day: **1 hour** slot and **30 minutes** changeover. After each **Add**, the next row suggests the **same length** as the act you just added, and **changeover** only affects the gap before that next start (not saved on the performance).
 - **Changeover (min)** — Not saved on the performance. After **Add**, the next **Start** is this act’s **end + changeover**.
