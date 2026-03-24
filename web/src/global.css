@@ -2939,6 +2939,21 @@ a.patch-sidebar-perf-link:hover {
 }
 
 @media print {
+  :root {
+    --print-ink: #0a0a0a;
+    --print-paper: #ffffff;
+    --print-border: #000000;
+    --print-muted: #333333;
+    --print-badge-bg: #eeeeee;
+  }
+
+  html,
+  body,
+  #root {
+    background: var(--print-paper) !important;
+    color: var(--print-ink) !important;
+  }
+
   .app-header,
   .app-footer,
   .hamburger,
@@ -2958,6 +2973,101 @@ a.patch-sidebar-perf-link:hover {
   .main-wide {
     max-width: none;
     padding: 0;
+  }
+
+  /* Stage day running order: print only event / stage / date / table (not the rest of the page UI) */
+  .stage-day-page-root > *:not(.print-day-sheet-host) {
+    display: none !important;
+  }
+
+  .print-day-sheet-host {
+    display: block !important;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-schedule {
+    display: block !important;
+    max-width: none;
+    margin: 0;
+    padding: 0.5rem 0 0;
+    color: var(--print-ink) !important;
+    background: var(--print-paper) !important;
+    font-size: 11pt;
+    line-height: 1.4;
+    -webkit-print-color-adjust: economy;
+    print-color-adjust: economy;
+  }
+
+  .print-schedule__event {
+    margin: 0 0 0.15rem;
+    font-size: 16pt;
+    font-weight: 700;
+    color: var(--print-ink) !important;
+  }
+
+  .print-schedule__stage {
+    margin: 0 0 0.35rem;
+    font-size: 13pt;
+    font-weight: 600;
+    color: var(--print-ink) !important;
+  }
+
+  .print-schedule__day {
+    margin: 0 0 0.75rem;
+    font-size: 11pt;
+    color: var(--print-ink) !important;
+  }
+
+  .print-schedule__table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--print-ink) !important;
+  }
+
+  .print-schedule__table th,
+  .print-schedule__table td {
+    border: 1px solid var(--print-border) !important;
+    padding: 0.35rem 0.45rem !important;
+    text-align: left;
+    vertical-align: top;
+    color: var(--print-ink) !important;
+    background: var(--print-paper) !important;
+  }
+
+  .print-schedule__table th {
+    font-weight: 700;
+    border-bottom: 2px solid var(--print-border) !important;
+  }
+
+  .print-schedule__time {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .print-schedule__band {
+    font-weight: 600;
+  }
+
+  .print-schedule__notes {
+    font-size: 10pt;
+  }
+
+  .print-schedule__changeover {
+    margin-top: 0.2rem;
+    font-size: 9pt;
+    color: var(--print-muted) !important;
+    white-space: nowrap;
+  }
+
+  .print-schedule .print-schedule__badge.running-order-next-day-badge {
+    margin-left: 0.35rem;
+    color: var(--print-ink) !important;
+    background: var(--print-badge-bg) !important;
+    border: 1px solid var(--print-border) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .card {

@@ -427,7 +427,7 @@ export function StageDayPage() {
   const inSwapMode = swapSourceId !== null;
 
   return (
-    <div>
+    <div className="stage-day-page-root">
       <p className="muted" style={{ marginTop: 0 }}>
         {event && stage && (
           <>
@@ -986,6 +986,7 @@ export function StageDayPage() {
 
       {stage && sorted.length > 0 && (
         <PrintDaySheet
+          eventName={event?.name ?? ""}
           stageName={stage.name}
           dayDate={day!.dayDate}
           performances={sorted}

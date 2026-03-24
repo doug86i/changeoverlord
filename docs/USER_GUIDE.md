@@ -78,7 +78,7 @@ On the **stage day page**, each performance supports:
 - **Duration display** — Shows calculated duration (e.g. "45 min") and changeover time between acts.
 - **Now/Next indicators** — Green "ON STAGE" and amber "NEXT" badges based on server-synced time.
 - **Time colours** — As an act's remaining time runs low, the duration displays in green → amber → red.
-- **Print** — Click 🖨 to print a clean running order table.
+- **Print** — Click 🖨 to open the browser print dialog. **Only** the **event name**, **stage name**, **calendar day**, and **performances** table are printed (the rest of the page is omitted). Text and table borders are **high-contrast** for paper or PDF.
 - **Copy schedule to another day** — When the stage has **more than one** day, use **Copy schedule to another day** to duplicate **this** day’s acts and patch workbooks onto another date on the **same** stage. If the target day already has acts, tick **Replace existing acts on target** (this removes the target day’s performances first) or the copy is blocked.
 
 ### Export and import

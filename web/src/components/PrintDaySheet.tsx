@@ -1,5 +1,9 @@
 import type { PerformanceRow } from "../api/types";
-import { formatDuration, slotDurationMinutes } from "../lib/dateFormat";
+import {
+  formatDateFriendly,
+  formatDuration,
+  slotDurationMinutes,
+} from "../lib/dateFormat";
 import {
   buildPerformanceTimeline,
   sortPerformancesByRunOrder,
@@ -7,31 +11,47 @@ import {
 } from "../lib/performanceTimeline";
 
 type Props = {
+  eventName: string;
   stageName: string;
   dayDate: string;
   performances: PerformanceRow[];
 };
 
-export function PrintDaySheet({ stageName, dayDate, performances }: Props) {
+export function PrintDaySheet({
+  eventName,
+  stageName,
+  dayDate,
+  performances,
+}: Props) {
   const sorted = sortPerformancesByRunOrder(performances);
   const timeline = buildPerformanceTimeline(dayDate, sorted);
 
   const handlePrint = () => window.print();
 
   return (
-    <div>
-      <button type="button" onClick={handlePrint} className="icon-btn" title="Print running order" style={{ marginBottom: "0.75rem" }}>
+    <div className="print-day-sheet-host">
+      <button
+        type="button"
+        onClick={handlePrint}
+        className="icon-btn"
+        title="Print running order"
+        style={{ marginBottom: "0.75rem" }}
+      >
         🖨 Print
       </button>
-      <div className="print-only" style={{ display: "none" }}>
-        <h1>{stageName} — {dayDate}</h1>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="print-schedule print-only">
+        {eventName.trim() !== "" ? (
+          <h1 className="print-schedule__event">{eventName}</h1>
+        ) : null}
+        <h2 className="print-schedule__stage">{stageName}</h2>
+        <p className="print-schedule__day">{formatDateFriendly(dayDate)}</p>
+        <table className="print-schedule__table">
           <thead>
             <tr>
-              <th style={{ textAlign: "left", borderBottom: "2px solid #000", padding: "0.5rem" }}>Time</th>
-              <th style={{ textAlign: "left", borderBottom: "2px solid #000", padding: "0.5rem" }}>Band</th>
-              <th style={{ textAlign: "left", borderBottom: "2px solid #000", padding: "0.5rem" }}>Duration</th>
-              <th style={{ textAlign: "left", borderBottom: "2px solid #000", padding: "0.5rem" }}>Notes</th>
+              <th scope="col">Time</th>
+              <th scope="col">Band</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -51,21 +71,25 @@ export function PrintDaySheet({ stageName, dayDate, performances }: Props) {
                   : 0;
               return (
                 <tr key={p.id}>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem", fontVariantNumeric: "tabular-nums" }}>
-                    {p.startTime}
-                    {startDayOff > 0 ? (
-                      <span className="running-order-next-day-badge" style={{ marginLeft: "0.35rem" }}>
-                        +{startDayOff}d
-                      </span>
-                    ) : null}
-                    {p.endTime ? ` – ${p.endTime}` : ""}
+                  <td className="print-schedule__time">
+                    <span className="print-schedule__time-main">
+                      {p.startTime}
+                      {startDayOff > 0 ? (
+                        <span className="running-order-next-day-badge print-schedule__badge">
+                          +{startDayOff}d
+                        </span>
+                      ) : null}
+                      {p.endTime ? ` – ${p.endTime}` : ""}
+                    </span>
                     {changeover !== null && changeover > 0 && (
-                      <div style={{ fontSize: "0.75em", color: "#666" }}>↕ {formatDuration(changeover)} c/o</div>
+                      <div className="print-schedule__changeover">
+                        ↕ {formatDuration(changeover)} c/o
+                      </div>
                     )}
                   </td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem", fontWeight: 600 }}>{p.bandName}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem" }}>{dur !== null ? formatDuration(dur) : ""}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem", fontSize: "0.85rem" }}>{p.notes}</td>
+                  <td className="print-schedule__band">{p.bandName}</td>
+                  <td>{dur !== null ? formatDuration(dur) : ""}</td>
+                  <td className="print-schedule__notes">{p.notes ?? ""}</td>
                 </tr>
               );
             })}
