@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **API / Web:** **Copy a day’s schedule** — `POST /api/v1/stage-days/:id/duplicate-schedule` with `targetStageDayId` and optional `replaceExisting`; UI on the **stage day** page when the stage has other days.
 - **Web:** **PWA** — **vite-plugin-pwa** precaches the built SPA (large bundle limit raised for FortuneSheet); API/WebSocket stay **network-only**. The generated service worker is built in **development** mode (unminified) so production `vite build` stays reliable in constrained CI/sandbox environments. Add to home screen / install where the browser supports it.
 
+### Changed
+
+- Root **package-lock.json** refreshed (npm `peer` metadata; no intentional dependency version bumps).
+
 ### Fixed
 
 - **Web:** **Clock arena** — **Changeover / handover** banners disappeared in **very short arenas** (e.g. Event dashboard): **`min-height: 0`** on the top block let flex **collapse it to nothing** vs. the hero’s **`min-height`**. When a **`.clock-arena-handover-banner`** is present, the top block now **`flex-shrink: 0`**, a **`min-height`** floor (**`max(2.75rem, …)`** so **`cqh`** cannot zero it), **`max-height`** with scroll; **footer + local time** may **`flex-shrink`** with tighter typography; hero floor is lower; **`@container (max-height: 280px)`** compresses footer/wall and scales banner type.
