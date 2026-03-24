@@ -1,4 +1,5 @@
 import type { PerformanceRow } from "../api/types";
+import { formatLocalCalendarDate } from "./dateFormat";
 
 /** Running order: sortOrder, then start time, then id (matches API). */
 export function sortPerformancesByRunOrder(p: PerformanceRow[]): PerformanceRow[] {
@@ -83,4 +84,13 @@ export function buildPerformanceTimeline(
   }
 
   return out;
+}
+
+/** True when the resolved start instant is on a later calendar day than `stageDayDate` (YYYY-MM-DD). */
+export function isTimelineStartNextCalendarDay(
+  stageDayDate: string,
+  startMs: number,
+): boolean {
+  const startDay = formatLocalCalendarDate(new Date(startMs));
+  return startDay > stageDayDate;
 }

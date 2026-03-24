@@ -657,6 +657,21 @@ a.search-dialog-result:focus-visible {
   border-left: 3px solid var(--color-warning);
 }
 
+.running-order-next-day-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-warning) 32%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-warning) 50%, var(--color-border));
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 .perf-note-badge {
   display: inline-flex;
   align-items: center;

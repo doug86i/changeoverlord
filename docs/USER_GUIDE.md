@@ -71,7 +71,7 @@ A **banner** appears at the top of the screen when the connection to the server 
 - **Multi-user** — If someone else adds an act on another machine, the **next suggested start / end / length** updates to match the new last slot (same rules as after your own **Add**).
 
 On the **stage day page**, each performance supports:
-- **Inline editing** — Click band name, start time, or end time to edit in place.
+- **Inline editing** — Click band name, start time, or end time to edit in place. When a slot’s **start** is on the **next calendar day** after the stage day (typical after-midnight acts), a yellow **+1d** badge appears next to the start time (and on **Print**).
 - **Notes** — Expand the notes section to add/edit notes for each act. When an act **has notes**, a **Note** badge appears next to the band name and the **Notes** button is highlighted so you can see it without opening the section (hover the badge for a text preview).
 - **Duplicate** — Adds a copy **after the last act** (with spacing so times do not overlap). If more than one act is listed, the **last** act must have an **end time** first. The copy uses the same duration as the original when possible.
 - **Delete** — Remove with confirmation.

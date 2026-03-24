@@ -15,6 +15,7 @@ import {
 } from "../lib/dateFormat";
 import {
   buildPerformanceTimeline,
+  isTimelineStartNextCalendarDay,
   sortPerformancesByRunOrder,
 } from "../lib/performanceTimeline";
 import { useClockNav } from "../ClockNavContext";
@@ -830,12 +831,24 @@ export function StageDayPage() {
                       flexWrap: "wrap",
                     }}
                   >
-                    <InlineInput
-                      value={p.startTime}
-                      type="time"
-                      onSave={(v) => patchPerf.mutate({ id: p.id, body: { startTime: v } })}
-                      disabled={inSwapMode}
-                    />
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+                      <InlineInput
+                        value={p.startTime}
+                        type="time"
+                        onSave={(v) => patchPerf.mutate({ id: p.id, body: { startTime: v } })}
+                        disabled={inSwapMode}
+                      />
+                      {dayDateStr &&
+                        timeline[i] &&
+                        isTimelineStartNextCalendarDay(dayDateStr, timeline[i]!.startMs) && (
+                          <span
+                            className="running-order-next-day-badge"
+                            title="Start falls on the next calendar day after this stage day"
+                          >
+                            +1d
+                          </span>
+                        )}
+                    </span>
                     <span>–</span>
                     <InlineInput
                       value={p.endTime ?? ""}

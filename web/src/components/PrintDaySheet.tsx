@@ -2,6 +2,7 @@ import type { PerformanceRow } from "../api/types";
 import { formatDuration, slotDurationMinutes } from "../lib/dateFormat";
 import {
   buildPerformanceTimeline,
+  isTimelineStartNextCalendarDay,
   sortPerformancesByRunOrder,
 } from "../lib/performanceTimeline";
 
@@ -44,10 +45,19 @@ export function PrintDaySheet({ stageName, dayDate, performances }: Props) {
                       (timeline[i]!.startMs - timeline[i - 1]!.endMs!) / 60000,
                     )
                   : null;
+              const plus1d =
+                timeline[i] &&
+                isTimelineStartNextCalendarDay(dayDate, timeline[i]!.startMs);
               return (
                 <tr key={p.id}>
                   <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem", fontVariantNumeric: "tabular-nums" }}>
-                    {p.startTime}{p.endTime ? ` – ${p.endTime}` : ""}
+                    {p.startTime}
+                    {plus1d ? (
+                      <span className="running-order-next-day-badge" style={{ marginLeft: "0.35rem" }}>
+                        +1d
+                      </span>
+                    ) : null}
+                    {p.endTime ? ` – ${p.endTime}` : ""}
                     {changeover !== null && changeover > 0 && (
                       <div style={{ fontSize: "0.75em", color: "#666" }}>↕ {formatDuration(changeover)} c/o</div>
                     )}
