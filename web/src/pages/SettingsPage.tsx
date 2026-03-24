@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { apiGet, apiSend } from "../api/client";
 import { PatchTemplateLibrarySettings } from "../components/PatchTemplateTools";
+import { getPublicAppOrigin } from "../lib/publicAppOrigin";
 
-type SettingsRes = { hasPassword: boolean };
+type SettingsRes = { hasPassword: boolean; publicBaseUrl: string | null };
 
 export function SettingsPage() {
   const qc = useQueryClient();
@@ -17,6 +18,25 @@ export function SettingsPage() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [clearPwd, setClearPwd] = useState("");
+  const [publicBaseDraft, setPublicBaseDraft] = useState("");
+  const [publicBaseDirty, setPublicBaseDirty] = useState(false);
+
+  useEffect(() => {
+    if (!settingsQ.isSuccess || publicBaseDirty) return;
+    setPublicBaseDraft(settings?.publicBaseUrl ?? "");
+  }, [settingsQ.isSuccess, settings?.publicBaseUrl, publicBaseDirty]);
+
+  const patchPublicBase = useMutation({
+    mutationFn: (publicBaseUrl: string | null) =>
+      apiSend<{ publicBaseUrl: string | null }>("/api/v1/settings", "PATCH", {
+        publicBaseUrl,
+      }),
+    onSuccess: async (data) => {
+      setPublicBaseDirty(false);
+      setPublicBaseDraft(data?.publicBaseUrl ?? "");
+      await qc.invalidateQueries({ queryKey: ["settings"] });
+    },
+  });
 
   const setInitialPwd = useMutation({
     mutationFn: () =>
@@ -102,6 +122,73 @@ export function SettingsPage() {
       </div>
 
       <PatchTemplateLibrarySettings />
+
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <div className="title-bar" style={{ marginBottom: "0.75rem" }}>
+          Advanced — links &amp; QR base URL
+        </div>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Share links and QR codes use <strong>this browser&apos;s address</strong>{" "}
+          (for example <code>{window.location.origin}</code>) unless you set an
+          override below — useful behind a reverse proxy or fixed hostname.
+        </p>
+        <label htmlFor="settings-public-base" className="muted" style={{ display: "block", marginBottom: "0.35rem" }}>
+          Optional override (origin only, e.g. <code>http://192.168.1.50:8080</code>)
+        </label>
+        <input
+          id="settings-public-base"
+          type="url"
+          inputMode="url"
+          autoComplete="off"
+          placeholder="Leave empty to use this page’s address"
+          value={publicBaseDraft}
+          onChange={(e) => {
+            setPublicBaseDirty(true);
+            setPublicBaseDraft(e.target.value);
+          }}
+          style={{ ...fieldStyle, marginBottom: "0.5rem" }}
+        />
+        <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>
+          Effective base for links:{" "}
+          <code>
+            {getPublicAppOrigin(
+              publicBaseDraft.trim() === "" ? null : publicBaseDraft.trim(),
+            ) || "(unknown)"}
+          </code>
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          <button
+            type="button"
+            className="primary"
+            onClick={() =>
+              patchPublicBase.mutate(
+                publicBaseDraft.trim() === "" ? null : publicBaseDraft.trim(),
+              )
+            }
+            disabled={patchPublicBase.isPending}
+          >
+            Save override
+          </button>
+          {(settings.publicBaseUrl ?? "").trim() !== "" && (
+            <button
+              type="button"
+              onClick={() => {
+                setPublicBaseDirty(false);
+                setPublicBaseDraft("");
+                patchPublicBase.mutate(null);
+              }}
+              disabled={patchPublicBase.isPending}
+            >
+              Clear override
+            </button>
+          )}
+        </div>
+        {patchPublicBase.isError && (
+          <p role="alert" style={{ color: "var(--color-danger)", marginBottom: 0 }}>
+            {(patchPublicBase.error as Error).message}
+          </p>
+        )}
+      </div>
 
       {!settings.hasPassword && (
         <div className="card" style={{ marginBottom: "1rem" }}>

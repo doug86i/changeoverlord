@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **API / Web / DB:** Optional **public base URL** (`settings.public_base_url`) — **`GET /api/v1/settings`** includes **`publicBaseUrl`**; **`PATCH /api/v1/settings`** sets or clears it (normalized `http(s)://host[:port]` only). **Settings** has **Advanced — links & QR base URL**; **`getPublicAppOrigin()`** uses the override when set, otherwise **`window.location.origin`** for share links and future QR codes.
 - **Web:** **Event dashboard** (`/dashboard`) — main nav link **`g d`**; for each stage with a day **today**, a **mini `ClockArena`** (same layout as the full stage clock) plus expandable **Running order** per stage. **`/clock`** redirects here (old clock hub removed).
 - **Web / API:** **Patch & RF** — **Export Excel** (`GET /api/v1/performances/:id/sheets-excel`), **Print patch** (print stylesheet hides chrome), **collab presence** when **more than one** connection (`GET …/collab-presence`, refreshed every few seconds), and a short **highlight** when another user applies edits over collab.
 - **API / Web / DB:** **Per-event logo** — `events.logo_file_id`, `file_assets.event_id`, uploads with `?eventId=`, `PATCH /events/:id` `{ logoFileId }`; header shows the logo on event / stage / day / patch / performance-files routes.

@@ -13,6 +13,10 @@ Changeoverlord helps festival **sound crew** run **multi-day schedules**, **chan
 - If **no password** is set, the app is open on the LAN (still treat the network as trusted).
 - Too many failed sign-in attempts from one device in a short window show **Too many attempts, try again in 5 minutes.** (this limits password guessing).
 
+### Links and QR codes (advanced)
+
+Share links and QR codes use **the address shown in your browser** (for example `http://192.168.1.50` if that is how you opened the app). You only need **Settings → Advanced — links & QR base URL → Optional override** when you must point people at a different origin (for example a stable hostname in front of a reverse proxy). Leave the override empty to keep using the page address.
+
 ---
 
 ## Main navigation
@@ -22,7 +26,7 @@ Changeoverlord helps festival **sound crew** run **multi-day schedules**, **chan
 | **Events** | List and open **events** (festivals, tours, etc.). |
 | **Dashboard** | **Today** across the whole site — now/next for every stage that has a day on today’s date. |
 | **Clock** | **Stage clocks** — now/next and fullscreen display for a stage day. |
-| **Settings** | Shared password, **global patch / RF templates**, and other app options. |
+| **Settings** | Shared password, **global patch / RF templates**, optional **links / QR base URL** override, and other app options. |
 
 The header links **Events**, **Dashboard**, **Clock**, and **Settings** on every screen. On **mobile**, tap the **hamburger menu** (☰) to expand the navigation.
 

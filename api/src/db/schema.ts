@@ -14,6 +14,11 @@ import {
 export const settings = pgTable("settings", {
   id: integer("id").primaryKey().default(1),
   passwordHash: text("password_hash"),
+  /**
+   * Optional override for share/QR links (`http://host:port` origin only).
+   * When null, the web app uses `window.location.origin`.
+   */
+  publicBaseUrl: text("public_base_url"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

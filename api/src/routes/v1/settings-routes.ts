@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "../../db/client.js";
 import { broadcastInvalidate } from "../../lib/realtime-bus.js";
 import { invalidatePasswordSettingsCache } from "../../lib/password-cache.js";
+import { normalizePublicBaseUrl } from "../../lib/public-base-url.js";
 import { settings } from "../../db/schema.js";
 
 const setInitialBody = z.object({
@@ -20,16 +21,45 @@ const clearBody = z.object({
   currentPassword: z.string().min(1),
 });
 
+const patchSettingsBody = z.object({
+  publicBaseUrl: z.union([z.string(), z.null()]),
+});
+
 export const settingsRoutes: FastifyPluginAsync = async (app) => {
   app.get("/settings", async () => {
     const [row] = await db
-      .select({ passwordHash: settings.passwordHash })
+      .select({
+        passwordHash: settings.passwordHash,
+        publicBaseUrl: settings.publicBaseUrl,
+      })
       .from(settings)
       .where(eq(settings.id, 1))
       .limit(1);
     return {
       hasPassword: Boolean(row?.passwordHash),
+      publicBaseUrl: row?.publicBaseUrl ?? null,
     };
+  });
+
+  app.patch("/settings", async (req, reply) => {
+    const body = patchSettingsBody.parse(req.body);
+    const normalized = normalizePublicBaseUrl(body.publicBaseUrl);
+    if (!normalized.ok) {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: normalized.message,
+      });
+    }
+    await db
+      .update(settings)
+      .set({ publicBaseUrl: normalized.value, updatedAt: new Date() })
+      .where(eq(settings.id, 1));
+    broadcastInvalidate([["settings"]]);
+    req.log.debug(
+      { publicBaseUrl: normalized.value },
+      "settings public base url updated",
+    );
+    return { publicBaseUrl: normalized.value };
   });
 
   app.post("/settings/password", async (req, reply) => {
