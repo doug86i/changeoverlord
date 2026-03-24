@@ -15,7 +15,7 @@ import {
 } from "../lib/dateFormat";
 import {
   buildPerformanceTimeline,
-  isTimelineStartNextCalendarDay,
+  timelineStartCalendarDayOffset,
   sortPerformancesByRunOrder,
 } from "../lib/performanceTimeline";
 import { useClockNav } from "../ClockNavContext";
@@ -747,6 +747,10 @@ export function StageDayPage() {
           const hasOverlap = overlappingIds.has(p.id);
           const isSwapSource = swapSourceId === p.id;
           const hasNotes = Boolean(p.notes?.trim());
+          const startCalendarDayOffset =
+            dayDateStr && timeline[i]
+              ? timelineStartCalendarDayOffset(dayDateStr, timeline[i]!.startMs)
+              : 0;
 
           const timeClass = isNow
             ? dur !== null && dur > 0
@@ -844,14 +848,12 @@ export function StageDayPage() {
                         onSave={(v) => patchPerf.mutate({ id: p.id, body: { startTime: v } })}
                         disabled={inSwapMode}
                       />
-                      {dayDateStr &&
-                        timeline[i] &&
-                        isTimelineStartNextCalendarDay(dayDateStr, timeline[i]!.startMs) && (
+                      {startCalendarDayOffset > 0 && (
                           <span
                             className="running-order-next-day-badge"
-                            title="Start falls on the next calendar day after this stage day"
+                            title={`Start falls ${startCalendarDayOffset} local calendar day${startCalendarDayOffset === 1 ? "" : "s"} after this stage day`}
                           >
-                            +1d
+                            +{startCalendarDayOffset}d
                           </span>
                         )}
                     </span>

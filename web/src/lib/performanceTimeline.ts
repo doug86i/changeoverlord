@@ -86,11 +86,36 @@ export function buildPerformanceTimeline(
   return out;
 }
 
+function calendarDateStringToLocalNoon(iso: string): Date {
+  const parts = iso.split("-").map(Number);
+  if (parts.length !== 3) return new Date(NaN);
+  const [y, m, d] = parts;
+  return new Date(y!, m! - 1, d!, 12, 0, 0, 0);
+}
+
+/**
+ * How many **local** calendar days after `stageDayDate` the resolved start falls
+ * (`0` = same calendar day as the stage day, `1` = next day, `2` = two days later, …).
+ */
+export function timelineStartCalendarDayOffset(
+  stageDayDate: string,
+  startMs: number,
+): number {
+  const startDay = formatLocalCalendarDate(new Date(startMs));
+  if (startDay <= stageDayDate) return 0;
+  const stageNoon = calendarDateStringToLocalNoon(stageDayDate);
+  const startNoon = calendarDateStringToLocalNoon(startDay);
+  if (Number.isNaN(stageNoon.getTime()) || Number.isNaN(startNoon.getTime())) return 0;
+  const diff = Math.round(
+    (startNoon.getTime() - stageNoon.getTime()) / 86_400_000,
+  );
+  return diff > 0 ? diff : 0;
+}
+
 /** True when the resolved start instant is on a later calendar day than `stageDayDate` (YYYY-MM-DD). */
 export function isTimelineStartNextCalendarDay(
   stageDayDate: string,
   startMs: number,
 ): boolean {
-  const startDay = formatLocalCalendarDate(new Date(startMs));
-  return startDay > stageDayDate;
+  return timelineStartCalendarDayOffset(stageDayDate, startMs) > 0;
 }
