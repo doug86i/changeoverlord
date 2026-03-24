@@ -96,7 +96,7 @@ services:
       - -c
       - |
           chown -R node:node /app/node_modules /app/api/node_modules /app/web/node_modules 2>/dev/null || true
-          su node -s /bin/sh -c "npm run dev -w @changeoverlord/web"
+          su node -s /bin/sh -c "npm install && npm run dev -w @changeoverlord/web"
 
 volumes:
   fast_nm_root:

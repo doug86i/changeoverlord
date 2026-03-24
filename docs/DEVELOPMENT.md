@@ -55,7 +55,7 @@ From the **repository root**:
 make dev-fast
 ```
 
-This uses **`docker-compose.fast.yml`** + **`Dockerfile.fast`**: **Postgres**, an **api** container running **`npm install`** (first start can be slow) then **`tsx watch`**, and a **web** container running **Vite** on **`0.0.0.0:5173`**. Source is **bind-mounted**; **`node_modules`** for the repo live in **named volumes** so the host tree is not overwritten.
+This uses **`docker-compose.fast.yml`** + **`Dockerfile.fast`**: **Postgres**, an **api** container running **`npm install`** (first start can be slow) then **`tsx watch`**, and a **web** container running **`npm install`** then **Vite** on **`0.0.0.0:5173`**. Source is **bind-mounted**; **`node_modules`** for the repo live in **named volumes** so the host tree is not overwritten — both services run **`npm install`** so new workspace deps from **`package-lock.json`** are applied on start.
 
 - **Open the UI:** **`http://localhost/`** by default (**`FAST_WEB_PORT=80`** in **`.env`** / compose; Vite still listens on **5173** inside the **web** container).
 - **Health (direct API):** **`http://localhost:3000/api/v1/health`** (or **`FAST_API_PORT`**).
