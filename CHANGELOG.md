@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **My stage today** again opens the **last visited** stage-day running order whenever that row still exists (not only when its calendar date is today); falls back to a single “today” match or the **Event dashboard** as before.
 - **Docker (`make dev-fast`):** **web** runs **`npm install`** before **Vite** (same idea as **api**), so workspace packages (e.g. **qrcode.react**) install into the named **`node_modules`** volumes and **Vite** can resolve imports after **`package-lock.json`** changes — without removing volumes by hand.
 - **Web:** **Clock arena** — **Changeover / handover** banners disappeared in **very short arenas** (e.g. Event dashboard): **`min-height: 0`** on the top block let flex **collapse it to nothing** vs. the hero’s **`min-height`**. When a **`.clock-arena-handover-banner`** is present, the top block now **`flex-shrink: 0`**, a **`min-height`** floor (**`max(2.75rem, …)`** so **`cqh`** cannot zero it), **`max-height`** with scroll; **footer + local time** may **`flex-shrink`** with tighter typography; hero floor is lower; **`@container (max-height: 280px)`** compresses footer/wall and scales banner type.
 - **Web:** **Clock arena** — **`max-height: min(52cqh, …)`** on the top block could resolve to **0** when **`cqh`** was unset, collapsing the **changeover / handover** banners. **`max-height`** now uses **`max(6rem, 52cqh)`**; countdown **`min-height`** uses **`max(4rem, …)`** so **`cqh`** cannot zero out the hero region.

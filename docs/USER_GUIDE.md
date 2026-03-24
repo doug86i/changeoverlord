@@ -35,9 +35,9 @@ When an event has a **logo** set on its detail page, a small version may appear 
 ### Quick access
 
 - **Search** — Press **`/`** or **`Ctrl+K`** (or tap the 🔍 icon) to open the **search dialog**. Search by band name, event, or stage; results link directly to the relevant page.
-- **My stage today** — In the header, **My stage today** opens **today’s** stage-day **running order** (same screen as drilling in from Events → Stage → Day). It uses the **server date** and, when it matches, your **last visited** stage-day. If several stages have a day today, you’re sent to **Clock** to pick one. Shortcut: **`g`** then **`m`**.
+- **My stage today** — In the header, **My stage today** prefers your **last visited** stage-day **running order** (same screen as drilling in from Events → Stage → Day), even if that day is not “today” on the calendar. If nothing is remembered or that day was removed, it uses the **server date** and opens the running order when **exactly one** stage-day matches today; if **zero or several** match, you’re sent to the **Event dashboard** to pick. Shortcut: **`g`** then **`m`**.
 - **Keyboard shortcuts** — Press **`?`** to see all shortcuts (e.g. `g e` = Events, `g d` = Dashboard, `g m` = My stage today, `g c` = Clock).
-- **Last visited stage-day** — The app remembers your last visited stage-day in the browser (for **My stage today** when that day is today).
+- **Last visited stage-day** — The app remembers your last visited stage-day in the browser (**My stage today** opens it first when the row still exists).
 
 ### If the page crashes
 

@@ -113,8 +113,8 @@ function Layout() {
               type="button"
               className="primary nav-my-stage"
               disabled={myStageBusy}
-              aria-label="My stage today — open today’s running order for your stage (local calendar; uses last visit when it’s today)"
-              title="Open today’s stage-day running order for your stage (local calendar). Uses last visit when it’s today."
+              aria-label="My stage today — open your last visited stage-day running order when known; otherwise today’s day if unambiguous"
+              title="Opens the last stage-day you were viewing (running order / clock / patch). If none is remembered or it was deleted, uses today’s calendar day when only one stage-day matches."
               onClick={() => void goMyStageToday()}
             >
               {myStageBusy ? "…" : "My stage today"}
