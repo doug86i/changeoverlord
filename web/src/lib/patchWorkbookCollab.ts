@@ -71,10 +71,14 @@ function batchHasStructuralOps(ops: Op[]): boolean {
   return false;
 }
 
-/** After remote `applyOp`, refresh formulas without pushing ops to the server. */
+/**
+ * After remote `applyOp`, refresh formulas without pushing ops to the server.
+ * Local `onOp` calls are suppressed briefly; queued batches are flushed via `afterUnsuppress`.
+ */
 function flushRemoteFormulaRecalc(
   wb: WorkbookInstance,
   suppressLocalOpsRef: MutableRefObject<boolean>,
+  afterUnsuppress: () => void,
 ): void {
   suppressLocalOpsRef.current = true;
   try {
@@ -107,6 +111,7 @@ function flushRemoteFormulaRecalc(
     queueMicrotask(() => {
       requestAnimationFrame(() => {
         suppressLocalOpsRef.current = false;
+        afterUnsuppress();
       });
     });
   }
@@ -153,6 +158,9 @@ export function usePatchWorkbookCollab(opts: {
   const reconnectAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressLocalOpsRef = useRef(false);
+  /** Batches dropped while {@link suppressLocalOpsRef} is true (remote formula recalc); flushed after unsuppress or before ws close. */
+  const suppressedOpsQueueRef = useRef<Op[][]>([]);
+  const flushSuppressedQueueRef = useRef<() => void>(() => {});
   const intentionalDisconnectRef = useRef(false);
   const roomIdRef = useRef<string | undefined>(roomId);
   roomIdRef.current = roomId;
@@ -178,6 +186,99 @@ export function usePatchWorkbookCollab(opts: {
       reconnectTimerRef.current = null;
     }
   }, []);
+
+  const emitOutboundOpsRaw = useCallback(
+    (ops: Op[]) => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        logClientDebugCollab("patch-workbook-collab", "emit skipped: websocket not open", {
+          roomId: roomIdRef.current,
+          readyState: ws?.readyState ?? -1,
+        });
+        return;
+      }
+      onLocalOp?.();
+      try {
+        ws.send(JSON.stringify({ type: "op", data: ops }));
+        if (batchHasStructuralOps(ops)) {
+          const acc = cellOutboundAggRef.current;
+          if (acc.timer != null) {
+            clearTimeout(acc.timer);
+            acc.timer = null;
+          }
+          if (acc.batches > 0) {
+            const rid = roomIdRef.current;
+            if (rid) {
+              logClientDebugCollab(
+                "patch-workbook-collab",
+                "outbound cell op batches (aggregated, before structural)",
+                {
+                  roomId: rid,
+                  aggregatedBatches: acc.batches,
+                  aggregatedOpCount: acc.opCount,
+                  lastBatchHead: acc.lastHead,
+                },
+              );
+            }
+            acc.batches = 0;
+            acc.opCount = 0;
+            acc.lastHead = "";
+          }
+          logClientDebugCollab("patch-workbook-collab", "outbound structural op batch sent", {
+            roomId: roomIdRef.current,
+            ...summarizeOpsForClientLog(ops),
+          });
+        } else {
+          const sum = summarizeOpsForClientLog(ops);
+          const acc = cellOutboundAggRef.current;
+          acc.batches += 1;
+          acc.opCount += sum.count;
+          acc.lastHead = sum.head;
+          if (acc.timer == null) {
+            acc.timer = setTimeout(() => {
+              const a = cellOutboundAggRef.current;
+              a.timer = null;
+              if (a.batches === 0) return;
+              const rid = roomIdRef.current;
+              if (rid) {
+                logClientDebugCollab(
+                  "patch-workbook-collab",
+                  "outbound cell op batches (aggregated)",
+                  {
+                    roomId: rid,
+                    aggregatedBatches: a.batches,
+                    aggregatedOpCount: a.opCount,
+                    lastBatchHead: a.lastHead,
+                  },
+                );
+              }
+              a.batches = 0;
+              a.opCount = 0;
+              a.lastHead = "";
+            }, 450);
+          }
+        }
+      } catch (e) {
+        logDebug("patch-workbook-collab", "send op failed", e);
+        logClientDebugCollab("patch-workbook-collab", "send op failed", {
+          roomId: roomIdRef.current,
+          ...summarizeOpsForClientLog(ops),
+        });
+      }
+    },
+    [onLocalOp],
+  );
+
+  const flushSuppressedQueue = useCallback(() => {
+    const q = suppressedOpsQueueRef.current;
+    if (q.length === 0) return;
+    suppressedOpsQueueRef.current = [];
+    for (const batch of q) {
+      emitOutboundOpsRaw(batch);
+    }
+  }, [emitOutboundOpsRaw]);
+
+  flushSuppressedQueueRef.current = flushSuppressedQueue;
 
   const connectWs = useCallback(() => {
     if (!roomId) return;
@@ -243,7 +344,9 @@ export function usePatchWorkbookCollab(opts: {
               });
             }
             wb.applyOp(batch);
-            flushRemoteFormulaRecalc(wb, suppressLocalOpsRef);
+            flushRemoteFormulaRecalc(wb, suppressLocalOpsRef, () => {
+              flushSuppressedQueueRef.current();
+            });
             onRemotePatchActivityRef.current?.();
           } catch (e) {
             logDebug("patch-workbook-collab", "applyOp failed for remote batch", e);
@@ -309,6 +412,8 @@ export function usePatchWorkbookCollab(opts: {
           hadSocket: true,
         });
       }
+      suppressLocalOpsRef.current = false;
+      flushSuppressedQueueRef.current();
       wsRef.current = null;
       w?.close();
       setConn("connecting");
@@ -326,6 +431,8 @@ export function usePatchWorkbookCollab(opts: {
         workbookReady,
         hadSocket: Boolean(wsRef.current),
       });
+      suppressLocalOpsRef.current = false;
+      flushSuppressedQueueRef.current();
       const w = wsRef.current;
       wsRef.current = null;
       w?.close();
@@ -378,89 +485,16 @@ export function usePatchWorkbookCollab(opts: {
         return;
       }
       if (suppressLocalOpsRef.current) {
-        logClientDebugCollab("patch-workbook-collab", "onOp skipped: suppressLocalOps", {
+        suppressedOpsQueueRef.current.push(ops);
+        logClientDebugCollab("patch-workbook-collab", "onOp queued during suppressLocalOps", {
           roomId,
+          queuedDepth: suppressedOpsQueueRef.current.length,
         });
         return;
       }
-      const ws = wsRef.current;
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        logClientDebugCollab("patch-workbook-collab", "onOp skipped: websocket not open", {
-          roomId,
-          readyState: ws?.readyState ?? -1,
-        });
-        return;
-      }
-      onLocalOp?.();
-      try {
-        ws.send(JSON.stringify({ type: "op", data: ops }));
-        if (batchHasStructuralOps(ops)) {
-          const acc = cellOutboundAggRef.current;
-          if (acc.timer != null) {
-            clearTimeout(acc.timer);
-            acc.timer = null;
-          }
-          if (acc.batches > 0) {
-            const rid = roomIdRef.current;
-            if (rid) {
-              logClientDebugCollab(
-                "patch-workbook-collab",
-                "outbound cell op batches (aggregated, before structural)",
-                {
-                  roomId: rid,
-                  aggregatedBatches: acc.batches,
-                  aggregatedOpCount: acc.opCount,
-                  lastBatchHead: acc.lastHead,
-                },
-              );
-            }
-            acc.batches = 0;
-            acc.opCount = 0;
-            acc.lastHead = "";
-          }
-          logClientDebugCollab("patch-workbook-collab", "outbound structural op batch sent", {
-            roomId,
-            ...summarizeOpsForClientLog(ops),
-          });
-        } else {
-          const sum = summarizeOpsForClientLog(ops);
-          const acc = cellOutboundAggRef.current;
-          acc.batches += 1;
-          acc.opCount += sum.count;
-          acc.lastHead = sum.head;
-          if (acc.timer == null) {
-            acc.timer = setTimeout(() => {
-              const a = cellOutboundAggRef.current;
-              a.timer = null;
-              if (a.batches === 0) return;
-              const rid = roomIdRef.current;
-              if (rid) {
-                logClientDebugCollab(
-                  "patch-workbook-collab",
-                  "outbound cell op batches (aggregated)",
-                  {
-                    roomId: rid,
-                    aggregatedBatches: a.batches,
-                    aggregatedOpCount: a.opCount,
-                    lastBatchHead: a.lastHead,
-                  },
-                );
-              }
-              a.batches = 0;
-              a.opCount = 0;
-              a.lastHead = "";
-            }, 450);
-          }
-        }
-      } catch (e) {
-        logDebug("patch-workbook-collab", "send op failed", e);
-        logClientDebugCollab("patch-workbook-collab", "send op failed", {
-          roomId,
-          ...summarizeOpsForClientLog(ops),
-        });
-      }
+      emitOutboundOpsRaw(ops);
     },
-    [readOnly, onLocalOp, roomId],
+    [readOnly, emitOutboundOpsRaw, roomId],
   );
 
   return { wbRef, onOp, conn, workbookSheets, workbookHydrated, workbookDataRev };
