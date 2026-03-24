@@ -20,6 +20,7 @@ import {
 } from "../lib/performanceTimeline";
 import { useClockNav } from "../ClockNavContext";
 import { PrintDaySheet } from "../components/PrintDaySheet";
+import { PatchQrLink } from "../components/PatchQrCode";
 
 /** Default slot length when the day is empty or a previous performance has no end. */
 const DEFAULT_SET_LENGTH_MINS = 60;
@@ -793,6 +794,11 @@ export function StageDayPage() {
                     : undefined
                 }
               >
+                <div className="running-order-perf-row">
+                  <div className="running-order-perf-row__qr">
+                    <PatchQrLink performanceId={p.id} size={52} />
+                  </div>
+                  <div className="running-order-perf-row__main">
                 <div
                   style={{
                     display: "flex",
@@ -951,6 +957,8 @@ export function StageDayPage() {
                     />
                   </div>
                 )}
+                  </div>
+                </div>
               </div>
             </li>
           );

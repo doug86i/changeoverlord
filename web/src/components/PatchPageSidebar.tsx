@@ -9,6 +9,7 @@ import {
   sortPerformancesByStart,
 } from "../lib/stageDayClockMetrics";
 import { useServerTime } from "../hooks/useServerTime";
+import { PatchQrLink } from "./PatchQrCode";
 
 function isPlotAsset(f: FileAssetRow): boolean {
   if (f.purpose !== "plot_pdf") return false;
@@ -247,6 +248,13 @@ export function PatchPageSidebar({
           <kbd className="patch-kbd">←</kbd>
           <kbd className="patch-kbd">→</kbd>
         </p>
+        <div className="patch-sidebar-qr">
+          <PatchQrLink
+            performanceId={performanceId}
+            size={104}
+            title="Scan to open this patch on your phone (same URL as Patch / RF)"
+          />
+        </div>
       </div>
 
       <div className="patch-sidebar-block">

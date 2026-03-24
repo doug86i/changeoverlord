@@ -107,7 +107,7 @@ Chat is meant for **short coordination** on the LAN; there is no private DM or e
 
 Each **performance** can have a **patch / RF workbook** — a multi-sheet grid (e.g. **Input**, **RF**) that **multiple people can edit at once** in real time.
 
-- Open the workbook from the **stage day** view: each performance row has a **Patch / RF** link to `/patch/:performanceId`.
+- Open the workbook from the **stage day** view: each performance row has a **Patch / RF** link to `/patch/:performanceId`, and a **QR code** on the **left** of the row that encodes the same URL (handy for crew phones). **Settings → Advanced — links & QR base URL** controls the host used in that URL when you need a stable LAN or public address.
 - **Tablet and desktop (768px and wider):** the spreadsheet sits beside a **context sidebar** you can **Hide »** / **« Context** to collapse to a thin rail. On **tablet** the sidebar column is slightly narrower so the grid has more room.
 - **Phone (narrow portrait, same breakpoint as the rest of the app — viewport 767px wide or less):** the sheet is **read-only** and uses almost the full screen: a thin bar shows the **band name** and a **Menu** button. Open **Menu** for breadcrumbs, **prev/next band**, **connection status**, and the same **sidebar** content (clock, now/next, files, plot). The grid keeps **layout, conditional formatting, and formulas**; **toolbar** and **formula bar** are hidden. **Pinch-zoom** and **drag to pan** the sheet (movement matches your finger). Edits from a desktop still **update live** on the phone. When you **switch away** or the **screen turns off**, the app **disconnects** the patch sync to save battery and **reconnects** when you return.
 - **Collaboration** uses a live connection to the server; keep the tab open while **editing** on desktop/tablet.
@@ -124,7 +124,7 @@ On the **patch / RF** page, once the **stage day** has loaded, the **sidebar** k
 - **Changeover** — Shown when the day is in a gap between acts (same condition as the stage clock).
 - **Local time** → **Now** → **Countdown** → **Next** — same timing rules as the stage day clock. **Now** and **Next** band names are **links** to that act’s patch page.
 - **This spreadsheet** — The act you’re editing; **Alt+←** / **Alt+→** switch acts on this day.
-- **Quick links** — **All files**, **Rider PDF** when **this act’s** Files list has a file marked **Rider** (stage-wide uploads are not used here), **Stage clock**, **Running order**.
+- **Quick links** — **All files**, **Rider PDF** when **this act’s** Files list has a file marked **Rider** (stage-wide uploads are not used here), **Stage clock**, **Running order**. Under **This spreadsheet**, a **QR code** opens this act’s patch on another device (same rules as **links / QR base URL** in Settings).
 - **Stage plot** — Preview of a file marked **Stage plot** on **this act’s Files** page only. **Stage-wide** plots (uploaded under **Stage → Stage files**) are **not** shown here, so a new act does not inherit another band’s sidebar preview by mistake. Use **this act’s Files** to attach a plot for patch preview, or open **Stage files** when you need the shared plot.
 
 The spreadsheet **toolbar, formula bar, and sheet tabs** use the app’s **sans-serif** font and theme colours; **cell selection** uses **FortuneSheet’s default** styling. **Text you type** in the active cell is shown in **high-contrast** colour so it stays readable on the edit box.

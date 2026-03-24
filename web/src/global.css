@@ -29,6 +29,9 @@
   --stage-chat-dock-vw-cap: 92vw;
   /** Above sticky header (100) and page scroll layers; below `.confirm-overlay` (1000). */
   --z-stage-chat-dock: 999;
+  /* QR modules: dark-on-light for reliable phone scanning */
+  --patch-qr-bg: var(--color-surface);
+  --patch-qr-fg: var(--color-text);
 }
 
 :root[data-theme="dark"] {
@@ -57,6 +60,9 @@
   --stage-chat-dock-max-width: 56rem;
   --stage-chat-dock-vw-cap: 92vw;
   --z-stage-chat-dock: 999;
+  /* QR modules: light background + dark modules in dark UI theme */
+  --patch-qr-bg: color-mix(in srgb, var(--color-on-brand) 92%, var(--color-bg));
+  --patch-qr-fg: color-mix(in srgb, var(--color-bg) 88%, var(--color-text));
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
@@ -1984,6 +1990,53 @@ a.search-dialog-result:focus-visible {
   font-family: var(--font);
   background: var(--color-bg);
   color: var(--color-text-muted);
+}
+
+.patch-qr-color-probe {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--patch-qr-bg);
+  color: var(--patch-qr-fg);
+}
+
+.patch-qr-link {
+  display: inline-flex;
+  line-height: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.patch-qr-link:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.running-order-perf-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.running-order-perf-row__qr {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.running-order-perf-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.patch-sidebar-qr {
+  margin-top: 0.5rem;
+  line-height: 0;
 }
 
 .patch-sidebar--collapsed-rail {
