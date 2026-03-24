@@ -179,6 +179,17 @@ export function usePatchWorkbookCollab(opts: {
   const [workbookSheets, setWorkbookSheets] = useState<Sheet[] | null>(null);
   const [workbookHydrated, setWorkbookHydrated] = useState(false);
   const [workbookDataRev, setWorkbookDataRev] = useState(0);
+  /** When `roomId` changes (e.g. prev/next band), reset in the same render so we never mount `<Workbook>` with the previous room's `data` (stale/blank grid until refresh). */
+  const [trackedRoomId, setTrackedRoomId] = useState(roomId);
+  if (roomId !== trackedRoomId) {
+    setTrackedRoomId(roomId);
+    setWorkbookSheets(null);
+    setWorkbookHydrated(false);
+    awaitingFirstFullStateRef.current = true;
+    setWorkbookDataRev(0);
+    setConn("connecting");
+    suppressedOpsQueueRef.current = [];
+  }
 
   const clearReconnectTimer = useCallback(() => {
     if (reconnectTimerRef.current != null) {

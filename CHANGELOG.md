@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Patch / RF** — after **Previous / Next band** (or similar client-side nav), the workbook could stay **blank or show the wrong act** until a full reload because the first render used the **new** performance id with **stale** sheet state from the previous band. **`roomId`** changes now reset workbook state **in the same render** before `<Workbook>` mounts for the new room.
 - **Web:** Patch collab **queued local `onOp` batches** while **`suppressLocalOps`** ran after a **remote** op (formula recalc) instead of **dropping** them; batches are **flushed** after recalc and **before the WebSocket closes** when changing bands — fixes edits that looked saved locally but never reached the server/DB.
 - **Web:** **My stage today** again opens the **last visited** stage-day running order whenever that row still exists (not only when its calendar date is today); falls back to a single “today” match or the **Event dashboard** as before.
 - **Docker (`make dev-fast`):** **web** runs **`npm install`** before **Vite** (same idea as **api**), so workspace packages (e.g. **qrcode.react**) install into the named **`node_modules`** volumes and **Vite** can resolve imports after **`package-lock.json`** changes — without removing volumes by hand.
