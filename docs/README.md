@@ -29,6 +29,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 |----------|----------------|
 | **[`ROADMAP.md`](ROADMAP.md)** | Vision, user personas, shipped features, what's next, competitive landscape |
 | **[`plans/voice-chat-future.md`](plans/voice-chat-future.md)** | Future feature assessment: voice in stage/event chat (complexity, room separation, TURN/mesh vs SFU, alternatives) |
+| **[`plans/console-apis/README.md`](plans/console-apis/README.md)** | Planned per-desk **console drivers**: push patch workbook channel names over LAN (client-only I/O, name binding, Electron/Tauri shape) |
 
 ## Other
 
