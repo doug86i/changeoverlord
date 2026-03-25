@@ -6,6 +6,29 @@ This folder documents a **planned** capability: push **input channel strip names
 
 ---
 
+## Placeholder driver targets
+
+Chosen console families (stubs only — expand with protocol notes as each is spiked):
+
+| File | Manufacturer / console |
+|------|------------------------|
+| [`behringer-x32-m32.md`](behringer-x32-m32.md) | Behringer / Midas — X32 · M32 |
+| [`behringer-wing.md`](behringer-wing.md) | Behringer / Midas — WING |
+| [`allen-heath-dlive.md`](allen-heath-dlive.md) | Allen & Heath — dLive |
+| [`allen-heath-avantis.md`](allen-heath-avantis.md) | Allen & Heath — Avantis |
+| [`allen-heath-sq.md`](allen-heath-sq.md) | Allen & Heath — SQ |
+| [`yamaha-rivage.md`](yamaha-rivage.md) | Yamaha — Rivage |
+| [`yamaha-cl-ql.md`](yamaha-cl-ql.md) | Yamaha — CL / QL |
+| [`yamaha-dm7.md`](yamaha-dm7.md) | Yamaha — DM7 |
+| [`yamaha-tf.md`](yamaha-tf.md) | Yamaha — TF |
+| [`digico-quantum-sd-s.md`](digico-quantum-sd-s.md) | DiGiCo — Quantum · SD · S |
+| [`avid-venue-s6l.md`](avid-venue-s6l.md) | Avid — VENUE \| S6L |
+| [`soundcraft-vi.md`](soundcraft-vi.md) | Soundcraft — Vi |
+| [`soundcraft-si.md`](soundcraft-si.md) | Soundcraft — Si |
+| [`midas-hd.md`](midas-hd.md) | Midas — HD platform |
+
+---
+
 ## Purpose of each desk driver
 
 There is **no single industry API** that all manufacturers implement for remote naming. Each console family speaks its own **LAN protocol** (commonly **OSC over UDP**, **proprietary TCP**, sometimes MIDI-centric schemes).
