@@ -335,6 +335,60 @@ details.stage-add-days-details[open] .stage-add-days-details__chev {
   border-top: 1px solid var(--color-border);
 }
 
+/* Stage day — copy schedule to another day (collapsed by default at bottom of page) */
+details.stage-day-copy-schedule-details {
+  margin-top: 1.5rem;
+}
+
+details.stage-day-copy-schedule-details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+details.stage-day-copy-schedule-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.stage-day-copy-schedule-details__summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: -0.25rem 0 0;
+}
+
+details.stage-day-copy-schedule-details[open] .stage-day-copy-schedule-details__summary {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stage-day-copy-schedule-details__chev {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+details.stage-day-copy-schedule-details[open] .stage-day-copy-schedule-details__chev {
+  transform: rotate(45deg);
+}
+
+.stage-day-copy-schedule-details__summary-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.stage-day-copy-schedule-details__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 /* Stage page: default patch template picker (PatchTemplateTools — collapsible when set) */
 details.stage-patch-template-details {
   margin: 0;

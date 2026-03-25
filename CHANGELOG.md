@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Web:** **Stage day** — **Copy schedule to another day** is at the **bottom** of the page inside a collapsible block (**closed** by default).
 - **Web:** **Stage day** **Print** (🖨) outputs only **event name**, **stage name**, **day**, and the **performances table** — navigation, forms, and the rest of the page are hidden. Print styles use **high-contrast** ink on white for readability.
 - **Web:** Running order and **print** show **+Nd** (not only **+1d**): **N** is how many **local** calendar days after the stage day the resolved **start** falls (**+2d**, **+3d**, … when the overnight chain crosses further midnights).
 - **API / Web:** Performances may **run past midnight** — end time can be “earlier” than start on the wall clock (e.g. 23:00–01:00). Schedule validation uses **extended** time and **running order** (`sort_order`); the API **normalizes** `sort_order` to chronological extended order after create/update/delete/shift and lists performances by `sort_order` then time. **Web** uses a shared **overnight-aware** timeline for stage day, clock, and print views; **add** form and **shift** wrap times modulo 24h like HTML time inputs.

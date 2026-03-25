@@ -450,79 +450,6 @@ export function StageDayPage() {
         )}
       </p>
 
-      {otherStageDays.length > 0 && (
-        <div className="card" style={{ marginBottom: "1rem" }}>
-          <div className="title-bar" style={{ marginBottom: "0.5rem" }}>
-            Copy schedule to another day
-          </div>
-          <p className="muted" style={{ marginTop: 0, fontSize: "0.9rem" }}>
-            Copies all acts and patch workbooks from <strong>{formatDateShort(day!.dayDate)}</strong>{" "}
-            to the day you pick. Same stage only.
-          </p>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "0.75rem",
-              alignItems: "center",
-            }}
-          >
-            <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-              <span className="form-label">Target day</span>
-              <select
-                value={copyTargetDayId}
-                onChange={(e) => setCopyTargetDayId(e.target.value)}
-                style={{ minWidth: "12rem" }}
-              >
-                <option value="">Select…</option>
-                {otherStageDays.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {formatDateFriendly(d.dayDate)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.35rem",
-                cursor: "pointer",
-                fontSize: "0.9rem",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={copyReplaceExisting}
-                onChange={(e) => setCopyReplaceExisting(e.target.checked)}
-              />
-              Replace existing acts on target
-            </label>
-            <button
-              type="button"
-              className="primary"
-              disabled={
-                !copyTargetDayId || duplicateDaySchedule.isPending
-              }
-              onClick={() => {
-                if (!copyTargetDayId) return;
-                void duplicateDaySchedule.mutate({
-                  targetId: copyTargetDayId,
-                  replace: copyReplaceExisting,
-                });
-              }}
-            >
-              {duplicateDaySchedule.isPending ? "Copying…" : "Copy schedule"}
-            </button>
-          </div>
-          {duplicateDaySchedule.isError && (
-            <p role="alert" style={{ color: "var(--color-danger)", marginBottom: 0 }}>
-              {(duplicateDaySchedule.error as Error).message}
-            </p>
-          )}
-        </div>
-      )}
-
       {/* Swap mode banner */}
       {inSwapMode && (
         <div className="swap-banner" role="status">
@@ -997,6 +924,84 @@ export function StageDayPage() {
         <p role="alert" style={{ color: "var(--color-danger)", marginTop: "0.75rem" }}>
           {(deletePerf.error as Error).message}
         </p>
+      )}
+
+      {otherStageDays.length > 0 && (
+        <details className="stage-day-copy-schedule-details card">
+          <summary className="stage-day-copy-schedule-details__summary">
+            <span className="stage-day-copy-schedule-details__chev" aria-hidden />
+            <span className="stage-day-copy-schedule-details__summary-text title-bar">
+              Copy schedule to another day
+            </span>
+          </summary>
+          <div className="stage-day-copy-schedule-details__body">
+            <p className="muted" style={{ marginTop: 0, fontSize: "0.9rem" }}>
+              Copies all acts and patch workbooks from <strong>{formatDateShort(day!.dayDate)}</strong>{" "}
+              to the day you pick. Same stage only.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.75rem",
+                alignItems: "center",
+              }}
+            >
+              <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                <span className="form-label">Target day</span>
+                <select
+                  value={copyTargetDayId}
+                  onChange={(e) => setCopyTargetDayId(e.target.value)}
+                  style={{ minWidth: "12rem" }}
+                >
+                  <option value="">Select…</option>
+                  {otherStageDays.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {formatDateFriendly(d.dayDate)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  cursor: "pointer",
+                  fontSize: "0.9rem",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={copyReplaceExisting}
+                  onChange={(e) => setCopyReplaceExisting(e.target.checked)}
+                />
+                Replace existing acts on target
+              </label>
+              <button
+                type="button"
+                className="primary"
+                disabled={
+                  !copyTargetDayId || duplicateDaySchedule.isPending
+                }
+                onClick={() => {
+                  if (!copyTargetDayId) return;
+                  void duplicateDaySchedule.mutate({
+                    targetId: copyTargetDayId,
+                    replace: copyReplaceExisting,
+                  });
+                }}
+              >
+                {duplicateDaySchedule.isPending ? "Copying…" : "Copy schedule"}
+              </button>
+            </div>
+            {duplicateDaySchedule.isError && (
+              <p role="alert" style={{ color: "var(--color-danger)", marginBottom: 0 }}>
+                {(duplicateDaySchedule.error as Error).message}
+              </p>
+            )}
+          </div>
+        </details>
       )}
 
       <ConfirmDialog
