@@ -26,6 +26,7 @@ Chosen console families — each `.md` file links **vendor PDFs** and **unoffici
 | [`soundcraft-vi.md`](soundcraft-vi.md) | Soundcraft — Vi |
 | [`soundcraft-si.md`](soundcraft-si.md) | Soundcraft — Si |
 | [`midas-hd.md`](midas-hd.md) | Midas — HD platform |
+| [`midas-pro.md`](midas-pro.md) | Midas — Pro series (Pro1 / Pro2 / Pro6 / Pro9 etc.) |
 
 ---
 
