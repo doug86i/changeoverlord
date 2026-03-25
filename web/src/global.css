@@ -2011,6 +2011,34 @@ a.search-dialog-result:focus-visible {
   overflow: hidden;
   flex-shrink: 0;
   align-self: flex-start;
+  cursor: zoom-in;
+}
+
+.patch-qr-zoom-modal {
+  max-width: min(28rem, 95vw);
+  width: 100%;
+}
+
+.patch-qr-zoom-lead {
+  margin-top: 0;
+}
+
+.patch-qr-zoom-code {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--patch-qr-bg);
+}
+
+.patch-qr-zoom-code svg {
+  width: min(80vw, 320px);
+  height: auto;
+}
+
+.patch-qr-zoom-actions {
+  margin-top: 0.75rem;
 }
 
 .patch-qr-link:focus-visible {

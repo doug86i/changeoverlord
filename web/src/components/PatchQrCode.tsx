@@ -25,6 +25,7 @@ export function PatchQrLink({
   const { theme } = useTheme();
   const probeRef = useRef<HTMLDivElement | null>(null);
   const [colors, setColors] = useState({ fg: "", bg: "" });
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   useLayoutEffect(() => {
     const el = probeRef.current;
@@ -58,7 +59,11 @@ export function PatchQrLink({
         className={`patch-qr-link${className ? ` ${className}` : ""}`}
         title={title}
         aria-label={title}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsZoomOpen(true);
+        }}
       >
         <QRCodeSVG
           value={href}
@@ -69,6 +74,47 @@ export function PatchQrLink({
           bgColor={bg}
         />
       </a>
+      {isZoomOpen ? (
+        <div
+          className="confirm-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Scan QR code"
+          onClick={() => setIsZoomOpen(false)}
+        >
+          <div
+            className="card patch-qr-zoom-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="muted patch-qr-zoom-lead">
+              Scan this code on your phone to open Patch / RF.
+            </p>
+            <div className="patch-qr-zoom-code" role="img" aria-label={title}>
+              <QRCodeSVG
+                value={href}
+                size={320}
+                marginSize={1}
+                level="M"
+                fgColor={fg}
+                bgColor={bg}
+              />
+            </div>
+            <div className="form-row patch-qr-zoom-actions">
+              <a
+                href={href}
+                className="button-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open link
+              </a>
+              <button type="button" onClick={() => setIsZoomOpen(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
