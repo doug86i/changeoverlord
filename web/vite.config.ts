@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
@@ -6,7 +8,25 @@ import { VitePWA } from "vite-plugin-pwa";
 const apiProxyTarget =
   process.env.VITE_API_PROXY ?? "http://127.0.0.1:3000";
 
+const webDir = fileURLToPath(new URL(".", import.meta.url));
+const webPkg = JSON.parse(
+  readFileSync(`${webDir}/package.json`, "utf-8"),
+) as { version?: string };
+
+function resolveAppVersion(): string {
+  const fromEnv = process.env.VITE_APP_VERSION?.trim();
+  if (fromEnv && fromEnv.length > 0 && fromEnv !== "main") {
+    return fromEnv.replace(/^v/i, "");
+  }
+  const fromPkg = webPkg.version?.trim();
+  if (fromPkg && fromPkg.length > 0) return fromPkg;
+  return "dev";
+}
+
 export default defineConfig({
+  define: {
+    __CHANGEOVERLORD_APP_VERSION__: JSON.stringify(resolveAppVersion()),
+  },
   plugins: [
     react(),
     VitePWA({

@@ -28,7 +28,7 @@ Share links and QR codes use **the address shown in your browser** (for example 
 | **Clock** | **Stage clocks** — now/next and fullscreen display for a stage day. |
 | **Settings** | Shared password, **global patch / RF templates**, optional **links / QR base URL** override, and other app options. |
 
-The header links **Events**, **Dashboard**, **Clock**, and **Settings** on every screen. On **mobile**, tap the **hamburger menu** (☰) to expand the navigation.
+The header links **Events**, **Dashboard**, **Clock**, and **Settings** on every screen. On **mobile**, tap the **hamburger menu** (☰) to expand the navigation. The **footer** at the bottom of the page shows **Powered by Doug Hunt Sound & Light** and the app **version** (for example **v1.2.3**).
 
 When an event has a **logo** set on its detail page, a small version may appear in the header while you work **inside that event** (event, stage, day, patch, or band files).
 

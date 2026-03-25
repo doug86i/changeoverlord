@@ -29,8 +29,9 @@ RUN --mount=type=cache,target=/build/api/.cache \
     npm run build -w api
 
 COPY web web
+ARG VITE_APP_VERSION=
 RUN --mount=type=cache,target=/build/node_modules/.vite \
-    npm run build -w web
+    VITE_APP_VERSION=${VITE_APP_VERSION} npm run build -w web
 
 FROM node:22-alpine AS runner
 WORKDIR /app

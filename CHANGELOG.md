@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Web:** **Page footer** shows the app **version** (for example **v1.2.3**), from `web/package.json` at build time or **`VITE_APP_VERSION`** when the Docker image is built from a **`v*`** git tag (CI passes the tag into the Vite build).
 - **Web:** **QR codes** on the **stage day running order** (left of each act, compact) and in the **patch page sidebar** open this act’s **Patch / RF** URL on a phone; respects **Settings → links / QR base URL** when set (`getPublicAppOrigin`). Dependency: **qrcode.react**.
 - **API / Web / DB:** Optional **public base URL** (`settings.public_base_url`) — **`GET /api/v1/settings`** includes **`publicBaseUrl`**; **`PATCH /api/v1/settings`** sets or clears it (normalized `http(s)://host[:port]` only). **Settings** has **Advanced — links & QR base URL**; **`getPublicAppOrigin()`** uses the override when set, otherwise **`window.location.origin`** for share links and **patch QR codes** (running order + patch sidebar).
 - **Web:** **Event dashboard** (`/dashboard`) — main nav link **`g d`**; for each stage with a day **today**, a **mini `ClockArena`** (same layout as the full stage clock) plus expandable **Running order** per stage. **`/clock`** redirects here (old clock hub removed).

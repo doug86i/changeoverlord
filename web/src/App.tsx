@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { APP_VERSION, formatAppVersionLabel } from "./lib/appVersion";
 import { resolveMyStageTodayPath } from "./lib/myStageToday";
 import {
   Routes,
@@ -162,6 +163,8 @@ function Layout() {
         <a href="https://www.doughunt.co.uk/" target="_blank" rel="noreferrer">
           Doug Hunt Sound &amp; Light
         </a>
+        {" "}
+        · {formatAppVersionLabel(APP_VERSION)}
       </footer>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       <KeyboardShortcutsOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
