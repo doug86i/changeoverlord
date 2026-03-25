@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+
+---
+
+## [1.2.5] — 2026-03-25
+
 ### Added
 
 - **Web:** **Page footer** shows the app **version** (for example **v1.2.3**), from `web/package.json` at build time or **`VITE_APP_VERSION`** when the Docker image is built from a **`v*`** git tag (CI passes the tag into the Vite build).
@@ -79,7 +84,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Web:** **Patch & RF** and **Edit patch template** show a short **Edits may not save — reconnecting…** banner when the collab WebSocket is not connected while the grid is loaded (e.g. phone tab backgrounded).
 
 - **API / Web / Docker (fast):** **`POST /api/v1/debug/client-log`** (when **`CLIENT_LOG_FILE`** is set) appends **NDJSON** lines from the browser; **`logClientDebugCollab`** batches patch-workbook sender/receiver events. **`make dev-fast`** mounts **`${DATA_DIR}/logs`**, defaults **`CLIENT_LOG_FILE=/var/changeoverlord/logs/client-debug.ndjson`** and **`VITE_CLIENT_LOG_FILE=true`**. See **`docs/LOGGING.md`** (*Client debug log file*).
-
 
 ---
 
