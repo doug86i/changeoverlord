@@ -28,6 +28,7 @@ Everything below lives in **`docs/`**. The repo root has **[`README.md`](../READ
 | Document | What it covers |
 |----------|----------------|
 | **[`ROADMAP.md`](ROADMAP.md)** | Vision, user personas, shipped features, what's next, competitive landscape |
+| **[`plans/voice-chat-future.md`](plans/voice-chat-future.md)** | Future feature assessment: voice in stage/event chat (complexity, room separation, TURN/mesh vs SFU, alternatives) |
 
 ## Other
 

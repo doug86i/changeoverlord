@@ -154,6 +154,7 @@ All tier-1 features from the original requirements are implemented:
 | Cloud folder sync | Push/pull event packages via SeaDrive, Dropbox, Google Drive |
 | Live Google Sheets sync | Optional integration when internet + OAuth are acceptable |
 | In-app backup/restore | Currently relies on external backup of `DATA_DIR` |
+| Voice chat in chat dock | **Future / not started.** In-window WebRTC would need signaling (e.g. WebSocket), STUN, likely **TURN** for phones/NAT, and a choice of **mesh vs SFU**. Audio **rooms** should mirror text chat (**stage** vs **event** scope) so calls do not leak across boundaries. Full assessment: [`docs/plans/voice-chat-future.md`](plans/voice-chat-future.md). |
 
 ---
 
