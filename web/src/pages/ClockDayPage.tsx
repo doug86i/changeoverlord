@@ -12,6 +12,7 @@ import {
 } from "../lib/clockSchedule";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useClockNav } from "../ClockNavContext";
+import { useScreenWakeLock } from "../hooks/useScreenWakeLock";
 import { useServerTime } from "../hooks/useServerTime";
 import {
   formatDateShort,
@@ -253,6 +254,8 @@ export function ClockDayPage() {
       document.removeEventListener("webkitfullscreenchange", onFs);
     };
   }, []);
+
+  useScreenWakeLock(isFs);
 
   const toggleFullscreen = useCallback(() => {
     const el = arenaRef.current;
