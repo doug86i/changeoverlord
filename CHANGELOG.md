@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Web:** **Stage / event chat** — **Name** and **message** inputs use at least **16px** text (`max(1rem, 16px)`) so **iOS Safari** does not auto-zoom the page when focusing those fields.
 - **Web:** Clicking a **Patch / RF QR code** now opens a larger in-app scan modal so phones can read it more reliably from the running order and patch sidebar; modal includes direct **Open link** and **Close** actions.
 - **Web:** Patch QR scan modal now renders through a top-level portal (`document.body`) with a dedicated overlay layer, so it reliably appears above FortuneSheet on the patch page.
 - **Web:** **Patch / RF** — after **Previous / Next band** (or similar client-side nav), the workbook could stay **blank or show the wrong act** until a full reload because the first render used the **new** performance id with **stale** sheet state from the previous band. **`roomId`** changes now reset workbook state **in the same render** before `<Workbook>` mounts for the new room.

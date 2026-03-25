@@ -2916,7 +2916,8 @@ a.patch-sidebar-perf-link:hover {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.5rem;
-  font-size: 0.85rem;
+  /* At least 16px — iOS Safari zooms focused fields below this threshold. */
+  font-size: max(1rem, 16px);
   background: var(--color-bg);
   color: var(--color-text);
 }
