@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { apiGet } from "../api/client";
 import { getPublicAppOrigin } from "../lib/publicAppOrigin";
 import { useTheme } from "../theme/ThemeContext";
@@ -46,6 +47,47 @@ export function PatchQrLink({
 
   const fg = colors.fg || "rgb(17, 24, 39)";
   const bg = colors.bg || "rgb(255, 255, 255)";
+  const zoomModal = isZoomOpen ? (
+    <div
+      className="confirm-overlay patch-qr-zoom-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Scan QR code"
+      onClick={() => setIsZoomOpen(false)}
+    >
+      <div
+        className="card patch-qr-zoom-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="muted patch-qr-zoom-lead">
+          Scan this code on your phone to open Patch / RF.
+        </p>
+        <div className="patch-qr-zoom-code" role="img" aria-label={title}>
+          <QRCodeSVG
+            value={href}
+            size={320}
+            marginSize={1}
+            level="M"
+            fgColor={fg}
+            bgColor={bg}
+          />
+        </div>
+        <div className="form-row patch-qr-zoom-actions">
+          <a
+            href={href}
+            className="button-link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open link
+          </a>
+          <button type="button" onClick={() => setIsZoomOpen(false)}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   return (
     <>
@@ -74,47 +116,9 @@ export function PatchQrLink({
           bgColor={bg}
         />
       </a>
-      {isZoomOpen ? (
-        <div
-          className="confirm-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Scan QR code"
-          onClick={() => setIsZoomOpen(false)}
-        >
-          <div
-            className="card patch-qr-zoom-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="muted patch-qr-zoom-lead">
-              Scan this code on your phone to open Patch / RF.
-            </p>
-            <div className="patch-qr-zoom-code" role="img" aria-label={title}>
-              <QRCodeSVG
-                value={href}
-                size={320}
-                marginSize={1}
-                level="M"
-                fgColor={fg}
-                bgColor={bg}
-              />
-            </div>
-            <div className="form-row patch-qr-zoom-actions">
-              <a
-                href={href}
-                className="button-link"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open link
-              </a>
-              <button type="button" onClick={() => setIsZoomOpen(false)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {isZoomOpen && typeof document !== "undefined"
+        ? createPortal(zoomModal, document.body)
+        : null}
     </>
   );
 }

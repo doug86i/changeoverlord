@@ -2019,6 +2019,10 @@ a.search-dialog-result:focus-visible {
   width: 100%;
 }
 
+.patch-qr-zoom-overlay {
+  z-index: 5000;
+}
+
 .patch-qr-zoom-lead {
   margin-top: 0;
 }
