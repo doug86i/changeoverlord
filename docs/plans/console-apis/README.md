@@ -8,7 +8,7 @@ This folder documents a **planned** capability: push **input channel strip names
 
 ## Placeholder driver targets
 
-Chosen console families (stubs only — expand with protocol notes as each is spiked):
+Chosen console families — each `.md` file links **vendor PDFs** and **unofficial references** for **connection + strip naming** (not general mixing). Re-verify URLs and firmware behaviour before implementation:
 
 | File | Manufacturer / console |
 |------|------------------------|
